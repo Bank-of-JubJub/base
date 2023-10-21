@@ -1,0 +1,8 @@
+[package]
+name = "bjj"
+type = "lib"
+authors = [""]
+compiler_version = "0.16.0"
+
+[dependencies]
+biguint = { path = "../biguint" }

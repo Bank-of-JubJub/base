@@ -1,0 +1,61 @@
+account_address = ""
+
+[balance_new_to_encrypted_1]
+x = ""
+y = ""
+
+[balance_new_to_encrypted_2]
+x = ""
+y = ""
+
+[balance_old_to_encrypted_1]
+x = ""
+y = ""
+
+[balance_old_to_encrypted_2]
+x = ""
+y = ""
+
+[[encrypted_value]]
+x = ""
+y = ""
+
+[[encrypted_value]]
+x = ""
+y = ""
+
+[[encrypted_value]]
+x = ""
+y = ""
+
+[[encrypted_value]]
+x = ""
+y = ""
+
+[[encrypted_value]]
+x = ""
+y = ""
+
+[[encrypted_value]]
+x = ""
+y = ""
+
+[[encrypted_value]]
+x = ""
+y = ""
+
+[[encrypted_value]]
+x = ""
+y = ""
+
+[[encrypted_value]]
+x = ""
+y = ""
+
+[[encrypted_value]]
+x = ""
+y = ""
+
+[public_key_to]
+x = ""
+y = ""

@@ -1,0 +1,9 @@
+[package]
+name = "lock"
+type = "bin"
+authors = [""]
+compiler_version = "0.16.0"
+
+[dependencies]
+noir_bigint = { path = "../libs/biguint" }
+bjj = { path = "../libs/bjj" }

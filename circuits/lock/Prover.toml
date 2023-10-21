@@ -1,0 +1,25 @@
+balance_old_clear = ""
+fee = ""
+private_key = ""
+randomness = ""
+value = ""
+
+[balance_new_encrypted_1]
+x = ""
+y = ""
+
+[balance_new_encrypted_2]
+x = ""
+y = ""
+
+[balance_old_encrypted_1]
+x = ""
+y = ""
+
+[balance_old_encrypted_2]
+x = ""
+y = ""
+
+[public_key]
+x = ""
+y = ""

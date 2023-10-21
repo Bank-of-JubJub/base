@@ -1,0 +1,65 @@
+title Private Token
+
+actor Alice
+actor Relayer
+actor Processor
+participant PrivateToken
+participant ERC20
+participant Escrow
+
+
+==Deposit==
+Alice->PrivateToken: deposit
+PrivateToken->ERC20: transferFrom(depositAmt)
+ERC20-->PrivateToken: depositAmt
+note over PrivateToken : Deposit step 1 complete.\nProcess step can be done by\nAlice or a 3rd party
+
+Processor->PrivateToken: processDeposit
+PrivateToken->PrivateToken:updateEncBalance
+PrivateToken->ERC20: transfer(processFee)
+ERC20-->Processor: processFee
+note over PrivateToken : Alice's deposit complete
+
+==Transfer==
+Alice->Relayer: transferProof
+note over Relayer: receives proof off-chain\nthis can hide tx origin
+Relayer->PrivateToken: transfer
+PrivateToken->PrivateToken: addPendingTransfer
+PrivateToken->ERC20:transfer(relayerFee)
+ERC20-->Relayer:relayerFee
+note over PrivateToken: step 1 complete
+Processor->PrivateToken: processPendingTransfers
+PrivateToken->PrivateToken: updateEncBalance
+PrivateToken->ERC20: transfer(processFee)
+ERC20-->Processor: processFee
+
+==Withdraw==
+Alice->Relayer: withdrawProof
+Relayer->PrivateToken: withdraw
+PrivateToken->PrivateToken: updateEncBalance
+PrivateToken->ERC20: transfer(withdrawAmt)
+ERC20-->Alice: withdrawAmt
+PrivateToken->ERC20: transfer(relayFee)
+ERC20-->Relayer: relayFee
+
+==Lock==
+Alice->Relayer: lockProof
+Relayer->PrivateToken: lock
+PrivateToken->PrivateToken: lockToEscrow
+PrivateToken->ERC20: transfer(relayFee)
+ERC20-->Relayer: relayFee
+
+==Escrow==
+
+actor Bob
+
+Alice->Relayer: transferProof
+Relayer->Escrow: escrow
+Escrow->ERC20: transfer(relayFee)
+ERC20-->Relayer: relayFee
+Bob->Escrow: unlockEscrow
+Escrow->PrivateToken:transfer+unlock
+PrivateToken->PrivateToken: updatedEncBalances
+
+==Unlock==
+
