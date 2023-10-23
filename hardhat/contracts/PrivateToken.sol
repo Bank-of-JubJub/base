@@ -550,8 +550,6 @@ contract PrivateToken {
      * @param _proof - proof to verify with the ProcessPendingTransfers circuit
      * @param _newEncryptedAmount - the new encrypted balance of the sender after the fee
      */
-
-    // TODO: Update: I don't think the verifier contract is needed if there is no relay fee
     function lock(
         bytes32 _from,
         address _lockToContract,
@@ -570,19 +568,20 @@ contract PrivateToken {
         lockedTo[_from] = _lockToContract;
         EncryptedAmount memory oldEncryptedAmount = balances[_from];
 
-        bytes32[] memory publicInputs = new bytes32[](11);
+        bytes32[] memory publicInputs = new bytes32[](12);
         // this nonce should be unique because it uses the randomness calculated in the encrypted balance
         publicInputs[0] = bytes32(txNonce);
         publicInputs[1] = bytes32(_from);
-        publicInputs[2] = bytes32(uint256(_relayFee));
-        publicInputs[3] = bytes32(oldEncryptedAmount.C1x);
-        publicInputs[4] = bytes32(oldEncryptedAmount.C1y);
-        publicInputs[5] = bytes32(oldEncryptedAmount.C2x);
-        publicInputs[6] = bytes32(oldEncryptedAmount.C2y);
-        publicInputs[7] = bytes32(_newEncryptedAmount.C1x);
-        publicInputs[8] = bytes32(_newEncryptedAmount.C1y);
-        publicInputs[9] = bytes32(_newEncryptedAmount.C2x);
-        publicInputs[10] = bytes32(_newEncryptedAmount.C2y);
+        publicInputs[2] = bytes32(uint256(uint160(_lockToContract)));
+        publicInputs[3] = bytes32(uint256(_relayFee));
+        publicInputs[4] = bytes32(oldEncryptedAmount.C1x);
+        publicInputs[5] = bytes32(oldEncryptedAmount.C1y);
+        publicInputs[6] = bytes32(oldEncryptedAmount.C2x);
+        publicInputs[7] = bytes32(oldEncryptedAmount.C2y);
+        publicInputs[8] = bytes32(_newEncryptedAmount.C1x);
+        publicInputs[9] = bytes32(_newEncryptedAmount.C1y);
+        publicInputs[10] = bytes32(_newEncryptedAmount.C2x);
+        publicInputs[11] = bytes32(_newEncryptedAmount.C2y);
         LOCK_VERIFIER.verify(_proof, publicInputs);
         token.transfer(
             _relayFeeRecipient,

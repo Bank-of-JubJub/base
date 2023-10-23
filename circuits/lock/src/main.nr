@@ -23,14 +23,16 @@ fn main(private_key: Field,
         // Public Inputs
 
         packed_public_key: pub [u8;32], 
+        lock_to_address: Field,
         relay_fee: pub u40,
         balance_old_encrypted_1: pub Gaffine, 
         balance_old_encrypted_2: pub Gaffine,
         balance_new_encrypted_1: pub Gaffine, 
         balance_new_encrypted_2: pub Gaffine) 
     { 
-    let bjj_affine: AffineCurve = AffineCurve::new(bjj_a, bjj_d, Gaffine::new(bjj_generator_x, bjj_generator_y));
-    let base_pt: Gaffine = Gaffine::new(bjj_basept_x, bjj_basept_y);
+    let bjj_affine = bjj::get_affine_curve();
+    let base_pt = bjj::get_base_point();
+    let public_key = bjj::unpack_point(packed_public_key);
     let embedded_balance_old_me_clear = bjj_affine.mul(balance_old_clear as Field, base_pt);
     let decoded_value = bjj::exp_elgamal_decrypt(private_key, (balance_old_encrypted_1,balance_old_encrypted_2));
     // check that unencrypted balance of withdrawer really corresponds to his encrypted balance
@@ -46,30 +48,3 @@ fn main(private_key: Field,
 #[test]
 fn test_main() {
 }
-
-
-// fn bjj_priv_to_pub_key(private_key: Field) -> Gaffine
-// {
-//  // Define Baby Jubjub (ERC-2494) parameters in affine representation
-//  let bjj_affine: AffineCurve = AffineCurve::new(bjj_a, bjj_d, Gaffine::new(bjj_generator_x, bjj_generator_y));
-//  let base_pt: Gaffine = Gaffine::new(bjj_basept_x, bjj_basept_y);
-//  bjj_affine.mul(private_key, base_pt)
-// }
-
-// fn bjj_exp_elgamal_encrypt(public_key: Gaffine, plaintext: Field, randomness: Field) -> (Gaffine,Gaffine) // same notations as in https://en.wikipedia.org/wiki/ElGamal_encryption 
-// {
-//  let bjj_affine: AffineCurve = AffineCurve::new(bjj_a, bjj_d, Gaffine::new(bjj_generator_x, bjj_generator_y));
-//  let base_pt: Gaffine = Gaffine::new(bjj_basept_x, bjj_basept_y);
-//  let C1: Gaffine = bjj_affine.mul(randomness, base_pt);
-//  let plain_embedded: Gaffine = bjj_affine.mul(plaintext, base_pt);
-//  let shared_secret: Gaffine = bjj_affine.mul(randomness, public_key);
-//  let C2: Gaffine = bjj_affine.add(shared_secret, plain_embedded);
-//  (C1,C2)
-// }
-// fn bjj_exp_elgamal_decrypt(private_key : Field, ciphertext: (Gaffine,Gaffine)) -> Gaffine
-// {
-//  let bjj_affine: AffineCurve = AffineCurve::new(bjj_a, bjj_d, Gaffine::new(bjj_generator_x,bjj_generator_y));
-//  let shared_secret = bjj_affine.mul(private_key,ciphertext.0);
-//  let plain_embedded = bjj_affine.subtract(ciphertext.1,shared_secret);
-//  plain_embedded
-// }
