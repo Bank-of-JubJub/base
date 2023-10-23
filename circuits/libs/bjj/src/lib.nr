@@ -72,9 +72,9 @@ pub fn unpack_point(mut public_key: [u8; 32]) -> Gaffine
   let x2 = xa / xb;
   point.x = ec::sqrt(x2);
 
-  // if(sign) {
-  //   point.x = p - point.x;
-  // } 
+  if(!sign) {
+    point.x = p - point.x;
+  } 
   point
 }
 
