@@ -583,10 +583,12 @@ contract PrivateToken {
         publicInputs[10] = bytes32(_newEncryptedAmount.C2x);
         publicInputs[11] = bytes32(_newEncryptedAmount.C2y);
         LOCK_VERIFIER.verify(_proof, publicInputs);
-        token.transfer(
-            _relayFeeRecipient,
-            uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
-        );
+        if (_relayFee != 0) {
+            token.transfer(
+                _relayFeeRecipient,
+                uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
+            );
+        }
         emit Lock(_from, _lockToContract, _relayFee, _relayFeeRecipient);
     }
 
