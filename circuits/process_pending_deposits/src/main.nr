@@ -38,6 +38,7 @@ fn main(randomness: Field, // randomness used for encryption, amount is already 
     // addition of the points on Baby Jubjub : this operation is additevely homomorphic for Exponential ElGamal
     let balance_new_to_encrypted_computed = 
         (bjj_affine.add(old_enc_balance_1, encrypted_amount.0),bjj_affine.add(old_enc_balance_2, encrypted_amount.1)); 
+    
     // checks that the new encrypted balance of receiver is correct
     assert((balance_new_to_encrypted_computed.0.x==new_enc_balance_1.x) & 
             (balance_new_to_encrypted_computed.0.y==new_enc_balance_1.y) & 
@@ -57,7 +58,22 @@ fn test_process_deposit() {
     let old_balance_clear = 100 as u40;
     let amount = 100 as u40;
     let old_balance_enc : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(public_key, old_balance_clear, randomness);
-    let new_balance_enc : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(public_key, old_balance_clear+amount, randomness);
+
+    let encrypted_amount = bjj::exp_elgamal_encrypt(public_key, amount, randomness);
+    let bjj_affine = bjj::get_affine_curve();
+    // let new_balance_enc = 
+    //     (bjj_affine.add(old_balance_enc.0, encrypted_amount.0),bjj_affine.add(old_balance_enc.1, encrypted_amount.1)); 
+    
+    let new_balance_enc = (
+        Gaffine::new(0x0b958e9d5d179fd5cb5ff51738a09adffb9ce39554074dcc8332a2e9775ffcc0, 0x2afe00f5544394d2ffdefbb9be1e255374c5c9f9c3f89df5e373cfb9148d63a2),
+        Gaffine::new(0x23e93b7376a144c74aa30ad25c3716d1ccc4ebcda61e31dec93b227099ab9e7e, 0x26535d5c4fb9ec872764e3a5918f3e110124f06a9da1c532d64d4aa797aad9f8),
+    );
+
+    // std::println("new balance enc");
+    // std::println(new_balance_enc.0.x);
+    // std::println(new_balance_enc.0.y);
+    // std::println(new_balance_enc.1.x);
+    // std::println(new_balance_enc.1.y);
 
     main(randomness, packed_public_key, amount, old_balance_enc.0, old_balance_enc.1, new_balance_enc.0, new_balance_enc.1);
 }

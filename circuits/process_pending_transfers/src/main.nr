@@ -54,13 +54,22 @@ fn test_main() {
     let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
     let balance: u40 = 1000;
     let old_encrypted_amount = bjj::exp_elgamal_encrypt(public_key, balance, randomness);
+    let bjj_affine = bjj::get_affine_curve();
 
 
     // public values
     let old_balance = bjj::exp_elgamal_encrypt(public_key, balance, randomness);
-    let new_balance_encrypted = bjj::exp_elgamal_encrypt(public_key, balance+400, randomness);
-
     let encryped_value = bjj::exp_elgamal_encrypt(public_key, 100, randomness);
-    let encryped_values = [encryped_value.0, encryped_value.1, encryped_value.0, encryped_value.1, encryped_value.0, encryped_value.1, encryped_value.0, encryped_value.1];
-    main(old_encrypted_amount.0, old_encrypted_amount.1, new_balance_encrypted.0, new_balance_encrypted.1, encryped_values);
+    let encrypted_values = [encryped_value.0, encryped_value.1, encryped_value.0, encryped_value.1, encryped_value.0, encryped_value.1, encryped_value.0, encryped_value.1];
+    let mut encrypted_value_sum = (encrypted_values[0], encrypted_values[1]);
+    for i in 1..3 {
+        let mut s = i*2;
+        if(encrypted_values[s].x as Field != 0){
+            encrypted_value_sum = (bjj_affine.add(encrypted_value_sum.0, encrypted_values[s]),bjj_affine.add(encrypted_value_sum.1, encrypted_values[s+1]));
+        }
+    }
+
+    let new_balance_encrypted = 
+        (bjj_affine.add(old_balance.0, encrypted_value_sum.0),bjj_affine.add(old_balance.1, encrypted_value_sum.1));
+    main(old_encrypted_amount.0, old_encrypted_amount.1, new_balance_encrypted.0, new_balance_encrypted.1, encrypted_values);
 }
