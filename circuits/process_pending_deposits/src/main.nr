@@ -21,49 +21,43 @@ initiated by from=msg.sender in the contract, so replay attack is impossible)
 
 // randomness will be known by processor, but the input amount is already public
 // so no info is leaked
-fn main(
-        randomness: Field, // randomness used for encryption
+fn main(randomness: Field, // randomness used for encryption, amount is already public so doesnt matter
         // Public inputs, this can be executed by anyone
-        public_key_to: pub Gaffine, 
-        account_address: pub Field,
+        packed_public_key: pub [u8;32], 
         amountSum: pub u40,
-        balance_old_to_encrypted_1: pub Gaffine, 
-        balance_old_to_encrypted_2: pub Gaffine,
-        balance_new_to_encrypted_1: pub Gaffine, 
-        balance_new_to_encrypted_2: pub Gaffine,
+        old_enc_balance_1: pub Gaffine, 
+        old_enc_balance_2: pub Gaffine,
+        new_enc_balance_1: pub Gaffine, 
+        new_enc_balance_2: pub Gaffine,
     ) { 
 
-    // check that new balance = the balance_old_me_clear - fee
-
-    assert(std::hash::poseidon::bn254::hash_2([public_key_to.x, public_key_to.y]) == account_address);
-
     let bjj_affine = bjj::get_affine_curve();
-    
-    let mut encrypted_amount = bjj::exp_elgamal_encrypt(public_key_to, amountSum, randomness);
+    let public_key = bjj::unpack_point(packed_public_key);
+    let mut encrypted_amount = bjj::exp_elgamal_encrypt(public_key, amountSum, randomness);
 
     // addition of the points on Baby Jubjub : this operation is additevely homomorphic for Exponential ElGamal
     let balance_new_to_encrypted_computed = 
-        (bjj_affine.add(balance_old_to_encrypted_1, encrypted_amount.0),bjj_affine.add(balance_old_to_encrypted_2, encrypted_amount.1)); 
+        (bjj_affine.add(old_enc_balance_1, encrypted_amount.0),bjj_affine.add(old_enc_balance_2, encrypted_amount.1)); 
     // checks that the new encrypted balance of receiver is correct
-    assert((balance_new_to_encrypted_computed.0.x==balance_new_to_encrypted_1.x) & 
-            (balance_new_to_encrypted_computed.0.y==balance_new_to_encrypted_1.y) & 
-            (balance_new_to_encrypted_computed.1.x==balance_new_to_encrypted_2.x) & 
-            (balance_new_to_encrypted_computed.1.y==balance_new_to_encrypted_2.y)); 
+    assert((balance_new_to_encrypted_computed.0.x==new_enc_balance_1.x) & 
+            (balance_new_to_encrypted_computed.0.y==new_enc_balance_1.y) & 
+            (balance_new_to_encrypted_computed.1.x==new_enc_balance_2.x) & 
+            (balance_new_to_encrypted_computed.1.y==new_enc_balance_2.y)); 
 
 }
 
 // Because of a bug in Noir 10.3, this test will cause a stack overflow error, but you can check that it passes via `nargo prove` instead of `nargo test`: the values inside Prover.toml are strictly equivalent to this test
 #[test]
-fn test_main() {
-   
-    // public values
-    // let public_key_me: Gaffine = bjj_priv_to_pub_key(private_key);
-    // let public_key_to: Gaffine = bjj_priv_to_pub_key(2397698694665525209403000085013646741088197704326090841842743616643093564368); // bjj_priv_to_pub_key(private_key_to)
-    // let balance_old_me_encrypted : (Gaffine,Gaffine) = bjj_exp_elgamal_encrypt(public_key_me, balance_old_me_clear, 1223911427385630814994881905088740515414339792865684838215099796087690786721);
-    // let balance_old_to_encrypted : (Gaffine,Gaffine) = bjj_exp_elgamal_encrypt(public_key_to, 42, 1391605116707840153256607813912547565986654451413670922768018807428594876790);
-    // let balance_new_me_encrypted : (Gaffine,Gaffine) = bjj_exp_elgamal_encrypt(public_key_me, 9900, randomness1);
-    // let balance_new_to_encrypted : (Gaffine,Gaffine) = bjj_exp_elgamal_encrypt(public_key_to, 142, 1391605116707840153256607813912547565986654451413670922768018807428594876790+randomness2);
+fn test_process_deposit() {
+    let private_key: Field = 2291123624948246627368989940774052753470489062495018070576418670157516550852; // see debug notebook for an example on how to compute those
+    let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775; // see debug notebook for an example on how to compute those
+    let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
+    let packed_public_key = bjj::pack_point(public_key);
 
-    // main( public_key_to, balance_old_me_encrypted.0, balance_old_me_encrypted.1, balance_old_to_encrypted.0,
-    //  balance_old_to_encrypted.1, balance_new_me_encrypted.0, balance_new_me_encrypted.1, balance_new_to_encrypted.0,  balance_new_to_encrypted.1);
+    let old_balance_clear = 100 as u40;
+    let amount = 100 as u40;
+    let old_balance_enc : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(public_key, old_balance_clear, 1223911427385630814994881905088740515414339792865684838215099796087690786721);
+    let new_balance_enc : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(public_key, old_balance_clear+amount, 1391605116707840153256607813912547565986654451413670922768018807428594876790);
+
+    main(randomness, packed_public_key, amount, old_balance_enc.0, old_balance_enc.1, new_balance_enc.0, new_balance_enc.1);
 }
