@@ -56,7 +56,8 @@ contract PrivateToken {
     //     uint256 X;
     //     uint256 Y;
     // } // The Public Key should be a point on Baby JubJub elliptic curve : checks must be done offchain before registering to ensure that X<p and Y<p and (X,Y) is on the curve
-    uint256 BJJ_PRIME = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
+    uint256 BJJ_PRIME =
+        21888242871839275222246405745257275088548364400416034343698204186575808495617;
     IERC165 public immutable ERC165;
     ProcessDepositVerifier public immutable PROCESS_DEPOSIT_VERIFIER;
     ProcessTransferVerifier public immutable PROCESS_TRANSFER_VERIFIER;
@@ -78,8 +79,10 @@ contract PrivateToken {
     // hash of public key => the key for the allPendingTransfersMapping
     mapping(bytes32 => uint256) public pendingTransferCounts;
     mapping(bytes32 => uint256) public pendingDepositCounts;
-    mapping(bytes32 => mapping(uint256 => PendingTransfer)) public allPendingTransfersMapping;
-    mapping(bytes32 => mapping(uint256 => PendingDeposit)) public allPendingDepositsMapping;
+    mapping(bytes32 => mapping(uint256 => PendingTransfer))
+        public allPendingTransfersMapping;
+    mapping(bytes32 => mapping(uint256 => PendingDeposit))
+        public allPendingDepositsMapping;
 
     // This prevents replay attacks in the transfer fn
     // packed public key => keccak(new encrypted balance), this should be random enough bc it leverages randomness for encryption
@@ -99,12 +102,37 @@ contract PrivateToken {
 
     */
 
-    event Transfer(bytes32 indexed to, bytes32 indexed from, EncryptedAmount amount);
-    event TransferProcessed(bytes32 to, EncryptedAmount newBalance, uint256 processFee, address processFeeRecipient);
+    event Transfer(
+        bytes32 indexed to,
+        bytes32 indexed from,
+        EncryptedAmount amount
+    );
+    event TransferProcessed(
+        bytes32 to,
+        EncryptedAmount newBalance,
+        uint256 processFee,
+        address processFeeRecipient
+    );
     event Deposit(address from, bytes32 to, uint256 amount, uint256 processFee);
-    event DepositProcessed(bytes32 to, uint256 amount, uint256 processFee, address feeRecipient);
-    event Withdraw(bytes32 from, address to, uint256 amount, address _relayFeeRecipient, uint256 relayFee);
-    event Lock(bytes32 publicKey, address lockedTo, uint256 relayerFee, address relayerFeeRecipient);
+    event DepositProcessed(
+        bytes32 to,
+        uint256 amount,
+        uint256 processFee,
+        address feeRecipient
+    );
+    event Withdraw(
+        bytes32 from,
+        address to,
+        uint256 amount,
+        address _relayFeeRecipient,
+        uint256 relayFee
+    );
+    event Lock(
+        bytes32 publicKey,
+        address lockedTo,
+        uint256 relayerFee,
+        address relayerFeeRecipient
+    );
     event Unlock(bytes32 publicKey, address unlockedFrom);
 
     /**
@@ -128,8 +156,12 @@ contract PrivateToken {
         address _token,
         uint256 _decimals
     ) {
-        PROCESS_DEPOSIT_VERIFIER = ProcessDepositVerifier(_processDepositVerifier);
-        PROCESS_TRANSFER_VERIFIER = ProcessTransferVerifier(_processTransferVerifier);
+        PROCESS_DEPOSIT_VERIFIER = ProcessDepositVerifier(
+            _processDepositVerifier
+        );
+        PROCESS_TRANSFER_VERIFIER = ProcessTransferVerifier(
+            _processTransferVerifier
+        );
         TRANSFER_VERIFIER = TransferVerifier(_transferVerifier);
         WITHDRAW_VERIFIER = WithdrawVerifier(_withdrawVerifier);
         LOCK_VERIFIER = LockVerifier(_lockVerifier);
@@ -159,17 +191,27 @@ contract PrivateToken {
      * @param _processFee - (optional, can be 0) amount to pay the processor of the tx (when processPendingDeposits is called)
      */
 
-    function deposit(address _from, uint256 _amount, bytes32 _to, uint40 _processFee) public {
+    function deposit(
+        address _from,
+        uint256 _amount,
+        bytes32 _to,
+        uint40 _processFee
+    ) public {
         // convert to decimals places. any decimals following 2 are lost
         // max value is u40 - 1, so 1099511627775. with 2 decimals
         // that gives us a max supply of ~11 billion erc20 tokens
-        uint40 amount = uint40(_amount / 10 ** (SOURCE_TOKEN_DECIMALS - decimals));
+        uint40 amount = uint40(
+            _amount / 10 ** (SOURCE_TOKEN_DECIMALS - decimals)
+        );
         require(totalSupply + amount < type(uint40).max, "Amount is too big");
         token.transferFrom(_from, address(this), uint256(_amount));
         // keep the fee - users can add a fee to incentivize processPendingDeposits
         amount = amount - _processFee;
         uint256 depositCount = pendingDepositCounts[_to];
-        allPendingDepositsMapping[_to][depositCount] = PendingDeposit(amount, _processFee);
+        allPendingDepositsMapping[_to][depositCount] = PendingDeposit(
+            amount,
+            _processFee
+        );
         pendingDepositCounts[_to] += 1;
         totalSupply += amount;
         emit Deposit(_from, _to, amount, _processFee);
@@ -210,21 +252,28 @@ contract PrivateToken {
     ) public {
         uint256 txNonce = checkAndUpdateNonce(_from, _senderNewBalance);
         address lockedByAddress = lockedTo[_from];
-        require(lockedByAddress == address(0) || lockedByAddress == msg.sender, "account is locked to another account");
+        require(
+            lockedByAddress == address(0) || lockedByAddress == msg.sender,
+            "account is locked to another account"
+        );
         EncryptedAmount memory oldBalance = balances[_from];
         EncryptedAmount memory receiverBalance = balances[_to];
 
-        bool zeroBalance = (
-            receiverBalance.C1x == 0 && receiverBalance.C2x == 0 && receiverBalance.C1y == 0 && receiverBalance.C2y == 0
-        );
+        bool zeroBalance = (receiverBalance.C1x == 0 &&
+            receiverBalance.C2x == 0 &&
+            receiverBalance.C1y == 0 &&
+            receiverBalance.C2y == 0);
         if (zeroBalance) {
             // no fee required if a new account
             _processFee = 0;
             balances[_to] = _amountToSend;
         } else {
             uint256 transferCount = pendingTransferCounts[_to];
-            allPendingTransfersMapping[_to][transferCount] =
-                PendingTransfer(_amountToSend, _processFee, block.timestamp);
+            allPendingTransfersMapping[_to][transferCount] = PendingTransfer(
+                _amountToSend,
+                _processFee,
+                block.timestamp
+            );
             pendingTransferCounts[_to] += 1;
         }
 
@@ -246,12 +295,18 @@ contract PrivateToken {
         publicInputs[16] = bytes32(_senderNewBalance.C1y);
         publicInputs[17] = bytes32(_senderNewBalance.C2x);
         publicInputs[18] = bytes32(_senderNewBalance.C2y);
-        require(TRANSFER_VERIFIER.verify(_proof_transfer, publicInputs), "Transfer proof is invalid");
+        require(
+            TRANSFER_VERIFIER.verify(_proof_transfer, publicInputs),
+            "Transfer proof is invalid"
+        );
 
         balances[_from] = _senderNewBalance;
         emit Transfer(_from, _to, _amountToSend);
         if (_relayFee != 0) {
-            token.transfer(_relayFeeRecipient, _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals));
+            token.transfer(
+                _relayFeeRecipient,
+                _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)
+            );
         }
     }
 
@@ -281,7 +336,10 @@ contract PrivateToken {
     ) public {
         uint256 txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
         address lockedToAddress = lockedTo[_from];
-        require(lockedToAddress == address(0) || lockedToAddress == msg.sender, "account is locked to another account");
+        require(
+            lockedToAddress == address(0) || lockedToAddress == msg.sender,
+            "account is locked to another account"
+        );
         // TODO: fee
         EncryptedAmount memory oldEncryptedAmount = balances[_from];
         bytes32[] memory publicInputs = new bytes32[](11);
@@ -298,16 +356,29 @@ contract PrivateToken {
         publicInputs[8] = bytes32(_newEncryptedAmount.C1y);
         publicInputs[9] = bytes32(_newEncryptedAmount.C2x);
         publicInputs[10] = bytes32(_newEncryptedAmount.C2y);
-        require(WITHDRAW_VERIFIER.verify(_withdraw_proof, publicInputs), "Withdraw proof is invalid");
+        require(
+            WITHDRAW_VERIFIER.verify(_withdraw_proof, publicInputs),
+            "Withdraw proof is invalid"
+        );
         // calculate the new total encrypted supply offchain, replace existing value (not an increment)
         balances[_from] = _newEncryptedAmount;
         totalSupply -= _amount;
         if (_relayFee != 0) {
-            token.transfer(_relayFeeRecipient, uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)));
+            token.transfer(
+                _relayFeeRecipient,
+                uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
+            );
         }
-        uint256 convertedAmount = _amount * 10 ** (SOURCE_TOKEN_DECIMALS - decimals);
+        uint256 convertedAmount = _amount *
+            10 ** (SOURCE_TOKEN_DECIMALS - decimals);
         token.transfer(_to, convertedAmount);
-        emit Withdraw(_from, _to, convertedAmount, _relayFeeRecipient, _relayFee);
+        emit Withdraw(
+            _from,
+            _to,
+            convertedAmount,
+            _relayFeeRecipient,
+            _relayFee
+        );
     }
 
     /**
@@ -342,30 +413,43 @@ contract PrivateToken {
         );
 
         for (uint8 i = 0; i < numTxsToProcess; i++) {
-            userPendingDepositsArray[i] = allPendingDepositsMapping[_recipient][_txsToProcess[i]];
+            userPendingDepositsArray[i] = allPendingDepositsMapping[_recipient][
+                _txsToProcess[i]
+            ];
             delete allPendingDepositsMapping[_recipient][_txsToProcess[i]];
             totalAmount += userPendingDepositsArray[i].amount;
             totalFees += userPendingDepositsArray[i].fee;
         }
 
-        bytes32[] memory publicInputs = new bytes32[](12);
-        publicInputs[2] = bytes32(_recipient);
-        publicInputs[3] = bytes32(totalAmount);
-        publicInputs[4] = bytes32(oldBalance.C1x);
-        publicInputs[5] = bytes32(oldBalance.C1y);
-        publicInputs[6] = bytes32(oldBalance.C2x);
-        publicInputs[7] = bytes32(oldBalance.C2y);
-        publicInputs[8] = bytes32(_newBalance.C1x);
-        publicInputs[9] = bytes32(_newBalance.C1y);
-        publicInputs[10] = bytes32(_newBalance.C2x);
-        publicInputs[11] = bytes32(_newBalance.C2y);
+        bytes32[] memory publicInputs = new bytes32[](10);
+        publicInputs[0] = bytes32(_recipient);
+        publicInputs[1] = bytes32(totalAmount);
+        publicInputs[2] = bytes32(oldBalance.C1x);
+        publicInputs[3] = bytes32(oldBalance.C1y);
+        publicInputs[4] = bytes32(oldBalance.C2x);
+        publicInputs[5] = bytes32(oldBalance.C2y);
+        publicInputs[6] = bytes32(_newBalance.C1x);
+        publicInputs[7] = bytes32(_newBalance.C1y);
+        publicInputs[8] = bytes32(_newBalance.C2x);
+        publicInputs[9] = bytes32(_newBalance.C2y);
 
-        require(PROCESS_DEPOSIT_VERIFIER.verify(_proof, publicInputs), "Process pending proof is invalid");
+        require(
+            PROCESS_DEPOSIT_VERIFIER.verify(_proof, publicInputs),
+            "Process pending proof is invalid"
+        );
         balances[_recipient] = _newBalance;
         if (totalFees != 0) {
-            token.transfer(_feeRecipient, uint256(totalFees * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)));
+            token.transfer(
+                _feeRecipient,
+                uint256(totalFees * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
+            );
         }
-        emit DepositProcessed(_recipient, totalAmount, totalFees, _feeRecipient);
+        emit DepositProcessed(
+            _recipient,
+            totalAmount,
+            totalFees,
+            _feeRecipient
+        );
     }
 
     /**
@@ -413,23 +497,44 @@ contract PrivateToken {
                 publicInputs[10 + 4 * i] = bytes32(0);
                 publicInputs[11 + 4 * i] = bytes32(0);
             } else {
-                pendingTransfers[i] = allPendingTransfersMapping[_recipient][_txsToProcess[i]];
+                pendingTransfers[i] = allPendingTransfersMapping[_recipient][
+                    _txsToProcess[i]
+                ];
                 delete allPendingTransfersMapping[_recipient][_txsToProcess[i]];
                 require(block.timestamp > pendingTransfers[i].time);
-                publicInputs[8 + 4 * i] = bytes32(pendingTransfers[i].amount.C1x);
-                publicInputs[9 + 4 * i] = bytes32(pendingTransfers[i].amount.C1y);
-                publicInputs[10 + 4 * i] = bytes32(pendingTransfers[i].amount.C2x);
-                publicInputs[11 + 4 * i] = bytes32(pendingTransfers[i].amount.C2y);
+                publicInputs[8 + 4 * i] = bytes32(
+                    pendingTransfers[i].amount.C1x
+                );
+                publicInputs[9 + 4 * i] = bytes32(
+                    pendingTransfers[i].amount.C1y
+                );
+                publicInputs[10 + 4 * i] = bytes32(
+                    pendingTransfers[i].amount.C2x
+                );
+                publicInputs[11 + 4 * i] = bytes32(
+                    pendingTransfers[i].amount.C2y
+                );
                 totalFees += pendingTransfers[i].fee;
             }
         }
 
-        require(PROCESS_TRANSFER_VERIFIER.verify(_proof, publicInputs), "Process pending proof is invalid");
+        require(
+            PROCESS_TRANSFER_VERIFIER.verify(_proof, publicInputs),
+            "Process pending proof is invalid"
+        );
         balances[_recipient] = _newBalance;
         if (totalFees != 0) {
-            token.transfer(_feeRecipient, uint256(totalFees * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)));
+            token.transfer(
+                _feeRecipient,
+                uint256(totalFees * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
+            );
         }
-        emit TransferProcessed(_recipient, _newBalance, totalFees, _feeRecipient);
+        emit TransferProcessed(
+            _recipient,
+            _newBalance,
+            totalFees,
+            _feeRecipient
+        );
     }
 
     // the contract this is locked to must call unlock to give control back to this contract
@@ -457,7 +562,10 @@ contract PrivateToken {
         uint256 txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
         require(lockedTo[_from] == address(0), "account is already locked");
         // figure out actual function signature, this is just a placeholder
-        require(_lockToContract.supportsInterface(0x80ac58cd), "contract does not implement unlock");
+        require(
+            _lockToContract.supportsInterface(0x80ac58cd),
+            "contract does not implement unlock"
+        );
         lockedTo[_from] = _lockToContract;
         EncryptedAmount memory oldEncryptedAmount = balances[_from];
 
@@ -477,7 +585,10 @@ contract PrivateToken {
         publicInputs[11] = bytes32(_newEncryptedAmount.C2y);
         LOCK_VERIFIER.verify(_proof, publicInputs);
         if (_relayFee != 0) {
-            token.transfer(_relayFeeRecipient, uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)));
+            token.transfer(
+                _relayFeeRecipient,
+                uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
+            );
         }
         emit Lock(_from, _lockToContract, _relayFee, _relayFeeRecipient);
     }
@@ -497,8 +608,12 @@ contract PrivateToken {
         lockedTo[publicKey] = address(0);
     }
 
-    function checkAndUpdateNonce(bytes32 _from, EncryptedAmount memory _encryptedAmount) internal returns (uint256) {
-        uint256 txNonce = uint256(keccak256(abi.encode(_encryptedAmount))) % BJJ_PRIME;
+    function checkAndUpdateNonce(
+        bytes32 _from,
+        EncryptedAmount memory _encryptedAmount
+    ) internal returns (uint256) {
+        uint256 txNonce = uint256(keccak256(abi.encode(_encryptedAmount))) %
+            BJJ_PRIME;
         require(nonce[_from][txNonce] == false, "nonce is not unique");
         nonce[_from][txNonce] = true;
         return txNonce;
