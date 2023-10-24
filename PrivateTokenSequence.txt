@@ -49,17 +49,15 @@ Bank of JubJub->Bank of JubJub: lockToEscrow
 Bank of JubJub->ERC20: transfer(relayFee)
 ERC20-->Relayer: relayFee
 
-==Escrow==
-
-actor Bob
+==Auction==
 
 Alice->Relayer: transferProof
-Relayer->Escrow: escrow
-Escrow->ERC20: transfer(relayFee)
+Relayer->Auction: bid(amt)
+Auction->ERC20: transfer(relayFee)
 ERC20-->Relayer: relayFee
-Bob->Escrow: unlockEscrow
-Escrow->Bank of JubJub:transfer+unlock
+Relayer->Auction: settle()
+Auction-->Bank of JubJub:transfer(amt)
+Auction-->Bank of JubJub:unlock(Alice)
 Bank of JubJub->Bank of JubJub: updatedEncBalances
 
-==Unlock==
 
