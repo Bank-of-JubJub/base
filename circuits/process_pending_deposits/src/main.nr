@@ -50,7 +50,7 @@ fn main(randomness: Field, // randomness used for encryption, amount is already 
 // Because of a bug in Noir 10.3, this test will cause a stack overflow error, but you can check that it passes via `nargo prove` instead of `nargo test`: the values inside Prover.toml are strictly equivalent to this test
 #[test]
 fn test_process_deposit() {
-    let private_key: Field = 2291123624948246627368989940774052753470489062495018070576418670157516550852; // see debug notebook for an example on how to compute those
+    let private_key: Field = 0x0510bae26a9b59ebad67a4324c944b1910a778e8481d7f08ddba6bcd2b94b2c4; // see debug notebook for an example on how to compute those
     let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775; // see debug notebook for an example on how to compute those
     let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
     let packed_public_key = bjj::pack_point(public_key);
@@ -61,13 +61,15 @@ fn test_process_deposit() {
 
     let encrypted_amount = bjj::exp_elgamal_encrypt(public_key, amount, randomness);
     let bjj_affine = bjj::get_affine_curve();
-    // let new_balance_enc = 
-    //     (bjj_affine.add(old_balance_enc.0, encrypted_amount.0),bjj_affine.add(old_balance_enc.1, encrypted_amount.1)); 
-    
-    let new_balance_enc = (
-        Gaffine::new(0x0b958e9d5d179fd5cb5ff51738a09adffb9ce39554074dcc8332a2e9775ffcc0, 0x2afe00f5544394d2ffdefbb9be1e255374c5c9f9c3f89df5e373cfb9148d63a2),
-        Gaffine::new(0x23e93b7376a144c74aa30ad25c3716d1ccc4ebcda61e31dec93b227099ab9e7e, 0x26535d5c4fb9ec872764e3a5918f3e110124f06a9da1c532d64d4aa797aad9f8),
-    );
+    let new_balance_enc = 
+        (bjj_affine.add(old_balance_enc.0, encrypted_amount.0),bjj_affine.add(old_balance_enc.1, encrypted_amount.1)); 
+
+    let bjj_affine = bjj::get_affine_curve();
+    let base_pt = bjj::get_base_point();
+    let embedded_balance = bjj_affine.mul(200, base_pt);
+    let decoded_value = bjj::exp_elgamal_decrypt(private_key, new_balance_enc);
+    assert(decoded_value.x==embedded_balance.x);
+    assert(decoded_value.y==embedded_balance.y);
 
     // std::println("new balance enc");
     // std::println(new_balance_enc.0.x);

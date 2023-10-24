@@ -71,5 +71,12 @@ fn test_main() {
 
     let new_balance_encrypted = 
         (bjj_affine.add(old_balance.0, encrypted_value_sum.0),bjj_affine.add(old_balance.1, encrypted_value_sum.1));
+    
+    let base_pt = bjj::get_base_point();
+    let embedded_balance = bjj_affine.mul(1400, base_pt);
+    let decoded_value = bjj::exp_elgamal_decrypt(private_key, new_balance_encrypted);
+    assert(decoded_value.x==embedded_balance.x);
+    assert(decoded_value.y==embedded_balance.y);
+    
     main(old_encrypted_amount.0, old_encrypted_amount.1, new_balance_encrypted.0, new_balance_encrypted.1, encrypted_values);
 }
