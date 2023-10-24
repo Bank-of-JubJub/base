@@ -56,8 +56,8 @@ fn test_process_deposit() {
 
     let old_balance_clear = 100 as u40;
     let amount = 100 as u40;
-    let old_balance_enc : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(public_key, old_balance_clear, 1223911427385630814994881905088740515414339792865684838215099796087690786721);
-    let new_balance_enc : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(public_key, old_balance_clear+amount, 1391605116707840153256607813912547565986654451413670922768018807428594876790);
+    let old_balance_enc : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(public_key, old_balance_clear, randomness);
+    let new_balance_enc : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(public_key, old_balance_clear+amount, randomness);
 
     main(randomness, packed_public_key, amount, old_balance_enc.0, old_balance_enc.1, new_balance_enc.0, new_balance_enc.1);
 }
