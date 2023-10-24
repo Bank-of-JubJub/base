@@ -29,7 +29,7 @@ fn main(// All Public inputs, this can be executed by anyone
     
     let mut encrypted_value_sum = (encrypted_values[0], encrypted_values[1]);
 
-    for i in 1..3 {
+    for i in 1..4 {
         let mut s = i*2;
         if(encrypted_values[s].x as Field != 0){
             encrypted_value_sum = (bjj_affine.add(encrypted_value_sum.0, encrypted_values[s]),bjj_affine.add(encrypted_value_sum.1, encrypted_values[s+1]));
@@ -62,7 +62,7 @@ fn test_main() {
     let encryped_value = bjj::exp_elgamal_encrypt(public_key, 100, randomness);
     let encrypted_values = [encryped_value.0, encryped_value.1, encryped_value.0, encryped_value.1, encryped_value.0, encryped_value.1, encryped_value.0, encryped_value.1];
     let mut encrypted_value_sum = (encrypted_values[0], encrypted_values[1]);
-    for i in 1..3 {
+    for i in 1..4 {
         let mut s = i*2;
         if(encrypted_values[s].x as Field != 0){
             encrypted_value_sum = (bjj_affine.add(encrypted_value_sum.0, encrypted_values[s]),bjj_affine.add(encrypted_value_sum.1, encrypted_values[s+1]));
@@ -77,6 +77,6 @@ fn test_main() {
     let decoded_value = bjj::exp_elgamal_decrypt(private_key, new_balance_encrypted);
     assert(decoded_value.x==embedded_balance.x);
     assert(decoded_value.y==embedded_balance.y);
-    
+
     main(old_encrypted_amount.0, old_encrypted_amount.1, new_balance_encrypted.0, new_balance_encrypted.1, encrypted_values);
 }
