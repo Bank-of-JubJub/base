@@ -14,27 +14,33 @@ async function main() {
     const amount = 10;
 
     // console.log('private key', priv_key)
-    console.log('pub key', pub_key.x.toString(16), pub_key.y.toString(16))
+    // console.log('pub key', pub_key.x.toString(16), pub_key.y.toString(16))
     // console.log('pub key ARRAY', pub_key_array)
 
-    console.log(21888242871839275222246405745257275088548364400416034343698204186575808495617n.toString(16) > priv_key)
+    // console.log(21888242871839275222246405745257275088548364400416034343698204186575808495617n.toString(16) > priv_key)
 
     // console.log('array length', pub_key_array[0].length)
 
 
     let packedPublicKey = babyjubjubUtils.packPublicKey(pub_key_array)
     // console.log('packed public key', packedPublicKey)
-    console.log('packed as hex', uint8ArrayToHexArray(packedPublicKey))
+    // console.log('packed as hex', uint8ArrayToHexArray(packedPublicKey))
     // The unpacked key is different than the original Public Key, 
     // but additional packing/unpacking will always produce the same
     // packed/unpacked key 
     let unpackedKey = babyjubjubUtils.unpackPoint(packedPublicKey)
-    console.log('unpacked pub key', unpackedKey)
+    // console.log('unpacked pub key', unpackedKey)
     console.log('packed and unpacked points match',
         compareUint8Arrays(unpackedKey[0], bigintToUint8Array(pub_key.x)) &&
         compareUint8Arrays(unpackedKey[1], bigintToUint8Array(pub_key.y)))
 
     const initial_balance_enc = babyjubjubUtils.exp_elgamal_encrypt(pub_key, initial_balance);
+    const amount_to_add = 100;
+    const encrypted_amount = babyjubjubUtils.exp_elgamal_encrypt(pub_key, amount_to_add);
+
+    const new_balance = { C1: babyjubjubUtils.add_points(initial_balance_enc.C1, encrypted_amount.C1), C2: (babyjubjubUtils.add_points(initial_balance_enc.C2, encrypted_amount.C2)) };
+
+    console.log("balance after encrypted addition", new_balance);
 
     // console.log("F half", (babyjubjubUtils.getF()).half)
     // console.log("pm1d2", babyjubjubUtils.getPm1d2())

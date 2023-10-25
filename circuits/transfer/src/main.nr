@@ -113,7 +113,7 @@ fn test_transfer() {
         old_encrypted_balance.1,
         encrypted_amount.0,
         encrypted_amount.1,
-        new balance_encrypted.0,
+        new_balance_encrypted.0,
         new_balance_encrypted.1); 
 }
 

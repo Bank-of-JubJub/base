@@ -13,7 +13,7 @@ DEST_PATH="hardhat/contracts"
 # Loop through each source path in PATHS
 for LOCATION in "${LOCATIONS[@]}"; do
     # Check if the current source folder exists
-    SRC_PATH="circuits/${LOCATION}/contract/${LOCATION}/plonk_vk.sol"
+    SRC_PATH="contract/${LOCATION}/plonk_vk.sol"
     if [[ -f "$SRC_PATH" ]]; then
         # Extract the folder name from the source path
         FOLDER_NAME=$(basename "$SRC_PATH")

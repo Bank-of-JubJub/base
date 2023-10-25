@@ -1,76 +1,75 @@
-// Verification Key Hash: 2efadb2434f2ab32310d99a97eeeefc9d8434cdec6d0385aa59a42b25144768d
+// Verification Key Hash: 8a405b0095b013af4d7fd92428525a2f94f6ac223f28bee4651818d354e91d2a
 // SPDX-License-Identifier: Apache-2.0
 // Copyright 2022 Aztec
 pragma solidity >=0.8.4;
 
 library UltraVerificationKey {
     function verificationKeyHash() internal pure returns(bytes32) {
-        return 0x2efadb2434f2ab32310d99a97eeeefc9d8434cdec6d0385aa59a42b25144768d;
+        return 0x8a405b0095b013af4d7fd92428525a2f94f6ac223f28bee4651818d354e91d2a;
     }
 
     function loadVerificationKey(uint256 _vk, uint256 _omegaInverseLoc) internal pure {
         assembly {
-            mstore(add(_vk, 0x00), 0x0000000000000000000000000000000000000000000000000000000000010000) // vk.circuit_size
-            mstore(add(_vk, 0x20), 0x000000000000000000000000000000000000000000000000000000000000000b) // vk.num_inputs
-            mstore(add(_vk, 0x40), 0x00eeb2cb5981ed45649abebde081dcff16c8601de4347e7dd1628ba2daac43b7) // vk.work_root
-            mstore(add(_vk, 0x60), 0x30641e0e92bebef818268d663bcad6dbcfd6c0149170f6d7d350b1b1fa6c1001) // vk.domain_inverse
-            mstore(add(_vk, 0x80), 0x2b991ac9542f142d4029bbb279c26b63dba97e29136a04d27d71ed32364f180c) // vk.Q1.x
-            mstore(add(_vk, 0xa0), 0x268500bc2da526aacc7feaac78b3ad9dc3d80c2769659703e1eb43a04b4ec9d8) // vk.Q1.y
-            mstore(add(_vk, 0xc0), 0x261429a407304787972de5c469520b4903990274500432b4fbc0344dbc2a802c) // vk.Q2.x
-            mstore(add(_vk, 0xe0), 0x017ab60dba513aa4e6769d0496ae84f56e8676abe68a83cd5da7f09e58569d72) // vk.Q2.y
-            mstore(add(_vk, 0x100), 0x1860960383efd5cf9c13785314af16c197a9809a3c2e50fa5ee1b17401ad4b94) // vk.Q3.x
-            mstore(add(_vk, 0x120), 0x0eaae951ee9162b9878080aba6576b5a1b448ab92eb741d26062b6bbb4564904) // vk.Q3.y
-            mstore(add(_vk, 0x140), 0x1f223f9287eb9ca0c535ca06aa155a7335af8c202d1c0666c461f3bcb30afa03) // vk.Q4.x
-            mstore(add(_vk, 0x160), 0x1a4d60a539176f63545d3c8309e9f11fe5dc6bc664082872cb7c8b556da416ff) // vk.Q4.y
-            mstore(add(_vk, 0x180), 0x0d3b8e846c999610b8109c51da89aa61bc0ed4cd869f4a93725692aa12236b8d) // vk.Q_M.x
-            mstore(add(_vk, 0x1a0), 0x0a0a0cae8a4974a353a9943c9c03d9f202078c9e124dc6722bdd77a878d3bb61) // vk.Q_M.y
-            mstore(add(_vk, 0x1c0), 0x2a94fc775515976acdc48f349f1636957c2351fd3a4b8ef29024aabafc5a345c) // vk.Q_C.x
-            mstore(add(_vk, 0x1e0), 0x29c56ec1e67c07b6a4ed64adc2a54f6dc3941a8c9c206daee6b04f9fb0ddbab3) // vk.Q_C.y
-            mstore(add(_vk, 0x200), 0x1e6d6067da03af6cf7bee905d1b17178201ae12fe8ae4d9e9a3d9d0117296e33) // vk.Q_ARITHMETIC.x
-            mstore(add(_vk, 0x220), 0x06c6f4242a142a9c7babb54585d3978fe8009237d7e016b67e435397f0070319) // vk.Q_ARITHMETIC.y
-            mstore(add(_vk, 0x240), 0x2113a1ee3f04180bc797f2f45a81f906af3d308909827277ad536a4d97bd61e4) // vk.QSORT.x
-            mstore(add(_vk, 0x260), 0x13f08c0cb23fb1a1a48d80564e67659e10e2140fcad70f242a6c2de029df1f56) // vk.QSORT.y
-            mstore(add(_vk, 0x280), 0x21245d6c0a4d2ff12b21a825f39f30e8f8cf9b259448d111183e975828539576) // vk.Q_ELLIPTIC.x
-            mstore(add(_vk, 0x2a0), 0x16a409532c8a1693536e93b6ce9920bfc2e6796e8dfe404675a0cdf6ee77ee7a) // vk.Q_ELLIPTIC.y
-            mstore(add(_vk, 0x2c0), 0x2f213c7a4c064a63d6a07366df0ea85aef9ad2125a188c3e656f95471e416a0a) // vk.Q_AUX.x
-            mstore(add(_vk, 0x2e0), 0x067a270bed55e72ffb3cfa39af3e5b8bcb4961d72bb301978af13c4ddc73e5df) // vk.Q_AUX.y
-            mstore(add(_vk, 0x300), 0x246780620ebcf383fa2dd5bbbd7902a1eaf83f8d0a7e8520a8fd370a05ca594d) // vk.SIGMA1.x
-            mstore(add(_vk, 0x320), 0x1771f8ea10e05eb866c330ff49445ebec8a7b625c36ccb13e729468b4c6d4506) // vk.SIGMA1.y
-            mstore(add(_vk, 0x340), 0x114014f91976e972574831d65783f702e46f1a7340fdf682dbcbeafb4e740406) // vk.SIGMA2.x
-            mstore(add(_vk, 0x360), 0x1cb9f8fd30818903fef146947e133e7972677bfc4e58ac1bd31c0bb7b3509e54) // vk.SIGMA2.y
-            mstore(add(_vk, 0x380), 0x0106774a4319ffc8a1990eca53b91978e2690d956d4bc4e0c90e4b8414c63747) // vk.SIGMA3.x
-            mstore(add(_vk, 0x3a0), 0x12f57d97971c6bd36a088a07e8cd9af0f1aa9eb656da9305c878b4c6dbd8ebd2) // vk.SIGMA3.y
-            mstore(add(_vk, 0x3c0), 0x0c3ff904f8114327ade5bf51ba4e9d837af61fde62a52df89c27b77830803185) // vk.SIGMA4.x
-            mstore(add(_vk, 0x3e0), 0x1c705e597c430360bacd1c04146b2ee62d3f082796a2065854d6592226eef038) // vk.SIGMA4.y
-            mstore(add(_vk, 0x400), 0x187e7e35d0116a6672b2670f83bf4f3257d2c5f95ca990943deb07f98e573f87) // vk.TABLE1.x
-            mstore(add(_vk, 0x420), 0x01d2b37054e35124153a8d470749d60e55759ae7aa52dd33c253d7f49f31b768) // vk.TABLE1.y
-            mstore(add(_vk, 0x440), 0x2043ac05206a2f580ed0a148adfaa26ef5516184126c9e67a8741e133af924cc) // vk.TABLE2.x
-            mstore(add(_vk, 0x460), 0x2bf9b2f5f18eac63843fec205836e0e4cf77146523cb2b703ec9fd6f505b2a32) // vk.TABLE2.y
-            mstore(add(_vk, 0x480), 0x01239374280500d61d963adeadc1cfef87ce7f19adb4f4f90c79f63d96468023) // vk.TABLE3.x
-            mstore(add(_vk, 0x4a0), 0x0290f83ff91799507e620788f5072a71dd03df9c5605f9594bec63d1763724ca) // vk.TABLE3.y
-            mstore(add(_vk, 0x4c0), 0x089ec02dcc6b3216cf9b4418e0827ad4b07d55d3ffa2b21da0743809bae4c2c8) // vk.TABLE4.x
-            mstore(add(_vk, 0x4e0), 0x1c522d467e79e574c6bce1ef45cbb9598cc3a99de2de1ce994d0b657450b05b2) // vk.TABLE4.y
-            mstore(add(_vk, 0x500), 0x2546faf6466689ca90de400304774d39e62e214c390b3a8673079fdbddecbd33) // vk.TABLE_TYPE.x
-            mstore(add(_vk, 0x520), 0x1d6d3e828b1f70d792d184284184663d315a9e15827e8b76bcb8118293212f18) // vk.TABLE_TYPE.y
-            mstore(add(_vk, 0x540), 0x0ab92803eef9c2ce19fa9d2a61496f9c7eb10e1bc8abf52864861eeeeb0bf145) // vk.ID1.x
-            mstore(add(_vk, 0x560), 0x2fb8f2de9bd6eca24ab5fc104afad17364cde99477b78331c0017484c35ddaea) // vk.ID1.y
-            mstore(add(_vk, 0x580), 0x2d095972197c3c751066eda5d396026e127ed9826a82eceedddad9a720cd1919) // vk.ID2.x
-            mstore(add(_vk, 0x5a0), 0x23d76b2fb00eb3ef20c4b4693fe23b707caeada5d2a76c9f9c590acad534ba00) // vk.ID2.y
-            mstore(add(_vk, 0x5c0), 0x031cb884364875e4089488cc54376b4fb95b3872dde6e790848af1f07abc7f2b) // vk.ID3.x
-            mstore(add(_vk, 0x5e0), 0x1c683fc1a2c9b1ccd320ea4d1c0517e0e458a5b3bd4bbabecaa10b028b6f7579) // vk.ID3.y
-            mstore(add(_vk, 0x600), 0x233b31aea9827c86307d54b4b5f697865052cab1418cefdbf29b7727bdfbbb19) // vk.ID4.x
-            mstore(add(_vk, 0x620), 0x15f39e013ae25a6125a8232035dfb724d94b72d05673cada806a6c6f2ec2395c) // vk.ID4.y
+            mstore(add(_vk, 0x00), 0x0000000000000000000000000000000000000000000000000000000000020000) // vk.circuit_size
+            mstore(add(_vk, 0x20), 0x000000000000000000000000000000000000000000000000000000000000002b) // vk.num_inputs
+            mstore(add(_vk, 0x40), 0x1bf82deba7d74902c3708cc6e70e61f30512eca95655210e276e5858ce8f58e5) // vk.work_root
+            mstore(add(_vk, 0x60), 0x30643640b9f82f90e83b698e5ea6179c7c05542e859533b48b9953a2f5360801) // vk.domain_inverse
+            mstore(add(_vk, 0x80), 0x090c7eda84c65ef85300f3e890bdaf36c83913a2711296210b01a0bedca8ac00) // vk.Q1.x
+            mstore(add(_vk, 0xa0), 0x0ba034ca08cb79c4bea83639655eb8b0a969e68308726b61e0ddf7dd39d02af4) // vk.Q1.y
+            mstore(add(_vk, 0xc0), 0x0ee5e470a6dd766dacdd376af0e6c3e2e55ba8b879fd14971dc0706bb756964b) // vk.Q2.x
+            mstore(add(_vk, 0xe0), 0x2035fc89c30f316dc2122273be574e0462a6661b2ab667601fd6c9082ed62606) // vk.Q2.y
+            mstore(add(_vk, 0x100), 0x246b4b26faddec93239d2cd6587fe2440aad61842bf650ba696be0ebc65e8617) // vk.Q3.x
+            mstore(add(_vk, 0x120), 0x0903a7cb662629718aeb3179bcd486ee07b2a5147addfccedef19e2c64630693) // vk.Q3.y
+            mstore(add(_vk, 0x140), 0x1d8e8679b281205229fe50aa5aa5dfd4944803d979c0ecdf846f2975bf47b374) // vk.Q4.x
+            mstore(add(_vk, 0x160), 0x0d2446c6ccb2281e3aec2cb1bf604f4160f0ce351b435a994a110e1192d65132) // vk.Q4.y
+            mstore(add(_vk, 0x180), 0x04a76b210a8f1fc740efab247c15d0b4fd75f3b6564c6f399918a7061b1c15a3) // vk.Q_M.x
+            mstore(add(_vk, 0x1a0), 0x14bcf49fd33e796086b44ffc4ea617a362a2ed9be367de566ebaacaf51b391ab) // vk.Q_M.y
+            mstore(add(_vk, 0x1c0), 0x285d59bfd87b2a749316afdde62082e2d3524c149a437ba014fae980182a71ec) // vk.Q_C.x
+            mstore(add(_vk, 0x1e0), 0x0c89f02d0b012c770383ee1e81a5168733890c7c5ab85ad63d16c6d419612dd9) // vk.Q_C.y
+            mstore(add(_vk, 0x200), 0x2a9241b8547fa36b53705c84585d937fe8d0099ba1eeff81ea07c64233240006) // vk.Q_ARITHMETIC.x
+            mstore(add(_vk, 0x220), 0x12041de86c7efa3bc9eb6d14927b40af0f58bee39baacc6343f5ebad5c08427f) // vk.Q_ARITHMETIC.y
+            mstore(add(_vk, 0x240), 0x174c20f7059a462f5fa99823108277c32176a0ac595e4fec1bf87ec9e18a6ed5) // vk.QSORT.x
+            mstore(add(_vk, 0x260), 0x25ebab21c9c573d26ceed465ed1ba9430509c55dede20e69d7ee3bf90aa06572) // vk.QSORT.y
+            mstore(add(_vk, 0x280), 0x28b955aac4c043cbcfde06eee59b44363f96fe0a6fa93b0b36ef07fbe285d4c7) // vk.Q_ELLIPTIC.x
+            mstore(add(_vk, 0x2a0), 0x16e1bbb0a7728dcb7696fdf3361b39510c6a4f83cc2159f5fc65ceb2be0599f9) // vk.Q_ELLIPTIC.y
+            mstore(add(_vk, 0x2c0), 0x2c65142daa130965df4c0a2e174fb2a4a7c85f970c52f411ae7339c7f3e6c123) // vk.Q_AUX.x
+            mstore(add(_vk, 0x2e0), 0x184b1ff6b7e8fc03ee2754549b651cb4491afdbd751903df7d5bdfea3116577d) // vk.Q_AUX.y
+            mstore(add(_vk, 0x300), 0x25a83f7de7490815275a239014e96c986f608c570a803b4b802a8141c016c070) // vk.SIGMA1.x
+            mstore(add(_vk, 0x320), 0x1f475e9a841114801f7ed6d6353c37ddf4a82fb6d52c033ecc737f67f1d1410c) // vk.SIGMA1.y
+            mstore(add(_vk, 0x340), 0x1a4834b5686abb69897cc4432419489f41e3cf71379feb3721de7ad56f1d62f5) // vk.SIGMA2.x
+            mstore(add(_vk, 0x360), 0x2cbcd26c002f7863b9fc410442c015e92b22acf248067f296bdb9a2904110073) // vk.SIGMA2.y
+            mstore(add(_vk, 0x380), 0x0ddcb12881dad2b45f40ce1fe4d70cb70fdb2015ece26fb4e12fb3c26df7f622) // vk.SIGMA3.x
+            mstore(add(_vk, 0x3a0), 0x2d614c19ffd912b7b3a7ba4a8cb288b16744da99a9ceb229154d4ec7f8a50f06) // vk.SIGMA3.y
+            mstore(add(_vk, 0x3c0), 0x1c416f180b336321843a228bd9366fad04c6e7976de599a7549626743f5b188f) // vk.SIGMA4.x
+            mstore(add(_vk, 0x3e0), 0x2e8a317d2a3b34f2329cda28424e147bba4446a7716ea768ebfa750108bbd08c) // vk.SIGMA4.y
+            mstore(add(_vk, 0x400), 0x0153cf448ba93b36fb1a3e334bf985bb0e7f671d7ca657c2510b8b64fc1390ea) // vk.TABLE1.x
+            mstore(add(_vk, 0x420), 0x0652d5f62437967a51f7f604f8274bd2d3b946ce89c72e43d52520c3964218ea) // vk.TABLE1.y
+            mstore(add(_vk, 0x440), 0x007fc1b76eaddd115bf2b07aa9de92811a55b0e5fd5ff8ae0c9dc2d3dc12cc74) // vk.TABLE2.x
+            mstore(add(_vk, 0x460), 0x2b0360fd5e0824f832aef7327db2d2ef03f7ebde15daf8ec220a994226945ae4) // vk.TABLE2.y
+            mstore(add(_vk, 0x480), 0x0b7f2f921abdf05965e7e2e61ec35a51ef68d0289e22322f7762acba675c1719) // vk.TABLE3.x
+            mstore(add(_vk, 0x4a0), 0x0166014fbfd0b94710674e2dfe3e12c7afaa55282cd731d68a7487d569b92a5f) // vk.TABLE3.y
+            mstore(add(_vk, 0x4c0), 0x09ec9b0aca4e9671903e0577f2a4efd36f7a58af0a5102f5a42e1b8061f62421) // vk.TABLE4.x
+            mstore(add(_vk, 0x4e0), 0x15affeadf66c8428f4f44d2ebe66e9dc0f04215bef81efbbee166d3f4544feab) // vk.TABLE4.y
+            mstore(add(_vk, 0x500), 0x1c7160ea83921806b621a6d939e70ac1839067fb49114b3c3f4625e3da7bd0df) // vk.TABLE_TYPE.x
+            mstore(add(_vk, 0x520), 0x28e28da89b4a65bdf4190baa1137483a6178c1d772ed6138182a134fa3f7abe4) // vk.TABLE_TYPE.y
+            mstore(add(_vk, 0x540), 0x123cf4b41edcc5c2d1193e24292c70ccbda0e456f3dd1ed99ffaa57df54c9d79) // vk.ID1.x
+            mstore(add(_vk, 0x560), 0x085b0babc8fbd0ccf0a7fba590c3a1c4f261fa221d173295174faf46523d4a38) // vk.ID1.y
+            mstore(add(_vk, 0x580), 0x2e28384ecc7df66ff688031eea6726f95833abed6ee621055f37ab209e95685b) // vk.ID2.x
+            mstore(add(_vk, 0x5a0), 0x14e7d55419dd0f06f17cb8662100cf15cd6ac1327297cedd864837855e6a4980) // vk.ID2.y
+            mstore(add(_vk, 0x5c0), 0x14772f8efb22b9db6db252cd8e0a16b8e03e32c39f82f68776de3e69eb9a120a) // vk.ID3.x
+            mstore(add(_vk, 0x5e0), 0x2006b1d0082c7358c10aaed8f5b915bb2cc7b28a75a8deb02ff1599ea2768880) // vk.ID3.y
+            mstore(add(_vk, 0x600), 0x1e4e976f3abb0d37c91ba4405d46ec3ab248e5bad1371a47eaa0c7ddfee814a5) // vk.ID4.x
+            mstore(add(_vk, 0x620), 0x1062f04cf9171d2a3b4e48f30c129c9c3a599efbf28bb9cdbd3b527ef79180ff) // vk.ID4.y
             mstore(add(_vk, 0x640), 0x00) // vk.contains_recursive_proof
             mstore(add(_vk, 0x660), 0) // vk.recursive_proof_public_input_indices
             mstore(add(_vk, 0x680), 0x260e01b251f6f1c7e7ff4e580791dee8ea51d87a358e038b4efe30fac09383c1) // vk.g2_x.X.c1 
             mstore(add(_vk, 0x6a0), 0x0118c4d5b837bcc2bc89b5b398b5974e9f5944073b32078b7e231fec938883b0) // vk.g2_x.X.c0 
             mstore(add(_vk, 0x6c0), 0x04fc6369f7110fe3d25156c1bb9a72859cf2a04641f99ba4ee413c80da6a5fe4) // vk.g2_x.Y.c1 
             mstore(add(_vk, 0x6e0), 0x22febda3c0c0632a56475b4214e5615e11e6dd3f96e6cea2854a87d4dacc5e55) // vk.g2_x.Y.c0 
-            mstore(_omegaInverseLoc, 0x0b5d56b77fe704e8e92338c0082f37e091126414c830e4c6922d5ac802d842d4) // vk.work_root_inverse
+            mstore(_omegaInverseLoc, 0x244cf010c43ca87237d8b00bf9dd50c4c01c7f086bd4e8c920e75251d96f0d22) // vk.work_root_inverse
         }
     }
 }
-
 /**
  * @title Ultra Plonk proof verification contract
  * @dev Top level Plonk proof verification contract, which allows Plonk proof to be verified
@@ -354,6 +353,9 @@ abstract contract BaseUltraVerifier {
     uint256 internal constant LIMB_SIZE = 0x100000000000000000; // 2<<68
     uint256 internal constant SUBLIMB_SHIFT = 0x4000; // 2<<14
 
+    // y^2 = x^3 + ax + b
+    // for Grumpkin, a = 0 and b = -17. We use b in a custom gate relation that evaluates elliptic curve arithmetic
+    uint256 internal constant GRUMPKIN_CURVE_B_PARAMETER_NEGATED = 17;
     error PUBLIC_INPUT_COUNT_INVALID(uint256 expected, uint256 actual);
     error PUBLIC_INPUT_INVALID_BN128_G1_POINT();
     error PUBLIC_INPUT_GE_P();
@@ -1226,96 +1228,130 @@ abstract contract BaseUltraVerifier {
                  * sign_term += sign_term
                  * sign_term *= q_sign
                  */
+                // q_elliptic * (x3 + x2 + x1)(x2 - x1)(x2 - x1) - y2^2 - y1^2 + 2(y2y1)*q_sign = 0
+                let x_diff := addmod(mload(X2_EVAL_LOC), sub(p, mload(X1_EVAL_LOC)), p)
+                let y2_sqr := mulmod(mload(Y2_EVAL_LOC), mload(Y2_EVAL_LOC), p)
+                let y1_sqr := mulmod(mload(Y1_EVAL_LOC), mload(Y1_EVAL_LOC), p)
+                let y1y2 := mulmod(mulmod(mload(Y1_EVAL_LOC), mload(Y2_EVAL_LOC), p), mload(QSIGN_LOC), p)
 
-                let endo_term :=
+                let x_add_identity :=
+                    addmod(
+                        mulmod(
+                            addmod(mload(X3_EVAL_LOC), addmod(mload(X2_EVAL_LOC), mload(X1_EVAL_LOC), p), p),
+                            mulmod(x_diff, x_diff, p),
+                            p
+                        ),
+                        addmod(
+                            sub(
+                                p,
+                                addmod(y2_sqr, y1_sqr, p)
+                            ),
+                            addmod(y1y2, y1y2, p),
+                            p
+                        ),
+                        p
+                    )
+                x_add_identity :=
                     mulmod(
                         mulmod(
-                            mulmod(sub(p, mload(X2_EVAL_LOC)), mload(X1_EVAL_LOC), p),
-                            addmod(addmod(mload(X3_EVAL_LOC), mload(X3_EVAL_LOC), p), mload(X1_EVAL_LOC), p),
-                            p
-                        ),
-                        mload(QBETA_LOC),
-                        p
-                    )
-
-                let endo_sqr_term := mulmod(mload(X2_EVAL_LOC), mload(X2_EVAL_LOC), p)
-                endo_sqr_term := mulmod(endo_sqr_term, addmod(mload(X3_EVAL_LOC), sub(p, mload(X1_EVAL_LOC)), p), p)
-                endo_sqr_term := mulmod(endo_sqr_term, mload(QBETA_SQR_LOC), p)
-
-                let leftovers := mulmod(mload(X2_EVAL_LOC), mload(X2_EVAL_LOC), p)
-                leftovers := mulmod(leftovers, mload(X2_EVAL_LOC), p)
-                leftovers :=
-                    addmod(
-                        leftovers,
-                        mulmod(
-                            mulmod(mload(X1_EVAL_LOC), mload(X1_EVAL_LOC), p),
-                            addmod(mload(X3_EVAL_LOC), mload(X1_EVAL_LOC), p),
-                            p
-                        ),
-                        p
-                    )
-                leftovers :=
-                    addmod(
-                        leftovers,
-                        sub(
-                            p,
+                            x_add_identity,
                             addmod(
-                                mulmod(mload(Y2_EVAL_LOC), mload(Y2_EVAL_LOC), p),
-                                mulmod(mload(Y1_EVAL_LOC), mload(Y1_EVAL_LOC), p),
+                                1,
+                                sub(p, mload(QM_EVAL_LOC)),
                                 p
-                            )
-                        ),
-                        p
-                    )
-
-                let sign_term := mulmod(mload(Y2_EVAL_LOC), mload(Y1_EVAL_LOC), p)
-                sign_term := addmod(sign_term, sign_term, p)
-                sign_term := mulmod(sign_term, mload(QSIGN_LOC), p)
-
-                /**
-                 * x_identity = endo_term + endo_sqr_term + sign_term + leftovers
-                 * x_identity *= alpha_base
-                 * endo_term = (x_2 * q_beta) * (y_3 + y_1)
-                 * sign_term = -((y2 * q_sign) * (x_1 + x_3))
-                 * leftovers = - x1 * (y_3 + y_1) + y_1 * (x_1 - x_3)
-                 * y_identity = (endo_term + sign_term + leftovers) * (alpha_base * α)
-                 */
-
-                let x_identity := addmod(addmod(endo_term, endo_sqr_term, p), addmod(sign_term, leftovers, p), p)
-                x_identity := mulmod(x_identity, mload(C_ALPHA_BASE_LOC), p)
-                endo_term :=
-                    mulmod(
-                        mulmod(mload(X2_EVAL_LOC), mload(QBETA_LOC), p),
-                        addmod(mload(Y3_EVAL_LOC), mload(Y1_EVAL_LOC), p),
-                        p
-                    )
-                sign_term :=
-                    sub(
-                        p,
-                        mulmod(
-                            mulmod(mload(Y2_EVAL_LOC), mload(QSIGN_LOC), p),
-                            addmod(mload(X1_EVAL_LOC), sub(p, mload(X3_EVAL_LOC)), p),
+                            ),
                             p
-                        )
-                    )
-                leftovers :=
-                    addmod(
-                        sub(p, mulmod(mload(X1_EVAL_LOC), addmod(mload(Y3_EVAL_LOC), mload(Y1_EVAL_LOC), p), p)),
-                        mulmod(mload(Y1_EVAL_LOC), addmod(mload(X1_EVAL_LOC), sub(p, mload(X3_EVAL_LOC)), p), p),
+                        ),
+                        mload(C_ALPHA_BASE_LOC),
                         p
                     )
-                let y_identity :=
+
+                // q_elliptic * (x3 + x2 + x1)(x2 - x1)(x2 - x1) - y2^2 - y1^2 + 2(y2y1)*q_sign = 0
+                let y1_plus_y3 := addmod(
+                    mload(Y1_EVAL_LOC),
+                    mload(Y3_EVAL_LOC),
+                    p
+                )
+                let y_diff := addmod(mulmod(mload(Y2_EVAL_LOC), mload(QSIGN_LOC), p), sub(p, mload(Y1_EVAL_LOC)), p)
+                let y_add_identity :=
+                    addmod(
+                        mulmod(y1_plus_y3, x_diff, p),
+                        mulmod(addmod(mload(X3_EVAL_LOC), sub(p, mload(X1_EVAL_LOC)), p), y_diff, p),
+                        p
+                    )
+                y_add_identity :=
                     mulmod(
-                        addmod(addmod(endo_term, sign_term, p), leftovers, p),
+                        mulmod(y_add_identity, addmod(1, sub(p, mload(QM_EVAL_LOC)), p), p),
                         mulmod(mload(C_ALPHA_BASE_LOC), mload(C_ALPHA_LOC), p),
                         p
                     )
 
                 // ELLIPTIC_IDENTITY = (x_identity + y_identity) * Q_ELLIPTIC_EVAL
-                mstore(ELLIPTIC_IDENTITY, mulmod(addmod(x_identity, y_identity, p), mload(QELLIPTIC_EVAL_LOC), p))
+                mstore(
+                    ELLIPTIC_IDENTITY, mulmod(addmod(x_add_identity, y_add_identity, p), mload(QELLIPTIC_EVAL_LOC), p)
+                )
+            }
+            {
+                /**
+                 * x_pow_4 = (y_1_sqr - curve_b) * x_1;
+                 * y_1_sqr_mul_4 = y_1_sqr + y_1_sqr;
+                 * y_1_sqr_mul_4 += y_1_sqr_mul_4;
+                 * x_1_pow_4_mul_9 = x_pow_4;
+                 * x_1_pow_4_mul_9 += x_1_pow_4_mul_9;
+                 * x_1_pow_4_mul_9 += x_1_pow_4_mul_9;
+                 * x_1_pow_4_mul_9 += x_1_pow_4_mul_9;
+                 * x_1_pow_4_mul_9 += x_pow_4;
+                 * x_1_sqr_mul_3 = x_1_sqr + x_1_sqr + x_1_sqr;
+                 * x_double_identity = (x_3 + x_1 + x_1) * y_1_sqr_mul_4 - x_1_pow_4_mul_9;
+                 * y_double_identity = x_1_sqr_mul_3 * (x_1 - x_3) - (y_1 + y_1) * (y_1 + y_3);
+                 */
+                // (x3 + x1 + x1) (4y1*y1) - 9 * x1 * x1 * x1 * x1 = 0
+                let x1_sqr := mulmod(mload(X1_EVAL_LOC), mload(X1_EVAL_LOC), p)
+                let y1_sqr := mulmod(mload(Y1_EVAL_LOC), mload(Y1_EVAL_LOC), p)
+                let x_pow_4 := mulmod(addmod(y1_sqr, GRUMPKIN_CURVE_B_PARAMETER_NEGATED, p), mload(X1_EVAL_LOC), p)
+                let y1_sqr_mul_4 := mulmod(y1_sqr, 4, p)
+                let x1_pow_4_mul_9 := mulmod(x_pow_4, 9, p)
+                let x1_sqr_mul_3 := mulmod(x1_sqr, 3, p)
+                let x_double_identity :=
+                    addmod(
+                        mulmod(
+                            addmod(mload(X3_EVAL_LOC), addmod(mload(X1_EVAL_LOC), mload(X1_EVAL_LOC), p), p),
+                            y1_sqr_mul_4,
+                            p
+                        ),
+                        sub(p, x1_pow_4_mul_9),
+                        p
+                    )
+                // (y1 + y1) (2y1) - (3 * x1 * x1)(x1 - x3) = 0
+                let y_double_identity :=
+                    addmod(
+                        mulmod(x1_sqr_mul_3, addmod(mload(X1_EVAL_LOC), sub(p, mload(X3_EVAL_LOC)), p), p),
+                        sub(
+                            p,
+                            mulmod(
+                                addmod(mload(Y1_EVAL_LOC), mload(Y1_EVAL_LOC), p),
+                                addmod(mload(Y1_EVAL_LOC), mload(Y3_EVAL_LOC), p),
+                                p
+                            )
+                        ),
+                        p
+                    )
+                x_double_identity := mulmod(x_double_identity, mload(C_ALPHA_BASE_LOC), p)
+                y_double_identity :=
+                    mulmod(y_double_identity, mulmod(mload(C_ALPHA_BASE_LOC), mload(C_ALPHA_LOC), p), p)
+                x_double_identity := mulmod(x_double_identity, mload(QM_EVAL_LOC), p)
+                y_double_identity := mulmod(y_double_identity, mload(QM_EVAL_LOC), p)
+                // ELLIPTIC_IDENTITY += (x_double_identity + y_double_identity) * Q_DOUBLE_EVAL
+                mstore(
+                    ELLIPTIC_IDENTITY,
+                    addmod(
+                        mload(ELLIPTIC_IDENTITY),
+                        mulmod(addmod(x_double_identity, y_double_identity, p), mload(QELLIPTIC_EVAL_LOC), p),
+                        p
+                    )
+                )
 
                 // update alpha
-                // The paper says to use ALPHA^2, we use ALPHA^4 this is a small oversight in the prover protocol
                 mstore(C_ALPHA_BASE_LOC, mulmod(mload(C_ALPHA_BASE_LOC), mload(C_ALPHA_QUAD_LOC), p))
             }
 
