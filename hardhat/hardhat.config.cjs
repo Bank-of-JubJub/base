@@ -1,7 +1,7 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("hardhat-gas-reporter");
 require("hardhat-deploy");
-require("@nomiclabs/hardhat-ethers");
+import "@nomicfoundation/hardhat-ethers";
 require("dotenv").config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -24,13 +24,13 @@ module.exports = {
     sepolia: {
       chainId: 11155111,
       url: process.env.SEPOLIA_RPC_URL || "",
-      accounts: [process.env.TESTING_PRIVATE_KEY || '0'.repeat(64)],
+      accounts: [process.env.TESTING_PRIVATE_KEY || "0".repeat(64)],
       saveDeployments: true,
       verify: {
         etherscan: {
-          apiKey: process.env.ETHERSCAN_API_KEY || ""
-        }
-      }
+          apiKey: process.env.ETHERSCAN_API_KEY || "",
+        },
+      },
     },
   },
 

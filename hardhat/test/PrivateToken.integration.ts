@@ -1,11 +1,11 @@
 import { expect } from "chai";
 import pkg from "hardhat";
-const { ethers } = pkg;
+import { ethers } from "hardhat";
 import { spawn } from "child_process";
 import * as babyjubjubUtils from "../../utils/babyjubjub_utils.js";
 import * as proofUtils from "../../utils/proof_utils.js";
 
-function uint8ArrayToHexString(arr) {
+function uint8ArrayToHexString(arr: Uint8Array) {
   return (
     "0x" +
     Array.from(arr)
@@ -49,8 +49,6 @@ async function runRustScriptBabyGiant(X, Y) {
 }
 
 describe("Private Token integration testing", function () {
-  let privateToken;
-  let privateTokenFactory;
   let pendingDepositsVerifier;
   let pendingTransfersVerifier;
   let withdrawVerifier;
@@ -71,53 +69,48 @@ describe("Private Token integration testing", function () {
   -before(async () => {
     //Setup phase with initial deployments
     accounts = await ethers.getSigners();
-    deployer = accounts[0];
+    let deployer = accounts[0];
     userA = accounts[1];
     userB = accounts[2];
 
     console.log(
-      "Deploying the 3 verification contracts - these could be deployed only once and used for all the instances of private tokens"
+      "Deploying the verification contracts - these could be deployed only once and used for all the instances of private tokens"
     );
-    const processPendingDeposits = await ethers.getContractFactory(
+    const processPendingDepositsFactory = await ethers.getContractFactory(
       "contracts/process_pending_deposits/plonk_vk.sol:UltraVerifier"
     );
-    const processPendingTransfers = await ethers.getContractFactory(
+    const processPendingTransfersFactory = await ethers.getContractFactory(
       "contracts/process_pending_transfers/plonk_vk.sol:UltraVerifier"
     );
 
-    // import the other factories
+    const transferVerifierFactory = await ethers.getContractFactory(
+      "contracts/transfer/plonk_vk.sol:UltraVerifier"
+    );
+
     const withdrawVerifierFactory = await ethers.getContractFactory(
       "contracts/withdraw/plonk_vk.sol:UltraVerifier"
     );
     const lockVerifierFactory = await ethers.getContractFactory(
       "contracts/lock/plonk_vk.sol:UltraVerifier"
     );
-    const
+    const privateTokenFactoryFactory = await ethers.getContractFactory(
+      "contracts/PrivateTokenFactory"
+    );
+    const processDepositVerifier = await processPendingDepositsFactory.deploy();
+    const processTransferVerifier = await processPendingTransfersFactory.deploy();
+    const transferVerifier = await transferVerifierFactory.deploy();
+    withdrawVerifier = await withdrawVerifierFactory.deploy();
+    lockVerifier = await lockVerifierFactory.deploy();
+    console.log("verifiers deployed");
+    const privateTokenFactory = await privateTokenFactoryFactory.deploy(
+      processDepositVerifier,
+      processTransferVerifier,
+      transferVerifier,
+      withdrawVerifier,
+      lockVerifier);
 
-    console.log(" ");
-    mintUltraVerifier = await mintUltraVerifierFactory.deploy();
-    console.log(" ✅ Mint circuit verifier contract deployed successfully ✅ ");
-    transferUltraVerifier = await transferUltraVerifierFactory.deploy();
-    console.log(
-      " ✅ Transfer circuit verifier contract deployed successfully ✅ "
-    );
-    transferToNewUltraVerifier =
-      await transferToNewUltraVerifierFactory.deploy();
-    console.log(
-      " ✅ Transfer_To_New circuit verifier contract deployed successfully ✅ "
-    );
-    console.log(" ");
-    console.log(
-      "Now the deployer setups the Public Key Infrastrucutre contract and the corresponding Private Token contract"
-    );
-    console.log(" ");
-    const publicKeyInfrastructureFactory = await ethers.getContractFactory(
-      "PublicKeyInfrastructure"
-    );
-    publicKeyInfrastructure = await publicKeyInfrastructureFactory.deploy();
-    console.log(
-      " ✅ PublicKeyInfrastructure deployed by \x1b[93;1mCentral Banker\x1b[0m 🏦 ✅ "
-    );
+    const erc20 = await ethers.
+
     ({ privateKey: privateKeyDeployer, publicKey: publicKeyDeployer } =
       babyjubjubUtils.generatePrivateAndPublicKey());
     console.log(" ");
@@ -132,7 +125,7 @@ describe("Private Token integration testing", function () {
     console.log(
       " ✒️  \x1b[93;1mCentral Banker\x1b[0m 🏦 registered his public key in PublicKeyInfrastructure ✒️ "
     );
-    const privateTokenFactory = await ethers.getContractFactory("PrivateToken");
+    // const privateTokenFactory = await ethers.getContractFactory("PrivateToken");
     totalSupply = 1_000_000_000_000;
     const totalSupplyEncrypted = babyjubjubUtils.exp_elgamal_encrypt(
       publicKeyDeployer,
