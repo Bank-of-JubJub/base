@@ -21,8 +21,8 @@ fn main(private_key: Field,
         balance_old_clear: u40,
 
         // Public Inputs
-        nonce: pub Field,
         packed_public_key: pub [u8;32], 
+        nonce: pub Field,
         value: pub u40, 
         relay_fee: pub u40,
         balance_old_encrypted_1: pub Gaffine, 
@@ -62,5 +62,5 @@ fn test_withdraw() {
     let new_encrypted_amount = bjj::exp_elgamal_encrypt(public_key, balance - value - relay_fee, randomness);
     let nonce = 0; // compute in Solidity, keccak(encryped amt) % p
 
-    main(private_key, randomness, balance, nonce, packed_public_key,value,relay_fee,old_encrypted_amount.0,old_encrypted_amount.1,new_encrypted_amount.0,new_encrypted_amount.1);  
+    main(private_key, randomness, balance, packed_public_key,nonce, value,relay_fee,old_encrypted_amount.0,old_encrypted_amount.1,new_encrypted_amount.0,new_encrypted_amount.1);  
 }

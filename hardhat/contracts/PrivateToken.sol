@@ -277,24 +277,28 @@ contract PrivateToken {
             pendingTransferCounts[_to] += 1;
         }
 
-        bytes32[] memory publicInputs = new bytes32[](19);
-        publicInputs[3] = bytes32(_to);
-        publicInputs[4] = bytes32(uint256(_processFee));
-        publicInputs[5] = bytes32(uint256(_relayFee));
+        bytes32[] memory publicInputs = new bytes32[](47);
+        for (uint8 i = 0; i < 32; i++) {
+            // Noir takes an array of 32 bytes32 as public inputs
+            bytes1 aByte = bytes1((_from << (i * 8)));
+            publicInputs[i] = bytes32(uint256(uint8(aByte)));
+        }
+        publicInputs[32] = bytes32(uint256(_processFee));
+        publicInputs[33] = bytes32(uint256(_relayFee));
         // this nonce should be unique because it uses the randomness calculated in the encrypted balance
-        publicInputs[6] = bytes32(txNonce);
-        publicInputs[7] = bytes32(oldBalance.C1x);
-        publicInputs[8] = bytes32(oldBalance.C1y);
-        publicInputs[9] = bytes32(oldBalance.C2x);
-        publicInputs[10] = bytes32(oldBalance.C2y);
-        publicInputs[11] = bytes32(_amountToSend.C1x);
-        publicInputs[12] = bytes32(_amountToSend.C1y);
-        publicInputs[13] = bytes32(_amountToSend.C2x);
-        publicInputs[14] = bytes32(_amountToSend.C2y);
-        publicInputs[15] = bytes32(_senderNewBalance.C1x);
-        publicInputs[16] = bytes32(_senderNewBalance.C1y);
-        publicInputs[17] = bytes32(_senderNewBalance.C2x);
-        publicInputs[18] = bytes32(_senderNewBalance.C2y);
+        publicInputs[34] = bytes32(txNonce);
+        publicInputs[35] = bytes32(oldBalance.C1x);
+        publicInputs[36] = bytes32(oldBalance.C1y);
+        publicInputs[37] = bytes32(oldBalance.C2x);
+        publicInputs[38] = bytes32(oldBalance.C2y);
+        publicInputs[39] = bytes32(_amountToSend.C1x);
+        publicInputs[40] = bytes32(_amountToSend.C1y);
+        publicInputs[41] = bytes32(_amountToSend.C2x);
+        publicInputs[42] = bytes32(_amountToSend.C2y);
+        publicInputs[43] = bytes32(_senderNewBalance.C1x);
+        publicInputs[44] = bytes32(_senderNewBalance.C1y);
+        publicInputs[45] = bytes32(_senderNewBalance.C2x);
+        publicInputs[46] = bytes32(_senderNewBalance.C2y);
         require(
             TRANSFER_VERIFIER.verify(_proof_transfer, publicInputs),
             "Transfer proof is invalid"
@@ -342,20 +346,24 @@ contract PrivateToken {
         );
         // TODO: fee
         EncryptedAmount memory oldEncryptedAmount = balances[_from];
-        bytes32[] memory publicInputs = new bytes32[](11);
+        bytes32[] memory publicInputs = new bytes32[](43);
+        for (uint8 i = 0; i < 32; i++) {
+            // Noir takes an array of 32 bytes32 as public inputs
+            bytes1 aByte = bytes1((_from << (i * 8)));
+            publicInputs[i] = bytes32(uint256(uint8(aByte)));
+        }
         // this nonce should be unique because it uses the randomness calculated in the encrypted balance
-        publicInputs[0] = bytes32(txNonce);
-        publicInputs[1] = bytes32(_from);
-        publicInputs[2] = bytes32(uint256(_amount));
-        publicInputs[3] = bytes32(uint256(_relayFee));
-        publicInputs[3] = bytes32(oldEncryptedAmount.C1x);
-        publicInputs[4] = bytes32(oldEncryptedAmount.C1y);
-        publicInputs[5] = bytes32(oldEncryptedAmount.C2x);
-        publicInputs[6] = bytes32(oldEncryptedAmount.C2y);
-        publicInputs[7] = bytes32(_newEncryptedAmount.C1x);
-        publicInputs[8] = bytes32(_newEncryptedAmount.C1y);
-        publicInputs[9] = bytes32(_newEncryptedAmount.C2x);
-        publicInputs[10] = bytes32(_newEncryptedAmount.C2y);
+        publicInputs[32] = bytes32(txNonce);
+        publicInputs[33] = bytes32(uint256(_amount));
+        publicInputs[34] = bytes32(uint256(_relayFee));
+        publicInputs[35] = bytes32(oldEncryptedAmount.C1x);
+        publicInputs[36] = bytes32(oldEncryptedAmount.C1y);
+        publicInputs[37] = bytes32(oldEncryptedAmount.C2x);
+        publicInputs[38] = bytes32(oldEncryptedAmount.C2y);
+        publicInputs[39] = bytes32(_newEncryptedAmount.C1x);
+        publicInputs[40] = bytes32(_newEncryptedAmount.C1y);
+        publicInputs[41] = bytes32(_newEncryptedAmount.C2x);
+        publicInputs[42] = bytes32(_newEncryptedAmount.C2y);
         require(
             WITHDRAW_VERIFIER.verify(_withdraw_proof, publicInputs),
             "Withdraw proof is invalid"
@@ -421,17 +429,21 @@ contract PrivateToken {
             totalFees += userPendingDepositsArray[i].fee;
         }
 
-        bytes32[] memory publicInputs = new bytes32[](10);
-        publicInputs[0] = bytes32(_recipient);
-        publicInputs[1] = bytes32(totalAmount);
-        publicInputs[2] = bytes32(oldBalance.C1x);
-        publicInputs[3] = bytes32(oldBalance.C1y);
-        publicInputs[4] = bytes32(oldBalance.C2x);
-        publicInputs[5] = bytes32(oldBalance.C2y);
-        publicInputs[6] = bytes32(_newBalance.C1x);
-        publicInputs[7] = bytes32(_newBalance.C1y);
-        publicInputs[8] = bytes32(_newBalance.C2x);
-        publicInputs[9] = bytes32(_newBalance.C2y);
+        bytes32[] memory publicInputs = new bytes32[](41);
+        for (uint8 i = 0; i < 32; i++) {
+            // Noir takes an array of 32 bytes32 as public inputs
+            bytes1 aByte = bytes1((_recipient << (i * 8)));
+            publicInputs[i] = bytes32(uint256(uint8(aByte)));
+        }
+        publicInputs[32] = bytes32(totalAmount);
+        publicInputs[33] = bytes32(oldBalance.C1x);
+        publicInputs[34] = bytes32(oldBalance.C1y);
+        publicInputs[35] = bytes32(oldBalance.C2x);
+        publicInputs[36] = bytes32(oldBalance.C2y);
+        publicInputs[37] = bytes32(_newBalance.C1x);
+        publicInputs[38] = bytes32(_newBalance.C1y);
+        publicInputs[39] = bytes32(_newBalance.C2x);
+        publicInputs[40] = bytes32(_newBalance.C2y);
 
         require(
             PROCESS_DEPOSIT_VERIFIER.verify(_proof, publicInputs),
