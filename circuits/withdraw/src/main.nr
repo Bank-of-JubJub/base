@@ -49,7 +49,7 @@ fn main(private_key: Field,
 fn test_withdraw() {
     // private values
     let private_key: Field = 2291123624948246627368989940774052753470489062495018070576418670157516550852; // see debug notebook for an example on how to compute those
-    let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775; // see debug notebook for an example on how to compute those
+    let randomness: Field = 0x5fa49918e16a3c3f4d42071a137c8a818964701c63604244ac2746b95e00df; // see debug notebook for an example on how to compute those
     let balance : u40 = 1000;
 
     // // public values
@@ -60,7 +60,9 @@ fn test_withdraw() {
 
     let old_encrypted_amount = bjj::exp_elgamal_encrypt(public_key, balance, randomness);
     let new_encrypted_amount = bjj::exp_elgamal_encrypt(public_key, balance - value - relay_fee, randomness);
-    let nonce = 0; // compute in Solidity, keccak(encryped amt) % p
+    let nonce = 2; // compute in Solidity, keccak(encryped amt) % p
+
+    std::println(randomness);
 
     main(private_key, randomness, balance, packed_public_key,nonce, value,relay_fee,old_encrypted_amount.0,old_encrypted_amount.1,new_encrypted_amount.0,new_encrypted_amount.1);  
 }

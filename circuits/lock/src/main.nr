@@ -19,12 +19,11 @@ fn main(private_key: Field,
         this is computed offchain by solving the DLP with babygiant algorithm, 
         after calling bjj_exp_elgamal_decrypt with his private key */
         balance_old_clear: u40,
-        lock_to_address_priv: Field,
 
         // Public Inputs
 
         packed_public_key: pub [u8;32], 
-        lock_to_address_pub: Field,
+        lock_to_address: pub Field,
         relay_fee: pub u40,
         balance_old_encrypted_1: pub Gaffine, 
         balance_old_encrypted_2: pub Gaffine,
@@ -33,7 +32,6 @@ fn main(private_key: Field,
     { 
     let bjj_affine = bjj::get_affine_curve();
     let base_pt = bjj::get_base_point();
-    assert(lock_to_address_priv == lock_to_address_pub);
     let public_key = bjj::unpack_point(packed_public_key);
     let embedded_balance_old_me_clear = bjj_affine.mul(balance_old_clear as Field, base_pt);
     let decoded_value = bjj::exp_elgamal_decrypt(private_key, (balance_old_encrypted_1,balance_old_encrypted_2));
@@ -49,7 +47,7 @@ fn main(private_key: Field,
 
 #[test]
 fn test_lock() {
-    let private_key: Field = 2291123624948246627368989940774052753470489062495018070576418670157516550852; // see debug notebook for an example on how to compute those
+    let private_key: Field = 0x0510bae26a9b59ebad67a4324c944b1910a778e8481d7f08ddba6bcd2b94b2c4; // see debug notebook for an example on how to compute those
     let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775; // see debug notebook for an example on how to compute those
     let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
     let packed_public_key = bjj::pack_point(public_key);
@@ -62,6 +60,6 @@ fn test_lock() {
     let old_balance = bjj::exp_elgamal_encrypt(public_key, balance, randomness);
     let new_balance = bjj::exp_elgamal_encrypt(public_key, balance - relay_fee, randomness);
 
-    std::println(new_balance.0);
-    main(private_key, randomness, balance, lock_to_address, packed_public_key, lock_to_address, relay_fee, old_balance.0, old_balance.1, new_balance.0, new_balance.1);
+    std::println(packed_public_key);
+    main(private_key, randomness, balance, packed_public_key, lock_to_address, relay_fee, old_balance.0, old_balance.1, new_balance.0, new_balance.1);
 }

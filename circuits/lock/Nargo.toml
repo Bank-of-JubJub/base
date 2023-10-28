@@ -2,7 +2,7 @@
 name = "lock"
 type = "bin"
 authors = [""]
-compiler_version = "0.16.0"
+compiler_version = "0.17.0"
 
 [dependencies]
 noir_bigint = { path = "../libs/biguint" }

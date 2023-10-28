@@ -23,7 +23,7 @@ async function main() {
 
 
     let packedPublicKey = babyjubjubUtils.packPublicKey(pub_key_array)
-    // console.log('packed public key', packedPublicKey)
+    console.log('packed public key', packedPublicKey)
     // console.log('packed as hex', uint8ArrayToHexArray(packedPublicKey))
     // The unpacked key is different than the original Public Key, 
     // but additional packing/unpacking will always produce the same
@@ -44,9 +44,6 @@ async function main() {
 
     // console.log("F half", (babyjubjubUtils.getF()).half)
     // console.log("pm1d2", babyjubjubUtils.getPm1d2())
-    const stringArray: string[] = to32CharStrings(byteArray);
-    console.log(stringArray);
-
 }
 
 function bigintToUint8Array(bigint: bigint) {
