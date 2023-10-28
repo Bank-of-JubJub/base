@@ -49,7 +49,7 @@ fn main(private_key: Field,
 fn test_withdraw() {
     // private values
     let private_key: Field = 2291123624948246627368989940774052753470489062495018070576418670157516550852; // see debug notebook for an example on how to compute those
-    let randomness: Field = 0x5fa49918e16a3c3f4d42071a137c8a818964701c63604244ac2746b95e00df; // see debug notebook for an example on how to compute those
+    let randomness: Field = 0x5fa49918e16a3c3f4d42071a137c8a818964701c63604244ac2746b95e00df ; // see debug notebook for an example on how to compute those
     let balance : u40 = 1000;
 
     // // public values
