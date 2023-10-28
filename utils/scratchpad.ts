@@ -44,6 +44,8 @@ async function main() {
 
     // console.log("F half", (babyjubjubUtils.getF()).half)
     // console.log("pm1d2", babyjubjubUtils.getPm1d2())
+    const stringArray: string[] = to32CharStrings(byteArray);
+    console.log(stringArray);
 
 }
 
@@ -92,5 +94,14 @@ function uint8ArrayToHexArray(uint8Array: Uint8Array) {
 function uint8ArrayToHex(buffer: Uint8Array): string {
     return Array.from(buffer).map(byte => byte.toString(16).padStart(2, '0')).join('');
 }
+function to32CharStrings(byteArray: number[]): string[] {
+    // Convert each byte to a 2-character hex string and pad with zeros
+    const paddedStrings: string[] = byteArray.map(byte => '0x' + '0'.repeat(62) + byte.toString(16).padStart(2, '0'));
+    return paddedStrings;
+}
+
+const byteArray: number[] = [0xdc, 0x9f, 0x9f, 0xdb, 0x74, 0x6d, 0x0f, 0x07, 0xb0, 0x04, 0xcc, 0x43, 0x16, 0xe3, 0x49, 0x5a, 0x58, 0x57, 0x0b, 0x90, 0x66, 0x14, 0x99, 0xf8, 0xa6, 0xa6, 0x69, 0x6f, 0xf4, 0x15, 0x6b, 0xaa];
+
+
 
 main();
