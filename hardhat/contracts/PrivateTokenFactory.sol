@@ -34,7 +34,7 @@ contract PrivateTokenFactory {
         lockVerifier = _lockVerifier;
     }
 
-    function deploy(address _token) public {
+    function deploy(address _token) public returns (address) {
         PrivateToken newToken = new PrivateToken(
             address(processDepositVerifier),
             processTransferVerifier,
@@ -46,5 +46,6 @@ contract PrivateTokenFactory {
             18
         );
         emit Deployed(address(newToken));
+        return address(newToken);
     }
 }

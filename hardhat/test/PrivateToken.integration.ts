@@ -1,11 +1,16 @@
 import { expect } from "chai";
+import { before, beforeEach } from "mocha";
 import hre from "hardhat";
 import "@nomicfoundation/hardhat-ethers";
+import { Contract } from "ethers";
 import { spawn } from "child_process";
 import * as babyjubjubUtils from "../../utils/babyjubjub_utils.js";
-import * as proofUtils from "../../utils/proof_utils.js";
+// import * as proofUtils from "../../utils/proof_utils.js";
+// import { ERC20 } from '@openzeppelin/contracts'
 
-import { UltraVerifier } from "../types/index.js";
+import { PrivateTokenFactory, ERC20, PrivateToken } from "../types/index.js";
+import { DeployContractOptions } from "@nomicfoundation/hardhat-ethers/types/index.js";
+import { erc20 } from "../types/@openzeppelin/contracts/token/index.js";
 
 const ethers = hre.ethers;
 
@@ -52,12 +57,14 @@ async function runRustScriptBabyGiant(X: any, Y: any) {
   });
 }
 
-describe("Private Token integration testing", function () {
+describe("Private Token integration testing", async function () {
   let pendingDepositVerifier;
   let transferVerifier;
   let pendingTransferVerifier;
   let withdrawVerifier;
   let lockVerifier;
+  let privateTokenFactory: Contract;
+  let erc20: any;
   let accounts;
   let userA;
   let userB;
@@ -69,12 +76,12 @@ describe("Private Token integration testing", function () {
   let publicKeyUserB;
   let totalSupply;
 
-  -beforeAll(async () => {
+  -before(async () => {
     //Setup phase with initial deployments
-    accounts = await hre.ethers.getSigners();
-    let deployer = accounts[0];
-    userA = accounts[1];
-    userB = accounts[2];
+    // accounts = await ethers.getSigners();
+    // let deployer = accounts[0];
+    // userA = accounts[1];
+    // userB = accounts[2];
 
     console.log(
       "Deploying the verification contracts - these could be deployed only once and used for all the instances of private tokens"
@@ -98,22 +105,35 @@ describe("Private Token integration testing", function () {
       "contracts/lock/plonk_vk.sol:UltraVerifier"
     );
 
+    let Erc20 = await ethers.getContractFactory("FunToken")
+    erc20 = await Erc20.deploy();
 
-    const privateTokenFactoryFactory = await hre.ethers.deployContract(
-      "contracts/PrivateTokenFactory"
+    const privateTokenFactoryFactory = await hre.ethers.getContractFactory(
+      "PrivateTokenFactory"
     );
 
     console.log("verifiers deployed");
-    const privateTokenFactory = await privateTokenFactoryFactory.deploy(
-      pendingDepositVerifier,
-      pendingTransferVerifier,
-      transferVerifier,
-      withdrawVerifier,
-      lockVerifier
+    privateTokenFactory = await privateTokenFactoryFactory.deploy(
+      pendingDepositVerifier.getAddress(),
+      pendingTransferVerifier.getAddress(),
+      transferVerifier.getAddress(),
+      withdrawVerifier.getAddress(),
+      lockVerifier.getAddress()
     );
+  });
 
-    // const erc20 = await hre.ethers.
+  // const erc20 = await hre.ethers.
 
+  it("should deploy a Private token from the factory", async () => {
+
+    let privateToken: Contract;
+
+    let receipt = await (await privateTokenFactory.deploy(erc20.getAddress())).wait()
+    let address = receipt.logs[0].args[0];
+    privateToken = await ethers.getContractAt("PrivateToken", address);
+    console.log(privateToken)
 
   });
+
+
 });
