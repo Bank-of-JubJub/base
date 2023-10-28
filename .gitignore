@@ -15,6 +15,3 @@ utils/crs/
 frontend/lib/wagmiGenerated.ts
 
 node_modules/
-package.json
-package-lock.json
-hardhat/package-lock.json

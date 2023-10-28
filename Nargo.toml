@@ -8,4 +8,5 @@ members = [
     "circuits/libs/bjj",
     "circuits/libs/biguint",
 ]
-default-member = "circuits/libs/bjj"
+default-member = "circuits/transfer"
+
