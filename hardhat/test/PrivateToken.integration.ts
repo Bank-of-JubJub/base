@@ -5,6 +5,10 @@ import { spawn } from "child_process";
 import * as babyjubjubUtils from "../../utils/babyjubjub_utils.js";
 import * as proofUtils from "../../utils/proof_utils.js";
 
+import { UltraVerifier } from "../types/index.js";
+
+const ethers = hre.ethers;
+
 function uint8ArrayToHexString(arr: Uint8Array) {
   return (
     "0x" +
@@ -49,8 +53,9 @@ async function runRustScriptBabyGiant(X: any, Y: any) {
 }
 
 describe("Private Token integration testing", function () {
-  let pendingDepositsVerifier;
-  let pendingTransfersVerifier;
+  let pendingDepositVerifier;
+  let transferVerifier;
+  let pendingTransferVerifier;
   let withdrawVerifier;
   let lockVerifier;
   let accounts;
@@ -74,38 +79,38 @@ describe("Private Token integration testing", function () {
     console.log(
       "Deploying the verification contracts - these could be deployed only once and used for all the instances of private tokens"
     );
-    const processPendingDepositsFactory = await hre.ethers.getContractFactory(
+
+    pendingDepositVerifier = await ethers.deployContract(
       "contracts/process_pending_deposits/plonk_vk.sol:UltraVerifier"
     );
-    const processPendingTransfersFactory = await hre.ethers.getContractFactory(
+    pendingTransferVerifier = await ethers.deployContract(
       "contracts/process_pending_transfers/plonk_vk.sol:UltraVerifier"
     );
 
-    const transferVerifierFactory = await hre.ethers.getContractFactory(
+    transferVerifier = await ethers.deployContract(
       "contracts/transfer/plonk_vk.sol:UltraVerifier"
     );
 
-    const withdrawVerifierFactory = await hre.ethers.getContractFactory(
+    withdrawVerifier = await ethers.deployContract(
       "contracts/withdraw/plonk_vk.sol:UltraVerifier"
     );
-    const lockVerifierFactory = await hre.ethers.getContractFactory(
+    lockVerifier = await ethers.deployContract(
       "contracts/lock/plonk_vk.sol:UltraVerifier"
     );
-    const privateTokenFactoryFactory = await hre.ethers.getContractFactory(
+
+
+    const privateTokenFactoryFactory = await hre.ethers.deployContract(
       "contracts/PrivateTokenFactory"
     );
-    const processDepositVerifier = await processPendingDepositsFactory.deploy();
-    const processTransferVerifier = await processPendingTransfersFactory.deploy();
-    const transferVerifier = await transferVerifierFactory.deploy();
-    withdrawVerifier = await withdrawVerifierFactory.deploy();
-    lockVerifier = await lockVerifierFactory.deploy();
+
     console.log("verifiers deployed");
     const privateTokenFactory = await privateTokenFactoryFactory.deploy(
-      processDepositVerifier,
-      processTransferVerifier,
+      pendingDepositVerifier,
+      pendingTransferVerifier,
       transferVerifier,
       withdrawVerifier,
-      lockVerifier);
+      lockVerifier
+    );
 
     // const erc20 = await hre.ethers.
 

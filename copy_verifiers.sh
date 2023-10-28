@@ -8,7 +8,7 @@ LOCATIONS=(
     "withdraw"
 )
 
-DEST_PATH="contracts/"
+DEST_PATH="hardhat/contracts/"
 
 # Loop through each source path in PATHS
 for LOCATION in "${LOCATIONS[@]}"; do

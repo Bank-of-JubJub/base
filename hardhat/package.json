@@ -32,8 +32,10 @@
   },
   "scripts": {
     "test": "mocha",
-    "compile": "hardhat compile"
+    "compile": "hardhat compile",
+    "typechain": "hardhat typechain"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "postinstall": "yarn typechain"
 }

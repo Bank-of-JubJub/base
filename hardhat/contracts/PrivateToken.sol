@@ -240,6 +240,18 @@ contract PrivateToken {
      * @param _proof_transfer - proof
      */
 
+    // stack to deep so storing local variables in a struct
+    // https://medium.com/1milliondevs/compilererror-stack-too-deep-try-removing-local-variables-solved-a6bcecc16231
+    struct tranferLocals {
+        uint256 txNonce;
+        address lockedByAddress;
+        EncryptedAmount oldBalance;
+        EncryptedAmount receiverBalance;
+        uint256 transferCount;
+        bool zeroBalance;
+        bytes32[] publicInputs;
+    }
+
     function transfer(
         bytes32 _to,
         bytes32 _from,
@@ -250,60 +262,58 @@ contract PrivateToken {
         EncryptedAmount calldata _senderNewBalance,
         bytes memory _proof_transfer
     ) public {
-        uint256 txNonce = checkAndUpdateNonce(_from, _senderNewBalance);
-        address lockedByAddress = lockedTo[_from];
+        tranferLocals memory local;
+        local.txNonce = checkAndUpdateNonce(_from, _senderNewBalance);
+        local.lockedByAddress = lockedTo[_from];
         require(
-            lockedByAddress == address(0) || lockedByAddress == msg.sender,
+            local.lockedByAddress == address(0) ||
+                local.lockedByAddress == msg.sender,
             "account is locked to another account"
         );
-        EncryptedAmount memory oldBalance = balances[_from];
-        EncryptedAmount memory receiverBalance = balances[_to];
-
-        bool zeroBalance = (receiverBalance.C1x == 0 &&
-            receiverBalance.C2x == 0 &&
-            receiverBalance.C1y == 0 &&
-            receiverBalance.C2y == 0);
-        if (zeroBalance) {
+        local.oldBalance = balances[_from];
+        local.receiverBalance = balances[_to];
+        local.zeroBalance = (local.receiverBalance.C1x == 0 &&
+            local.receiverBalance.C2x == 0 &&
+            local.receiverBalance.C1y == 0 &&
+            local.receiverBalance.C2y == 0);
+        if (local.zeroBalance) {
             // no fee required if a new account
             _processFee = 0;
             balances[_to] = _amountToSend;
         } else {
-            uint256 transferCount = pendingTransferCounts[_to];
-            allPendingTransfersMapping[_to][transferCount] = PendingTransfer(
-                _amountToSend,
-                _processFee,
-                block.timestamp
-            );
+            local.transferCount = pendingTransferCounts[_to];
+            allPendingTransfersMapping[_to][
+                local.transferCount
+            ] = PendingTransfer(_amountToSend, _processFee, block.timestamp);
             pendingTransferCounts[_to] += 1;
         }
 
-        bytes32[] memory publicInputs = new bytes32[](47);
+        local.publicInputs = new bytes32[](47);
         for (uint8 i = 0; i < 32; i++) {
             // Noir takes an array of 32 bytes32 as public inputs
             bytes1 aByte = bytes1((_from << (i * 8)));
-            publicInputs[i] = bytes32(uint256(uint8(aByte)));
+            local.publicInputs[i] = bytes32(uint256(uint8(aByte)));
         }
-        publicInputs[32] = bytes32(uint256(_processFee));
-        publicInputs[33] = bytes32(uint256(_relayFee));
+        local.publicInputs[32] = bytes32(uint256(_processFee));
+        local.publicInputs[33] = bytes32(uint256(_relayFee));
         // this nonce should be unique because it uses the randomness calculated in the encrypted balance
-        publicInputs[34] = bytes32(txNonce);
-        publicInputs[35] = bytes32(oldBalance.C1x);
-        publicInputs[36] = bytes32(oldBalance.C1y);
-        publicInputs[37] = bytes32(oldBalance.C2x);
-        publicInputs[38] = bytes32(oldBalance.C2y);
-        publicInputs[39] = bytes32(_amountToSend.C1x);
-        publicInputs[40] = bytes32(_amountToSend.C1y);
-        publicInputs[41] = bytes32(_amountToSend.C2x);
-        publicInputs[42] = bytes32(_amountToSend.C2y);
-        publicInputs[43] = bytes32(_senderNewBalance.C1x);
-        publicInputs[44] = bytes32(_senderNewBalance.C1y);
-        publicInputs[45] = bytes32(_senderNewBalance.C2x);
-        publicInputs[46] = bytes32(_senderNewBalance.C2y);
+        local.publicInputs[34] = bytes32(local.txNonce);
+        local.publicInputs[35] = bytes32(local.oldBalance.C1x);
+        local.publicInputs[36] = bytes32(local.oldBalance.C1y);
+        local.publicInputs[37] = bytes32(local.oldBalance.C2x);
+        local.publicInputs[38] = bytes32(local.oldBalance.C2y);
+        local.publicInputs[39] = bytes32(_amountToSend.C1x);
+        local.publicInputs[40] = bytes32(_amountToSend.C1y);
+        local.publicInputs[41] = bytes32(_amountToSend.C2x);
+        local.publicInputs[42] = bytes32(_amountToSend.C2y);
+        local.publicInputs[43] = bytes32(_senderNewBalance.C1x);
+        local.publicInputs[44] = bytes32(_senderNewBalance.C1y);
+        local.publicInputs[45] = bytes32(_senderNewBalance.C2x);
+        local.publicInputs[46] = bytes32(_senderNewBalance.C2y);
         require(
-            TRANSFER_VERIFIER.verify(_proof_transfer, publicInputs),
+            TRANSFER_VERIFIER.verify(_proof_transfer, local.publicInputs),
             "Transfer proof is invalid"
         );
-
         balances[_from] = _senderNewBalance;
         emit Transfer(_from, _to, _amountToSend);
         if (_relayFee != 0) {

@@ -15,12 +15,12 @@ module.exports = {
     settings: {
       optimizer: {
         enabled: true,
-        runs: 1000,
+        runs: 50000,
       },
     },
   },
   paths: {
-    sources: "../contracts",
+    sources: "./contracts",
     tests: "./test"
   },
   networks: {
@@ -47,5 +47,12 @@ module.exports = {
       sepolia: process.env.TESTING_PUBLIC_KEY || "", //it can also specify a specific netwotk name (specified in hardhat.config.js)
       31337: 0,
     },
+  },
+  typechain: {
+    outDir: 'types',
+    target: 'ethers-v6',
+    alwaysGenerateOverloads: false, // should overloads with full signatures like deposit(uint256) be generated always, even if there are no overloads?
+    externalArtifacts: ['externalArtifacts/*.json'], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
+    dontOverrideCompile: false // defaults to false
   },
 };
