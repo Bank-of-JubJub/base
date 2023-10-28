@@ -6,7 +6,7 @@ You can read the slides presenting the final project [here](https://docs.google.
 
 ## Quick description
 
-This project is an implementation of a token on Ethereum with private balances, i.e all the balances are publicly stored on the Ethereum blockchain in an encrypted format, but only the owner of an Ethereum account is able to decrypt their own balance. This is possible thanks to the improved expressiveness allowed by homomorphic encryption on top of zkSNARKs, allowing a party **A** to compute over encrypted data owned by *another* party **B** i.e **A** can add encrpyted balances owned by **B** without needing any knowledge of those balances.
+This project is an implementation of a token on Ethereum with private balances, i.e all the balances are publicly stored on the Ethereum blockchain in an encrypted format, but only the owner of an Ethereum account is able to decrypt their own balance. This is possible thanks to the improved expressiveness allowed by homomorphic encryption on top of zkSNARKs, allowing a party **A** to compute over encrypted data owned by _another_ party **B** i.e **A** can add encrpyted balances owned by **B** without needing any knowledge of those balances.
 
 Pros:
 
@@ -26,7 +26,7 @@ Pros:
 Cons:
 
 - Users have to use a new Private key. The pain can be mitigated by generating a key from an ethereum signature, like zk.money.
-- Deposits and transfers are a 2 step process. This allows multiple people to send the same account funds in the same block, but requires a processing step. Senders can incentivize the process of this step so it still feels like a 1 step process. 
+- Deposits and transfers are a 2 step process. This allows multiple people to send the same account funds in the same block, but requires a processing step. Senders can incentivize the process of this step so it still feels like a 1 step process.
 - limit of ~1 trillion tokens per contract (~11 billion if using 2 decimals)
 
 Sequence Diagram:
@@ -35,36 +35,44 @@ Sequence Diagram:
 
 The current model is the following:
 
-After the deployment of the new Private Token, transfers between users can occur. 
+After the deployment of the new Private Token, transfers between users can occur.
 
 The Baby Jubjub private key, which corresponds to the public key, should be safeguarded diligently by each registered user. If lost, the user will no longer have access to their funds. anyone with the private key can spend funds.
 
 # Requirements
-* `nargo` version 0.10.5 **Important**
-* `node` version 18 or later
-* `cargo` v1.73.0-nightly
-* `hardhat` v2.17.2
-* `just 1.14.0` (install it via `cargo install just`)
 
-# To run the tests : 
+- `nargo` version 0.10.5 **Important**
+- `node` version 18 or later
+- `cargo` v1.73.0-nightly
+- `hardhat` v2.17.2
+- `just 1.14.0` (install it via `cargo install just`)
 
-Clone the repo, install the requirements, and then just run : 
+# To run the tests :
+
+Clone the repo, install the requirements, and then just run :
+
 ```
 just test
 ```
 
-# To deploy the front-end locally : 
+# To deploy the front-end locally :
 
-Clone the repo, install the requirements, and then create 2 `.env` files in the `hardhat/` and `frontend` directories. Fill them with the same keys as in the corresponding `.env.example`files placed in the corresponding directories. `CHAINNAME`should be set to `sepolia`in `hardhat/.env`and a valid Sepolia RPC URL given for `SEPOLIA_RPC_URL`. Then run the following commands in this order : 
+Clone the repo, install the requirements, and then create 2 `.env` files in the `hardhat/` and `frontend` directories. Fill them with the same keys as in the corresponding `.env.example`files placed in the corresponding directories. `CHAINNAME`should be set to `sepolia`in `hardhat/.env`and a valid Sepolia RPC URL given for `SEPOLIA_RPC_URL`. Then run the following commands in this order :
+
 ```
 just wp
 ```
+
 ```
 just ds
 ```
+
 ```
 just release
 ```
 
+![gate count](gate_count.png)
+
 # Warning
-Do not use in production, this was not audited and done as a final project for the [zkCamp Noir bootcamp](https://www.zkcamp.xyz/aztec).
+
+Do not use in production
