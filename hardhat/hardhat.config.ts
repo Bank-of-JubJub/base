@@ -3,6 +3,9 @@ require("hardhat-gas-reporter");
 require("hardhat-deploy");
 import "@nomicfoundation/hardhat-ethers";
 require("dotenv").config();
+import '@typechain/hardhat'
+import '@nomicfoundation/hardhat-ethers'
+import '@nomicfoundation/hardhat-chai-matchers'
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -44,9 +47,5 @@ module.exports = {
       sepolia: process.env.TESTING_PUBLIC_KEY || "", //it can also specify a specific netwotk name (specified in hardhat.config.js)
       31337: 0,
     },
-  },
-  paths: {
-    deploy: "deploy",
-    deployments: "deployments",
   },
 };
