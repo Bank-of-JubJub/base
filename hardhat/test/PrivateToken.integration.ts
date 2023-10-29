@@ -1,18 +1,102 @@
 import { expect } from "chai";
 import { before, beforeEach } from "mocha";
 import hre from "hardhat";
-import "@nomicfoundation/hardhat-ethers";
-import { Contract } from "ethers";
 import { spawn } from "child_process";
 import * as babyjubjubUtils from "../../utils/babyjubjub_utils.js";
+import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
+import { Address, createPublicClient, http, GetContractReturnType } from "viem";
+import { hardhat } from "viem/chains";
+import { Contract } from "hardhat/internal/hardhat-network/stack-traces/model.js";
 // import * as proofUtils from "../../utils/proof_utils.js";
-// import { ERC20 } from '@openzeppelin/contracts'
 
-import { PrivateTokenFactory, ERC20, PrivateToken } from "../types/index.js";
-import { DeployContractOptions } from "@nomicfoundation/hardhat-ethers/types/index.js";
-import { erc20 } from "../types/@openzeppelin/contracts/token/index.js";
+const viem = hre.viem;
 
-const ethers = hre.ethers;
+// A deployment function to set up the initial state
+const deploy = async (name: string, construtorArgs: any[]) => {
+  const returnContract = await viem.deployContract(name, construtorArgs);
+
+  return { returnContract };
+};
+
+type Deployment = {
+  path: string;
+  deployArgs: any[];
+  instance: null | GetContractReturnType;
+};
+
+type DeploymentDictionary = {
+  [key: string]: Deployment;
+};
+let deployments: DeploymentDictionary = {
+  pendingDepositVerifier: {
+    path: "contracts/process_pending_deposits/plonk_vk.sol:UltraVerifier",
+    deployArgs: [],
+    instance: null,
+  },
+  pendingTransferVerifier: {
+    path: "contracts/process_pending_transfers/plonk_vk.sol:UltraVerifier",
+    deployArgs: [],
+    instance: null,
+  },
+  transferVerifier: {
+    path: "contracts/transfer/plonk_vk.sol:UltraVerifier",
+    deployArgs: [],
+    instance: null,
+  },
+  withdrawVerifier: {
+    path: "contracts/withdraw/plonk_vk.sol:UltraVerifier",
+    deployArgs: [],
+    instance: null,
+  },
+  lockVerifier: {
+    path: "contracts/lock/plonk_vk.sol:UltraVerifier",
+    deployArgs: [],
+    instance: null,
+  },
+  erc20: {
+    path: "FunToken",
+    deployArgs: [],
+    instance: null,
+  },
+};
+const deployAll = async () => {
+  const publicClient = await hre.viem.getPublicClient();
+  const [walletClient0, walletClient1] = await hre.viem.getWalletClients();
+
+  for (const contract in deployments) {
+    if (deployments.hasOwnProperty(contract)) {
+      let deployment = deployments[contract as keyof DeploymentDictionary];
+      const { returnContract: instance } = await deploy(
+        deployment.path,
+        deployment.deployArgs
+      );
+      deployment.instance = instance;
+    }
+  }
+  const deployArgs = [
+    deployments.pendingDepositVerifier.instance?.address,
+    deployments.pendingTransferVerifier.instance?.address,
+    deployments.transferVerifier.instance?.address,
+    deployments.withdrawVerifier.instance?.address,
+    deployments.lockVerifier.instance?.address,
+  ];
+
+  const { returnContract: privateTokenFactory } = await deploy(
+    "PrivateTokenFactory",
+    deployArgs
+  );
+  let { request } = await publicClient.simulateContract({
+    address: privateTokenFactory.address,
+    functionName: "deploy",
+    abi: privateTokenFactory.abi,
+    account: walletClient0.account,
+    args: [deployments.erc20.instance?.address],
+  });
+  const res = await privateTokenFactory.write.deploy([
+    deployments.erc20.instance?.address,
+  ]);
+  console.log(res);
+};
 
 function uint8ArrayToHexString(arr: Uint8Array) {
   return (
@@ -58,82 +142,7 @@ async function runRustScriptBabyGiant(X: any, Y: any) {
 }
 
 describe("Private Token integration testing", async function () {
-  let pendingDepositVerifier;
-  let transferVerifier;
-  let pendingTransferVerifier;
-  let withdrawVerifier;
-  let lockVerifier;
-  let privateTokenFactory: Contract;
-  let erc20: any;
-  let accounts;
-  let userA;
-  let userB;
-  let privateKeyDeployer;
-  let publicKeyDeployer;
-  let privateKeyUserA;
-  let publicKeyUserA;
-  let privateKeyUserB;
-  let publicKeyUserB;
-  let totalSupply;
-
-  -before(async () => {
-    //Setup phase with initial deployments
-    // accounts = await ethers.getSigners();
-    // let deployer = accounts[0];
-    // userA = accounts[1];
-    // userB = accounts[2];
-
-    console.log(
-      "Deploying the verification contracts - these could be deployed only once and used for all the instances of private tokens"
-    );
-
-    pendingDepositVerifier = await ethers.deployContract(
-      "contracts/process_pending_deposits/plonk_vk.sol:UltraVerifier"
-    );
-    pendingTransferVerifier = await ethers.deployContract(
-      "contracts/process_pending_transfers/plonk_vk.sol:UltraVerifier"
-    );
-
-    transferVerifier = await ethers.deployContract(
-      "contracts/transfer/plonk_vk.sol:UltraVerifier"
-    );
-
-    withdrawVerifier = await ethers.deployContract(
-      "contracts/withdraw/plonk_vk.sol:UltraVerifier"
-    );
-    lockVerifier = await ethers.deployContract(
-      "contracts/lock/plonk_vk.sol:UltraVerifier"
-    );
-
-    let Erc20 = await ethers.getContractFactory("FunToken")
-    erc20 = await Erc20.deploy();
-
-    const privateTokenFactoryFactory = await hre.ethers.getContractFactory(
-      "PrivateTokenFactory"
-    );
-
-    console.log("verifiers deployed");
-    privateTokenFactory = await privateTokenFactoryFactory.deploy(
-      pendingDepositVerifier.getAddress(),
-      pendingTransferVerifier.getAddress(),
-      transferVerifier.getAddress(),
-      withdrawVerifier.getAddress(),
-      lockVerifier.getAddress()
-    );
-  });
-
-  // const erc20 = await hre.ethers.
-
   it("should deploy a Private token from the factory", async () => {
-
-    let privateToken: Contract;
-
-    let receipt = await (await privateTokenFactory.deploy(erc20.getAddress())).wait()
-    let address = receipt.logs[0].args[0];
-    privateToken = await ethers.getContractAt("PrivateToken", address);
-    console.log(privateToken)
-
+    await deployAll();
   });
-
-
 });

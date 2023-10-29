@@ -1,11 +1,7 @@
-require("@nomicfoundation/hardhat-toolbox");
-require("hardhat-gas-reporter");
-require("hardhat-deploy");
-import "@nomicfoundation/hardhat-ethers";
+import "hardhat-gas-reporter";
+import "hardhat-deploy";
+import "@nomicfoundation/hardhat-viem";
 require("dotenv").config();
-import '@typechain/hardhat'
-import '@nomicfoundation/hardhat-ethers'
-import '@nomicfoundation/hardhat-chai-matchers'
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -47,12 +43,5 @@ module.exports = {
       sepolia: process.env.TESTING_PUBLIC_KEY || "", //it can also specify a specific netwotk name (specified in hardhat.config.js)
       31337: 0,
     },
-  },
-  typechain: {
-    outDir: 'types',
-    target: 'ethers-v6',
-    alwaysGenerateOverloads: false, // should overloads with full signatures like deposit(uint256) be generated always, even if there are no overloads?
-    externalArtifacts: ['externalArtifacts/*.json'], // optional array of glob patterns with external artifacts to process (for example external libs from node_modules)
-    dontOverrideCompile: false // defaults to false
-  },
+  }
 };
