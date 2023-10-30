@@ -1,18 +1,17 @@
 mod utils;
 use dep::std::println;
 
-// BUG: Noir doesn't automatically add `comptime` to all globals, hence strongly typed
 // Number of bits per limb.
-global BITS_PER_LIMB: comptime Field = 56;
+global BITS_PER_LIMB: Field = 56;
 // Number of limbs.
-global NUM_LIMBS: comptime Field = 5;
+global NUM_LIMBS: Field = 5;
 // Noir doesn't support expressions on globals so these are hardcoded
 // Number of bytes per limb.
-global BYTES_PER_LIMB: comptime Field = 7; // BITS_PER_LIMB / 8
+global BYTES_PER_LIMB: Field = 7; // BITS_PER_LIMB / 8
 // Maximum number of bits.
-global MAX_BITS: comptime Field = 280; // BITS_PER_LIMB * NUM_LIMBS
+global MAX_BITS: Field = 280; // BITS_PER_LIMB * NUM_LIMBS
 // Maximum number of bytes.
-global MAX_BYTES: comptime Field = 35; // NUM_LIMBS * BYTES_PER_LIMB
+global MAX_BYTES: Field = 35; // NUM_LIMBS * BYTES_PER_LIMB
 
 // BigUint56 represents a large unsigned integer using a fixed number of limbs, each of which is a 56-bit unsigned integer.
 // We use u56 limbs because 
@@ -48,7 +47,7 @@ impl BigUint56 {
     }
 
     // Constructs a BigUint56 from a byte array. Assumes that the byte array is little-endian.
-    fn from_bytes(bytes: [u8]) -> Self {
+    pub fn from_bytes(bytes: [u8]) -> Self {
         // TODO: Do I need this check?
         assert(bytes.len() as u56 <= MAX_BYTES as u56);
 

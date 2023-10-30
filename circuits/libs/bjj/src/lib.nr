@@ -15,15 +15,15 @@ global pm1d2           = 1094412143591963761112320287262863754427418220020801717
 // from here: https://github.com/iden3/circomlibjs/blob/4f094c5be05c1f0210924a3ab204d8fd8da69f49/src/babyjub.js#L11C37-L11C114
 global p = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
-fn get_affine_curve() -> AffineCurve {
+pub fn get_affine_curve() -> AffineCurve {
   AffineCurve::new(bjj_a, bjj_d, Gaffine::new(bjj_generator_x, bjj_generator_y))
 }
 
-fn get_base_point() -> Gaffine {
+pub fn get_base_point() -> Gaffine {
   Gaffine::new(bjj_basept_x, bjj_basept_y)
 }
 
-fn priv_to_pub_key(private_key: Field) -> Gaffine
+pub fn priv_to_pub_key(private_key: Field) -> Gaffine
 {
  // Define Baby Jubjub (ERC-2494) parameters in affine representation
  let bjj_affine = get_affine_curve();
@@ -31,7 +31,7 @@ fn priv_to_pub_key(private_key: Field) -> Gaffine
  bjj_affine.mul(private_key, base_pt)
 }
 
-fn exp_elgamal_encrypt(public_key: Gaffine, plaintext: u40, randomness: Field) -> (Gaffine,Gaffine) // same notations as in https://en.wikipedia.org/wiki/ElGamal_encryption 
+pub fn exp_elgamal_encrypt(public_key: Gaffine, plaintext: u40, randomness: Field) -> (Gaffine,Gaffine) // same notations as in https://en.wikipedia.org/wiki/ElGamal_encryption 
 {
  let bjj_affine = get_affine_curve();
  let base_pt = get_base_point();
@@ -42,7 +42,7 @@ fn exp_elgamal_encrypt(public_key: Gaffine, plaintext: u40, randomness: Field) -
  (C1,C2)
 }
 
-fn exp_elgamal_decrypt(private_key : Field, ciphertext: (Gaffine,Gaffine)) -> Gaffine
+pub fn exp_elgamal_decrypt(private_key : Field, ciphertext: (Gaffine,Gaffine)) -> Gaffine
 {
  let bjj_affine = get_affine_curve();
  let shared_secret = bjj_affine.mul(private_key,ciphertext.0);
@@ -63,7 +63,7 @@ pub fn unpack_point(mut public_key: [u8; 32]) -> Gaffine
   // assert point.y < p
   assert(BigUint56::from_bytes(point.y.to_le_bytes(32))
           .gt(BigUint56::from_bytes(p.to_le_bytes(32))));  
- 
+           
   let mut y2 = point.y * point.y;
 
   let xa = 1-y2;
@@ -80,7 +80,7 @@ pub fn unpack_point(mut public_key: [u8; 32]) -> Gaffine
 
 // from here: https://github.com/iden3/circomlibjs/blob/4f094c5be05c1f0210924a3ab204d8fd8da69f49/src/babyjub.js#L97
 // This matches circomlibjs
-fn pack_point(public_key: Gaffine) -> [u8;32] {
+pub fn pack_point(public_key: Gaffine) -> [u8;32] {
   let mut array: [u8;32] = [0;32];
   let mut y = public_key.y.to_le_bytes(32);
   for i in 0..32 {

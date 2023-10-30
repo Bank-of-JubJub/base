@@ -50,9 +50,9 @@ fn test_lock() {
     let private_key: Field = 0x0510bae26a9b59ebad67a4324c944b1910a778e8481d7f08ddba6bcd2b94b2c4; // see debug notebook for an example on how to compute those
     let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775; // see debug notebook for an example on how to compute those
     let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
-    let packed_public_key = bjj::pack_point(public_key);
+    let packed_public_key = bjj::pack_point(public_key); 
     let balance: u40 = 1000;
-    let bjj_affine = bjj::get_affine_curve();
+    // let bjj_affine = bjj::get_affine_curve();
 
     let lock_to_address = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92265;
     let relay_fee: u40 = 1;
@@ -60,6 +60,6 @@ fn test_lock() {
     let old_balance = bjj::exp_elgamal_encrypt(public_key, balance, randomness);
     let new_balance = bjj::exp_elgamal_encrypt(public_key, balance - relay_fee, randomness);
 
-    std::println(packed_public_key);
+    std::println(new_balance.0);
     main(private_key, randomness, balance, packed_public_key, lock_to_address, relay_fee, old_balance.0, old_balance.1, new_balance.0, new_balance.1);
 }
