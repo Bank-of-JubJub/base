@@ -76,7 +76,7 @@ contract PrivateToken {
     // unpack (in circuit) using this algo: https://github.com/iden3/circomlibjs/blob/4f094c5be05c1f0210924a3ab204d8fd8da69f49/src/babyjub.js#L108
     mapping(bytes32 => EncryptedAmount) public balances;
 
-    // hash of public key => the key for the allPendingTransfersMapping
+    // packed public key => the key for the allPendingTransfersMapping
     mapping(bytes32 => uint256) public pendingTransferCounts;
     mapping(bytes32 => uint256) public pendingDepositCounts;
     mapping(bytes32 => mapping(uint256 => PendingTransfer))

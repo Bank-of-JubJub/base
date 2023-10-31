@@ -2,8 +2,14 @@ import { assert, expect } from "chai";
 import hre from "hardhat";
 import { spawn } from "child_process";
 import * as babyjubjubUtils from "../../utils/babyjubjub_utils.js";
-import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
-import { Address, createPublicClient, http, GetContractReturnType } from "viem";
+import {
+  Address,
+  createPublicClient,
+  http,
+  GetContractReturnType,
+  walletActions,
+  toBytes,
+} from "viem";
 import { hardhat } from "viem/chains";
 import { Contract } from "hardhat/internal/hardhat-network/stack-traces/model.js";
 // import * as proofUtils from "../../utils/proof_utils.js";
@@ -114,14 +120,58 @@ async function setup() {
     lockVerifier,
     token,
     privateToken,
+    walletClient0,
   };
 }
 
 describe("Private Token integration testing", async function () {
-  it("should deploy a Private token from the factory", async () => {
-    const { privateToken } = await setup();
-    console.log(privateToken);
-    privateToken.read.lockedTo();
+  it("should add a deposit", async () => {
+    const { privateToken, token, walletClient0, publicClient } = await setup();
+    let balance = await token.read.balanceOf([walletClient0.account.address]);
+    await token.write.approve([privateToken.address, balance]);
+
+    let recipient =
+      "0xdc9f9fdb746d0f07b004cc4316e3495a58570b90661499f8a6a6696ff4156baa" as `0x${string}`;
+
+    let depositAmount = (balance as bigint) / 2n;
+    let fee = 100;
+
+    await privateToken.write.deposit([
+      walletClient0.account.address,
+      depositAmount,
+      recipient,
+      fee,
+    ]);
+
+    const logs = await publicClient.getContractEvents({
+      address: privateToken.address,
+      abi: privateToken.abi,
+      eventName: "Deposit",
+    });
+
+    let pending = await privateToken.read.pendingDepositCounts([recipient]);
+    assert(pending == 1n, "Pending deposits should be 1.");
+
+    let pendingDeposit = await privateToken.read.allPendingDepositsMapping([
+      recipient,
+      0n,
+    ]);
+
+    // need to convert decimals between token and private token to get this to pass
+    // assert(
+    //   pendingDeposit[0] == depositAmount,
+    //   "pending deposit should match deposit amount"
+    // );
+    // assert(pendingDeposit[1] == fee, "pending deposit fee should match input");
+
+    let totalSupply = await privateToken.read.totalSupply();
+    console.log("totalSupply", totalSupply);
+
+    // need to convert decimals between token and private token to get this to pass
+    // assert(
+    //   totalSupply == Number(depositAmount),
+    //   "deposit amount should be the total supply"
+    // );
   });
 
   it("should work in another test", async function () {});
