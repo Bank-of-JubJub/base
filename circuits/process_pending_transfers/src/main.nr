@@ -7,7 +7,6 @@ use dep::std::ec::tecurve::affine::Curve as AffineCurve;
 use dep::std::ec::tecurve::affine::Point as Gaffine;
 use dep::std::collections::vec::Vec;
 use dep::std;
-use dep::noir_bigint::BigUint56;
 use dep::bjj;
 
 /* Code of the circuit used at each transfer of the token to prove the validity of transfer (sender 

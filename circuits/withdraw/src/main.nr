@@ -7,7 +7,6 @@ use dep::std::ec::tecurve::affine::Curve as AffineCurve;
 use dep::std::ec::tecurve::affine::Point as Gaffine;
 use dep::std::collections::vec::Vec;
 use dep::std;
-use dep::noir_bigint::BigUint56;
 use dep::bjj;
 
 // Code of the circuit used once at construction of the token to prove the correctness of encryption of the minted total supply.
@@ -21,7 +20,7 @@ fn main(private_key: Field,
         balance_old_clear: u40,
 
         // Public Inputs
-        packed_public_key: pub [u8;32], 
+        packed_public_key: pub [Field;32], 
         nonce: pub Field,
         value: pub u40, 
         relay_fee: pub u40,
@@ -36,13 +35,19 @@ fn main(private_key: Field,
     let decoded_value = bjj::exp_elgamal_decrypt(private_key, (balance_old_encrypted_1,balance_old_encrypted_2));
     // check that unencrypted balance of withdrawer really corresponds to his encrypted balance
     assert((decoded_value.x == embedded_balance_old_me_clear.x) & (decoded_value.y == embedded_balance_old_me_clear.y)); 
-    let public_key = bjj::unpack_point(packed_public_key);
+    let mut packed_public_key_u8: [u8;32] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
+    for i in 0..32 {
+        packed_public_key_u8[i] = packed_public_key[i] as u8;
+    }
+    let public_key = bjj::unpack_point(packed_public_key_u8);
     // we encrypt the minted value with the minter's public key
     let new_balance_encrypted_computed = bjj::exp_elgamal_encrypt(public_key, balance_old_clear - value - relay_fee, randomness);
     assert((new_balance_encrypted_computed.0.x == balance_new_encrypted_1.x) & 
             (new_balance_encrypted_computed.0.y == balance_new_encrypted_1.y) & 
             (new_balance_encrypted_computed.1.x == balance_new_encrypted_2.x) & 
             (new_balance_encrypted_computed.1.y == balance_new_encrypted_2.y)); 
+
+    assert(nonce==nonce); // for clarity and to remove the unused variable warning
 }
 
 #[test]
@@ -55,6 +60,10 @@ fn test_withdraw() {
     // // public values
     let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
     let packed_public_key = bjj::pack_point(public_key);
+    let mut packed_public_key_Field: [Field;32] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    for i in 0..32 {
+        packed_public_key_Field[i] = packed_public_key[i] as Field;
+    }
     let value: u40 = 100; // the message being encrypted, should be a u40
     let relay_fee: u40 = 1; // the relay fee, should be a u40
 
@@ -62,7 +71,5 @@ fn test_withdraw() {
     let new_encrypted_amount = bjj::exp_elgamal_encrypt(public_key, balance - value - relay_fee, randomness);
     let nonce = 2; // compute in Solidity, keccak(encryped amt) % p
 
-    std::println(randomness);
-
-    main(private_key, randomness, balance, packed_public_key,nonce, value,relay_fee,old_encrypted_amount.0,old_encrypted_amount.1,new_encrypted_amount.0,new_encrypted_amount.1);  
+    main(private_key, randomness, balance, packed_public_key_Field,nonce, value,relay_fee,old_encrypted_amount.0,old_encrypted_amount.1,new_encrypted_amount.0,new_encrypted_amount.1);  
 }

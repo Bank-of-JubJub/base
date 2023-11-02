@@ -5,8 +5,6 @@ members = [
     "circuits/withdraw",
     "circuits/process_pending_deposits",
     "circuits/process_pending_transfers",
-    "circuits/libs/bjj",
-    "circuits/libs/biguint",
 ]
 default-member = "circuits/transfer"
 

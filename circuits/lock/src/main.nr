@@ -7,7 +7,6 @@ use dep::std::ec::tecurve::affine::Curve as AffineCurve;
 use dep::std::ec::tecurve::affine::Point as Gaffine;
 use dep::std::collections::vec::Vec;
 use dep::std;
-use dep::noir_bigint::BigUint56;
 use dep::bjj;
 
 // Code of the circuit used once at construction of the token to prove the correctness of encryption of the minted total supply.
@@ -22,7 +21,7 @@ fn main(private_key: Field,
 
         // Public Inputs
 
-        packed_public_key: pub [u8;32], 
+        packed_public_key: pub [Field;32], 
         lock_to_address: pub Field,
         relay_fee: pub u40,
         balance_old_encrypted_1: pub Gaffine, 
@@ -32,7 +31,11 @@ fn main(private_key: Field,
     { 
     let bjj_affine = bjj::get_affine_curve();
     let base_pt = bjj::get_base_point();
-    let public_key = bjj::unpack_point(packed_public_key);
+    let mut packed_public_key_u8: [u8;32] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
+    for i in 0..32 {
+        packed_public_key_u8[i] = packed_public_key[i] as u8;
+    }
+    let public_key = bjj::unpack_point(packed_public_key_u8);
     let embedded_balance_old_me_clear = bjj_affine.mul(balance_old_clear as Field, base_pt);
     let decoded_value = bjj::exp_elgamal_decrypt(private_key, (balance_old_encrypted_1,balance_old_encrypted_2));
     // check that unencrypted balance of withdrawer really corresponds to his encrypted balance
@@ -43,6 +46,7 @@ fn main(private_key: Field,
             (new_balance_encrypted_computed.0.y == balance_new_encrypted_1.y) & 
             (new_balance_encrypted_computed.1.x == balance_new_encrypted_2.x) & 
             (new_balance_encrypted_computed.1.y == balance_new_encrypted_2.y)); 
+    assert(lock_to_address==lock_to_address); // for clarity and to remove the unused variable warning
 }
 
 #[test]
@@ -51,6 +55,10 @@ fn test_lock() {
     let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775; // see debug notebook for an example on how to compute those
     let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
     let packed_public_key = bjj::pack_point(public_key); 
+    let mut packed_public_key_Field: [Field;32] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    for i in 0..32 {
+        packed_public_key_Field[i] = packed_public_key[i] as Field;
+    }
     let balance: u40 = 1000;
     // let bjj_affine = bjj::get_affine_curve();
 
@@ -61,5 +69,5 @@ fn test_lock() {
     let new_balance = bjj::exp_elgamal_encrypt(public_key, balance - relay_fee, randomness);
 
     std::println(new_balance.0);
-    main(private_key, randomness, balance, packed_public_key, lock_to_address, relay_fee, old_balance.0, old_balance.1, new_balance.0, new_balance.1);
+    main(private_key, randomness, balance, packed_public_key_Field, lock_to_address, relay_fee, old_balance.0, old_balance.1, new_balance.0, new_balance.1);
 }
