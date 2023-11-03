@@ -419,6 +419,7 @@ contract PrivateToken {
         uint8[] memory _txsToProcess,
         address _feeRecipient,
         bytes32 _recipient,
+        EncryptedAmount calldata _zeroBalance,
         EncryptedAmount calldata _newBalance
     ) public {
         uint8 numTxsToProcess = uint8(_txsToProcess.length);
@@ -426,6 +427,15 @@ contract PrivateToken {
         uint40 totalFees;
         uint256 totalAmount;
         EncryptedAmount memory oldBalance = balances[_recipient];
+        if (
+            oldBalance.C1x == 0 &&
+            oldBalance.C1y == 0 &&
+            oldBalance.C2x == 0 &&
+            oldBalance.C2y == 0
+        ) {
+            // if this is a fresh account, use the encrypted zero balance
+            oldBalance = _zeroBalance;
+        }
         PendingDeposit[] memory userPendingDepositsArray = new PendingDeposit[](
             4
         );
