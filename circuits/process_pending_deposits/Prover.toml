@@ -1,23 +1,53 @@
-account_address = ""
-amountSum = ""
-randomness = ""
+randomness = "168986485046885582825082387270879151100288537211746581237924789162159767775"
+amount_sum = 100
 
-[balance_new_to_encrypted_1]
-x = ""
-y = ""
+packed_public_key = [
+  220,
+  159,
+  159,
+  219,
+  116,
+  109,
+  15,
+  7,
+  176,
+  4,
+  204,
+  67,
+  22,
+  227,
+  73,
+  90,
+  88,
+  87,
+  11,
+  144,
+  102,
+  20,
+  153,
+  248,
+  166,
+  166,
+  105,
+  111,
+  244,
+  21,
+  107,
+  170,
+]
 
-[balance_new_to_encrypted_2]
-x = ""
-y = ""
+[old_enc_balance_1]
+x="0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368"
+y="0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f"
 
-[balance_old_to_encrypted_1]
-x = ""
-y = ""
+[old_enc_balance_2]
+x="0x07e53fae96ad45d6016f66d661313ec65a864298e7b7b08ce9af509701f2fd85"
+y="0x2c10e5d6c77d19cbb0b17fa9caf3c301ac38ae49ee53c7b1478962f93621eb9f"
 
-[balance_old_to_encrypted_2]
-x = ""
-y = ""
+[new_enc_balance_1]
+x="0x0b958e9d5d179fd5cb5ff51738a09adffb9ce39554074dcc8332a2e9775ffcc0"
+y="0x2afe00f5544394d2ffdefbb9be1e255374c5c9f9c3f89df5e373cfb9148d63a2"
 
-[public_key_to]
-x = ""
-y = ""
+[new_enc_balance_2]
+x="0x23e93b7376a144c74aa30ad25c3716d1ccc4ebcda61e31dec93b227099ab9e7e"
+y="0x26535d5c4fb9ec872764e3a5918f3e110124f06a9da1c532d64d4aa797aad9f8"

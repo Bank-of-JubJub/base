@@ -22,8 +22,8 @@ initiated by from=msg.sender in the contract, so replay attack is impossible)
 // so no info is leaked
 fn main(randomness: Field, // randomness used for encryption, amount is already public so doesnt matter
         // Public inputs, this can be executed by anyone
-        packed_public_key: pub [u8;32], 
-        amountSum: pub u40,
+        packed_public_key: pub [Field;32], 
+        amount_sum: pub u40,
         old_enc_balance_1: pub Gaffine, 
         old_enc_balance_2: pub Gaffine,
         new_enc_balance_1: pub Gaffine, 
@@ -31,8 +31,12 @@ fn main(randomness: Field, // randomness used for encryption, amount is already 
     ) { 
 
     let bjj_affine = bjj::get_affine_curve();
-    let public_key = bjj::unpack_point(packed_public_key);
-    let mut encrypted_amount = bjj::exp_elgamal_encrypt(public_key, amountSum, randomness);
+    let mut packed_public_key_u8: [u8;32] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
+    for i in 0..32 {
+        packed_public_key_u8[i] = packed_public_key[i] as u8;
+    }
+    let public_key = bjj::unpack_point(packed_public_key_u8);
+    let mut encrypted_amount = bjj::exp_elgamal_encrypt(public_key, amount_sum, randomness);
 
     // addition of the points on Baby Jubjub : this operation is additevely homomorphic for Exponential ElGamal
     let balance_new_to_encrypted_computed = 
@@ -53,11 +57,13 @@ fn test_process_deposit() {
     let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775; // see debug notebook for an example on how to compute those
     let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
     let packed_public_key = bjj::pack_point(public_key);
-
+    let mut packed_public_key_Field: [Field;32] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+    for i in 0..32 {
+        packed_public_key_Field[i] = packed_public_key[i] as Field;
+    }
     let old_balance_clear = 100 as u40;
     let amount = 100 as u40;
     let old_balance_enc : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(public_key, old_balance_clear, randomness);
-
     let encrypted_amount = bjj::exp_elgamal_encrypt(public_key, amount, randomness);
     let bjj_affine = bjj::get_affine_curve();
     let new_balance_enc = 
@@ -65,10 +71,11 @@ fn test_process_deposit() {
 
     let bjj_affine = bjj::get_affine_curve();
     let base_pt = bjj::get_base_point();
-    let embedded_balance = bjj_affine.mul(200, base_pt);
+    let embedded_balance = bjj_affine.mul((old_balance_clear + amount) as Field, base_pt);
     let decoded_value = bjj::exp_elgamal_decrypt(private_key, new_balance_enc);
     assert(decoded_value.x==embedded_balance.x);
     assert(decoded_value.y==embedded_balance.y);
+    std::println(new_balance_enc.0);
 
     // std::println("new balance enc");
     // std::println(new_balance_enc.0.x);
@@ -76,5 +83,5 @@ fn test_process_deposit() {
     // std::println(new_balance_enc.1.x);
     // std::println(new_balance_enc.1.y);
 
-    main(randomness, packed_public_key, amount, old_balance_enc.0, old_balance_enc.1, new_balance_enc.0, new_balance_enc.1);
+    main(randomness, packed_public_key_Field, amount, old_balance_enc.0, old_balance_enc.1, new_balance_enc.0, new_balance_enc.1);
 }
