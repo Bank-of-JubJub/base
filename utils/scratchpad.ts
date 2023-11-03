@@ -26,7 +26,7 @@ async function main() {
 
   let packedPublicKey = babyjubjubUtils.packPublicKey(pub_key_array);
   console.log("packed public key", packedPublicKey);
-  console.log("packed as hex", uint8ArrayToBigInt(packedPublicKey));
+  console.log("packed as hex", uint8ArrayToHexArray(packedPublicKey));
   // The unpacked key is different than the original Public Key,
   // but additional packing/unpacking will always produce the same
   // packed/unpacked key
