@@ -61,7 +61,7 @@ fn test_process_deposit() {
     for i in 0..32 {
         packed_public_key_Field[i] = packed_public_key[i] as Field;
     }
-    let old_balance_clear = 100 as u40;
+    let old_balance_clear = 0 as u40;
     let amount = 100 as u40;
     let old_balance_enc : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(public_key, old_balance_clear, randomness);
     let encrypted_amount = bjj::exp_elgamal_encrypt(public_key, amount, randomness);
