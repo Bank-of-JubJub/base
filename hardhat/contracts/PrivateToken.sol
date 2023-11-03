@@ -74,14 +74,18 @@ contract PrivateToken {
     // packed public key => encrypted balance
     // packed using this algo: https://github.com/iden3/circomlibjs/blob/4f094c5be05c1f0210924a3ab204d8fd8da69f49/src/babyjub.js#L97
     // unpack (in circuit) using this algo: https://github.com/iden3/circomlibjs/blob/4f094c5be05c1f0210924a3ab204d8fd8da69f49/src/babyjub.js#L108
-    mapping(bytes32 => EncryptedAmount) public balances;
+    mapping(bytes32 packedPublicKey => EncryptedAmount) public balances;
 
     // packed public key => the key for the allPendingTransfersMapping
-    mapping(bytes32 => uint256) public pendingTransferCounts;
-    mapping(bytes32 => uint256) public pendingDepositCounts;
-    mapping(bytes32 => mapping(uint256 => PendingTransfer))
+    mapping(bytes32 packedPublicKey => uint256 count)
+        public pendingTransferCounts;
+
+    mapping(bytes32 packedPublicKey => uint256 count)
+        public pendingDepositCounts;
+
+    mapping(bytes32 packedPublicKey => mapping(uint256 => PendingTransfer))
         public allPendingTransfersMapping;
-    mapping(bytes32 => mapping(uint256 => PendingDeposit))
+    mapping(bytes32 packedPublicKey => mapping(uint256 => PendingDeposit))
         public allPendingDepositsMapping;
 
     // This prevents replay attacks in the transfer fn
@@ -89,7 +93,8 @@ contract PrivateToken {
     mapping(bytes32 => mapping(uint256 => bool)) public nonce;
 
     // account can be locked and controlled by a contract
-    mapping(bytes32 => address) public lockedTo;
+    mapping(bytes32 packedPublicKey => address lockedToContract)
+        public lockedTo;
 
     /*
         A PendingTransaction is added to this array when transfer is called.
@@ -416,7 +421,7 @@ contract PrivateToken {
 
     function processPendingDeposit(
         bytes memory _proof,
-        uint8[] memory _txsToProcess,
+        uint256[] memory _txsToProcess,
         address _feeRecipient,
         bytes32 _recipient,
         EncryptedAmount calldata _zeroBalance,
