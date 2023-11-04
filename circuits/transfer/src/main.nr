@@ -82,23 +82,27 @@ fn test_transfer() {
     // private values
     let private_key: Field = 2291123624948246627368989940774052753470489062495018070576418670157516550852; // see debug notebook for an example on how to compute those
     let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775; // see debug notebook for an example on how to compute those
-    let value: u40 = 100;
-    let old_balance = 10000;
+    let value: u40 = 3;
+    let old_balance = 999;
 
     // public values
     let sender_pub_key: Gaffine = bjj::priv_to_pub_key(private_key);
     let packed_sender_pub_key = bjj::pack_point(sender_pub_key);
     let recipient_pub_key: Gaffine = bjj::priv_to_pub_key(2397698694665525209403000085013646741088197704326090841842743616643093564368); // bjj_priv_to_pub_key(private_key_to)
     let packed_recipient_pub_key = bjj::pack_point(recipient_pub_key);
-    let process_fee: u40 = 5;
-    let relay_fee: u40 = 5;
+    let process_fee: u40 = 1;
+    let relay_fee: u40 = 2;
     
     let encrypted_amount = bjj::exp_elgamal_encrypt(recipient_pub_key, value - process_fee - relay_fee, randomness);
     let nonce = 5;
 
-     let old_encrypted_balance : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, 1223911427385630814994881905088740515414339792865684838215099796087690786721);
-     let new_balance_encrypted : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(sender_pub_key, 9900, randomness);
+    let old_encrypted_balance : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, randomness);
+    let new_balance_encrypted : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(sender_pub_key, old_balance - process_fee - relay_fee - value, randomness);
 
+    std::println(encrypted_amount.0);
+    std::println(encrypted_amount.1);
+    std::println(new_balance_encrypted.0);
+    std::println(new_balance_encrypted.1);
 
     main(private_key,randomness, 
         value, 
