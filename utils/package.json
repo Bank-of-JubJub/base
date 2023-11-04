@@ -6,7 +6,7 @@
   "main": "test.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "proof": "node proof_utils.mjs",
+    "proof": "node proof_utils.mts",
     "build": "yarn clean && tsc -b",
     "clean": "rm -rf ./dest tsconfig.tsbuildinfo",
     "start": "yarn build && node ./dest/ts/index.js"
