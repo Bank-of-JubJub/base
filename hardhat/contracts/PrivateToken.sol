@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
-
+import "hardhat/console.sol";
 import {UltraVerifier as ProcessDepositVerifier} from "./process_pending_deposits/plonk_vk.sol";
 import {UltraVerifier as ProcessTransferVerifier} from "./process_pending_transfers/plonk_vk.sol";
 import {UltraVerifier as TransferVerifier} from "./transfer/plonk_vk.sol";
 import {UltraVerifier as WithdrawVerifier} from "./withdraw/plonk_vk.sol";
 import {UltraVerifier as LockVerifier} from "./lock/plonk_vk.sol";
-
 import {IERC20} from "./IERC20.sol";
 import {IERC165} from "./IERC165.sol";
 import {ERC165Checker} from "./ERC165Checker.sol";
@@ -441,6 +440,7 @@ contract PrivateToken {
             // if this is a fresh account, use the encrypted zero balance
             oldBalance = _zeroBalance;
         }
+
         PendingDeposit[] memory userPendingDepositsArray = new PendingDeposit[](
             4
         );
