@@ -6,7 +6,7 @@ async function main() {
   // const { privateKey, publicKey } = babyjubjubUtils.generatePrivateAndPublicKey();
 
   const priv_key =
-    "0x0510bae26a9b59ebad67a4324c944b1910a778e8481d7f08ddba6bcd2b94b2c4";
+    "0x0000bae26a9b59ebad67a4324c944b1910a778e8481d7f08ddba6bcd2b94b2c4";
   const pub_key = babyjubjubUtils.privateToPublicKey(priv_key);
   const pub_key_array: Point = [
     bigintToUint8Array(pub_key.x),
@@ -26,7 +26,7 @@ async function main() {
 
   let packedPublicKey = babyjubjubUtils.packPublicKey(pub_key_array);
   console.log("packed public key", packedPublicKey);
-  console.log("packed as hex", uint8ArrayToHexArray(packedPublicKey));
+  console.log("packed as hex", uint8ArrayToHex(packedPublicKey));
   // The unpacked key is different than the original Public Key,
   // but additional packing/unpacking will always produce the same
   // packed/unpacked key

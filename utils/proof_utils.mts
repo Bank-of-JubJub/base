@@ -14,23 +14,27 @@ export async function genProof(circuit_name: string, inputs: any) {
   let backend;
   switch (circuit_name) {
     case "lock":
-      backend = new BarretenbergBackend(lock as any);
+      backend = new BarretenbergBackend(lock as any, { threads: 4 });
       noir = new Noir(lock as any, backend);
       break;
     case "transfer":
-      backend = new BarretenbergBackend(transfer as any);
+      backend = new BarretenbergBackend(transfer as any, { threads: 4 });
       noir = new Noir(transfer as any, backend);
       break;
     case "withdraw":
-      backend = new BarretenbergBackend(withdraw as any);
+      backend = new BarretenbergBackend(withdraw as any, { threads: 4 });
       noir = new Noir(withdraw as any, backend);
       break;
     case "processPendingDeposits":
-      backend = new BarretenbergBackend(process_pending_deposits as any);
+      backend = new BarretenbergBackend(process_pending_deposits as any, {
+        threads: 4,
+      });
       noir = new Noir(process_pending_deposits as any, backend);
       break;
     case "processPendingTransfers":
-      backend = new BarretenbergBackend(process_pending_transfers as any);
+      backend = new BarretenbergBackend(process_pending_transfers as any, {
+        threads: 4,
+      });
       noir = new Noir(process_pending_transfers as any, backend);
       break;
     default:
@@ -114,7 +118,7 @@ const inputs_process_deposits = {
     "0x6b",
     "0xaa",
   ],
-  amount_sum: 100,
+  amount_sum: 0x03e7,
   old_enc_balance_1: {
     x: "0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368",
     y: "0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f",
@@ -128,8 +132,8 @@ const inputs_process_deposits = {
     y: "0x2afe00f5544394d2ffdefbb9be1e255374c5c9f9c3f89df5e373cfb9148d63a2",
   },
   new_enc_balance_2: {
-    x: "0x15f22eb9e5e68af082365afb12c83997d06514835e1a34cf787d3b65831a03a2",
-    y: "0x043495e2d574a451ed777f379c85fe3ac5230909f6aace57ff1900ebb74da265",
+    x: "0x06deb02e81b49cc0e215e0453b6135d52827629df1a12914da953199d39f333b",
+    y: "0x211de3374abedea3113aa1f312173764eb804dab7ead931971a4dbba832baf00",
   },
 };
 
