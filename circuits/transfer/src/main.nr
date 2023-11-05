@@ -23,24 +23,34 @@ fn main(private_key: Field,
 
         // Public inputs
 
-        sender_pub_key: pub [u8; 32], 
-        recipient_pub_key: pub [u8; 32], 
+        sender_pub_key: pub [Field; 32], 
+        recipient_pub_key: pub [Field; 32], 
         // account_address: pub Field, // can be removed with packed public keys
         process_fee: pub u40,
         relay_fee: pub u40,
         nonce: pub Field,
-        balance_old_me_encrypted_1: pub Gaffine, 
-        balance_old_me_encrypted_2: pub Gaffine,
+        old_balance_encrypted_1: pub Gaffine, 
+        old_balance_encrypted_2: pub Gaffine,
         encrypted_amount_1: pub Gaffine,
         encrypted_amount_2: pub Gaffine,
-        balance_new_me_encrypted_1: pub Gaffine, 
-        balance_new_me_encrypted_2: pub Gaffine, 
+        new_balance_encrypted_1: pub Gaffine, 
+        new_balance_encrypted_2: pub Gaffine, 
     ){ 
     let computed_public_key = bjj::priv_to_pub_key(private_key);
-    let unpacked_sender_pub_key = bjj::unpack_point(sender_pub_key);
+    let mut sender_pub_key_u8: [u8;32] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
+    for i in 0..32 {
+        sender_pub_key_u8[i] = sender_pub_key[i] as u8;
+    }
+
+    let unpacked_sender_pub_key = bjj::unpack_point(sender_pub_key_u8);
     assert(computed_public_key.x == unpacked_sender_pub_key.x);
     assert(computed_public_key.y == unpacked_sender_pub_key.y);
-    let unpacked_recipient_pub_key = bjj::unpack_point(recipient_pub_key);
+
+    let mut recipient_pub_key_u8: [u8;32] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
+    for i in 0..32 {
+        recipient_pub_key_u8[i] = recipient_pub_key[i] as u8;
+    }
+    let unpacked_recipient_pub_key = bjj::unpack_point(recipient_pub_key_u8);
 
     // the sender must have sufficient balance
     assert(value<=balance_old_me_clear); 
@@ -58,16 +68,16 @@ fn main(private_key: Field,
     let bjj_affine = bjj::get_affine_curve();
     let base_pt = bjj::get_base_point();
     let embedded_balance_old_me_clear = bjj_affine.mul(balance_old_me_clear as Field, base_pt);
-    let decoded_value = bjj::exp_elgamal_decrypt(private_key, (balance_old_me_encrypted_1,balance_old_me_encrypted_2));
+    let decoded_value = bjj::exp_elgamal_decrypt(private_key, (old_balance_encrypted_1,old_balance_encrypted_2));
     // check that unencrypted balance of sender really corresponds to his encrypted balance
     assert((decoded_value.x == embedded_balance_old_me_clear.x) & (decoded_value.y == embedded_balance_old_me_clear.y)); 
  
     let balance_new_me_encrypted_computed = bjj::exp_elgamal_encrypt(unpacked_sender_pub_key, balance_old_me_clear - value - process_fee - relay_fee, randomness);
     // // checks that the new encrypted balance of sender is correct
-    assert((balance_new_me_encrypted_computed.0.x==balance_new_me_encrypted_1.x) & 
-            (balance_new_me_encrypted_computed.0.y==balance_new_me_encrypted_1.y) & 
-            (balance_new_me_encrypted_computed.1.x==balance_new_me_encrypted_2.x) & 
-            (balance_new_me_encrypted_computed.1.y==balance_new_me_encrypted_2.y)); 
+    assert((balance_new_me_encrypted_computed.0.x==new_balance_encrypted_1.x) & 
+            (balance_new_me_encrypted_computed.0.y==new_balance_encrypted_1.y) & 
+            (balance_new_me_encrypted_computed.1.x==new_balance_encrypted_2.x) & 
+            (balance_new_me_encrypted_computed.1.y==new_balance_encrypted_2.y)); 
     // // check that the amount being transferred is correctly encrypted
     let encrypted_amount_computed = bjj::exp_elgamal_encrypt(unpacked_recipient_pub_key, value, randomness);
     assert((encrypted_amount_computed.0.x == encrypted_amount_1.x) &
@@ -82,27 +92,49 @@ fn test_transfer() {
     // private values
     let private_key: Field = 2291123624948246627368989940774052753470489062495018070576418670157516550852; // see debug notebook for an example on how to compute those
     let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775; // see debug notebook for an example on how to compute those
-    let value: u40 = 3;
+    let value: u40 = 5;
     let old_balance = 999;
 
     // public values
-    let sender_pub_key: Gaffine = bjj::priv_to_pub_key(private_key);
-    let packed_sender_pub_key = bjj::pack_point(sender_pub_key);
-    let recipient_pub_key: Gaffine = bjj::priv_to_pub_key(2397698694665525209403000085013646741088197704326090841842743616643093564368); // bjj_priv_to_pub_key(private_key_to)
-    let packed_recipient_pub_key = bjj::pack_point(recipient_pub_key);
+    // let sender_pub_key: Gaffine = bjj::priv_to_pub_key(private_key);
+    let packed_sender_pub_key = [0xdc, 0x9f, 0x9f, 0xdb, 0x74, 0x6d, 0x0f, 0x07, 0xb0, 0x04, 0xcc, 0x43, 0x16, 0xe3, 0x49, 0x5a, 0x58, 0x57, 0x0b, 0x90, 0x66, 0x14, 0x99, 0xf8, 0xa6, 0xa6, 0x69, 0x6f, 0xf4, 0x15, 0x6b, 0xaa];//generated via circomlibjs
+
+    // let recipient_pub_key: Gaffine = bjj::priv_to_pub_key(2397698694665525209403000085013646741088197704326090841842743616643093564368); // bjj_priv_to_pub_key(private_key_to)
+    let packed_recipient_pub_key = [0x0c, 0x07, 0x99, 0x9c, 0x15, 0xd4, 0x06, 0xbc, 0x08, 0xd7, 0xf3, 0xf3, 0x1f, 0x62, 0xce, 0xdb, 0xc8, 0x9e, 0xbf, 0x3a, 0x53, 0xff, 0x4d, 0x3b, 0xf7, 0xe2, 0xd0, 0xdd, 0xa9, 0x31, 0x49, 0x04];
+
     let process_fee: u40 = 1;
     let relay_fee: u40 = 2;
     
-    let encrypted_amount = bjj::exp_elgamal_encrypt(recipient_pub_key, value - process_fee - relay_fee, randomness);
-    let nonce = 5;
 
-    let old_encrypted_balance : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, randomness);
-    let new_balance_encrypted : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(sender_pub_key, old_balance - process_fee - relay_fee - value, randomness);
+    // let encrypted_amount = bjj::exp_elgamal_encrypt(recipient_pub_key, value - relay_fee - process_fee, randomness);
+        let encrypted_amount : (Gaffine,Gaffine) = 
+    (Gaffine::new(0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368, 
+    0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f), 
+    Gaffine::new(0x25bd68ade5a08a4a012250cff52bd6e92752413aacb5a01ef8157e7c65b1b1c6, 
+    0x22ce61a67a4ee826534fca1d6276fd1c80ff05a5831f90ce1c9f5963a6393e5f));
+    
+    let nonce = 21791187112363609100120894565844832280298519926030489354388467102708178882956;
 
-    std::println(encrypted_amount.0);
-    std::println(encrypted_amount.1);
-    std::println(new_balance_encrypted.0);
-    std::println(new_balance_encrypted.1);
+    let old_encrypted_balance : (Gaffine,Gaffine) = 
+    (Gaffine::new(0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368, 
+    0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f), 
+    Gaffine::new(0x1a71ea2eae3ddac2aac76373cbb880c5c6cc76e9d29807d82d05f3c85b5beabb, 
+    0x2a179ce3f5cbeec397a3d14154d38fae55ffc6163f89ff324171ead91f110ff5)) ; //bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, randomness);
+    let new_balance_encrypted : (Gaffine,Gaffine) = 
+    (Gaffine::new(0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368, 
+    0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f), 
+    Gaffine::new(0x0e1e666f8f0b88b8f95cf51f00175a83a338557351c4c34da8cf4049a5adc77c, 
+    0x2271fba8cd2dc38d663006ae7ca0c3ab9a5cdc842d98ac39878e271208827b5d)) ; //bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, randomness);
+
+
+    // let old_encrypted_balance : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, randomness);
+    // let new_balance_encrypted : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(sender_pub_key, old_balance - process_fee - relay_fee - value, randomness);
+
+
+    // std::println(encrypted_amount.0);
+    // std::println(encrypted_amount.1);
+    // std::println(new_balance_encrypted.0);
+    // std::println(new_balance_encrypted.1);
 
     main(private_key,randomness, 
         value, 
