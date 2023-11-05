@@ -107,6 +107,8 @@ fn test_transfer() {
     
 
     // let encrypted_amount = bjj::exp_elgamal_encrypt(recipient_pub_key, value - relay_fee - process_fee, randomness);
+
+// 5, ecrypted with recipient_pub_key 
         let encrypted_amount : (Gaffine,Gaffine) = 
     (Gaffine::new(0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368, 
     0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f), 
@@ -115,11 +117,14 @@ fn test_transfer() {
     
     let nonce = 21791187112363609100120894565844832280298519926030489354388467102708178882956;
 
+ // 999, encrypted with sender_pub_key 
     let old_encrypted_balance : (Gaffine,Gaffine) = 
     (Gaffine::new(0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368, 
     0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f), 
     Gaffine::new(0x1a71ea2eae3ddac2aac76373cbb880c5c6cc76e9d29807d82d05f3c85b5beabb, 
     0x2a179ce3f5cbeec397a3d14154d38fae55ffc6163f89ff324171ead91f110ff5)) ; //bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, randomness);
+
+// 991,  encrypted with sender_pub_key 
     let new_balance_encrypted : (Gaffine,Gaffine) = 
     (Gaffine::new(0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368, 
     0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f), 
@@ -150,24 +155,4 @@ fn test_transfer() {
         encrypted_amount.1,
         new_balance_encrypted.0,
         new_balance_encrypted.1); 
-}
-
-fn abi_encode_encrypted_amount(first: Gaffine, second: Gaffine) -> [u8; 128]{
-    let mut prehashed_nonce: [u8;128] = [0;128];
-    for i in 0..128 {
-      let first_quarter = first.x.to_le_bytes(32);
-      let second_quarter = first.y.to_le_bytes(32);
-      let third_quarter = second.x.to_le_bytes(32);
-      let fourth_quarter = second.y.to_le_bytes(32);
-        if(i as u8<32){
-          prehashed_nonce[i] = first_quarter[i];
-        } else if i as u8 < 64 {
-          prehashed_nonce[i] = second_quarter[i];
-        } else if i as u8 < 96 {
-          prehashed_nonce[i] = third_quarter[i];
-        } else {
-          prehashed_nonce[i] = fourth_quarter[i];
-        }
-      }
-      prehashed_nonce
 }
