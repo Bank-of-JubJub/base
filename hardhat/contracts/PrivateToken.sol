@@ -292,12 +292,15 @@ contract PrivateToken {
             pendingTransferCounts[_to] += 1;
         }
 
-        local.publicInputs = new bytes32[](47);
+        local.publicInputs = new bytes32[](79);
         for (uint8 i = 0; i < 32; i++) {
             // Noir takes an array of 32 bytes32 as public inputs
             bytes1 aByte = bytes1((_from << (i * 8)));
             local.publicInputs[i] = bytes32(uint256(uint8(aByte)));
         }
+
+        // TODO: add the public key of the recipient
+
         local.publicInputs[32] = bytes32(uint256(_processFee));
         local.publicInputs[33] = bytes32(uint256(_relayFee));
         // this nonce should be unique because it uses the randomness calculated in the encrypted balance
