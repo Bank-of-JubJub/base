@@ -111,55 +111,44 @@ describe("Private Token integration testing", async function () {
     );
 
     const from = recipient;
-    // private key 0x0000bae26a9b59ebad67a4324c944b1910a778e8481d7f08ddba6bcd2b94b2c4
     const to =
-      "0x17aeb1361bdada97d8b24aeae439f0643d73f1833a890e67707bb99baafcc38c";
+      "0x0c07999c15d406bc08d7f3f31f62cedbc89ebf3a53ff4d3bf7e2d0dda9314904";
     const processFee = 1;
     const relayFee = 2;
     const relayFeeRecipient = walletClient1.account.address;
 
-    const amountToSend = 3n;
+    const amountToSend = 5;
+
+    // 5, ecrypted to `to`
     const amount = {
-      C1x: 0x0b958e9d5d179fd5cb5ff51738a09adffb9ce39554074dcc8332a2e9775ffcc0n,
-      C1y: 0x2afe00f5544394d2ffdefbb9be1e255374c5c9f9c3f89df5e373cfb9148d63a2n,
-      C2x: 0x06deb02e81b49cc0e215e0453b6135d52827629df1a12914da953199d39f333bn,
-      C2y: 0x211de3374abedea3113aa1f312173764eb804dab7ead931971a4dbba832baf00n,
+      C1x: 0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368n,
+      C1y: 0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036fn,
+      C2x: 0x25bd68ade5a08a4a012250cff52bd6e92752413aacb5a01ef8157e7c65b1b1c6n,
+      C2y: 0x22ce61a67a4ee826534fca1d6276fd1c80ff05a5831f90ce1c9f5963a6393e5fn,
     };
+    // 991, encrypted to `from`
     const newSenderBalance = {
-      C1x: 0x0b958e9d5d179fd5cb5ff51738a09adffb9ce39554074dcc8332a2e9775ffcc0n,
-      C1y: 0x2afe00f5544394d2ffdefbb9be1e255374c5c9f9c3f89df5e373cfb9148d63a2n,
-      C2x: 0x06deb02e81b49cc0e215e0453b6135d52827629df1a12914da953199d39f333bn,
-      C2y: 0x211de3374abedea3113aa1f312173764eb804dab7ead931971a4dbba832baf00n,
+      C1x: 0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368n,
+      C1y: 0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036fn,
+      C2x: 0x0e1e666f8f0b88b8f95cf51f00175a83a338557351c4c34da8cf4049a5adc77cn,
+      C2y: 0x2271fba8cd2dc38d663006ae7ca0c3ab9a5cdc842d98ac39878e271208827b5dn,
     };
 
-    const proof = "" as `0x${string}`;
-    const nonce = keccak256(
-      encodeAbiParameters(
-        [
-          { name: "C1x", type: "bytes32" },
-          { name: "C1y", type: "bytes32" },
-          { name: "C2x", type: "bytes32" },
-          { name: "C1y", type: "bytes32" },
-        ],
-        [
-          newSenderBalance.C1x.toString(16) as `0x{string}`,
-          newSenderBalance.C1y.toString(16) as `0x{string}`,
-          newSenderBalance.C2x.toString(16) as `0x{string}`,
-          newSenderBalance.C1y.toString(16) as `0x{string}`,
-        ]
-      )
-    );
-    console.log(nonce);
-    // privateToken.write.transfer([
-    //   to,
-    //   from,
-    //   processFee,
-    //   relayFee,
-    //   relayFeeRecipient,
-    //   amount,
-    //   newSenderBalance,
-    //   proof,
-    // ]);
+    const proof =
+      "0x2851c33267863eec51887d37f5552b619d9c47d1a4e4a6901d3839f701df6b8a1798337395f2d0a34566fb0a10115047ed6b84637e3298e470a2bf41f96eb25f0a69b039ab0d6ddc8a02f364261f55f8a77932b2408e89948d485bbc0b991163206982e25c5a86729d6d02637a918a1b707ccf4fa6588f40bd7cca0463fbda6529eff6b6859b7000cf3018c31a7130152b9b515a531025b0140329c5a17816ce220965862266d0ba4c18404e7d2ed4fce28958782d4578cf6acee95509fd0c8a1cd756d0780956409f75199bd08e1245c9f28b1cc96731b9548d1e697a7d615305a6065e905c98feb16d65f77210aeec6ae0f3f4d699ea4585eb1e0490b8fe752bd091e3b0f77a602773b5c379ab015825293f5cc854cf0a12f644faf06ef5472ffe58882666dc506e278a37cde8111df3f37a4ef781ffa4b58c4dcd8afe74d109ef6f71a67cf9db11cdc9fab3926e2ed3c1b8a922536b734f14064e53d8920e22c405686098f29329cc228a5af030732287832ee6c40272fd5a5b9e0cf64386101aec69d746fcbbd9878f98a8ac0834cc27a8c179dca49a63b39185d893fca501220d2abf56100a6c9769af6174eea05e6c02c001cfd80f1ab800ea430bed712fea8d4ea0e5aa75ab90c9d1201c8cf0715918f069a7fffdf0cd111f18c91b2b19f500a4f7c1685f7e17f0140020053531873af26e5f80b14141bef518da7e0d2919c0bf7673e9bbd72ceeec0f74ed7388b665c1883aee28cbd84c4831697cf4148f04545b47a576f2637dbbfe136613534682fb849de2761f9af85cc21601011d3e58040dc3ae4aaffdf1ed5859e9cc411f447ebccf265507adfccaf07917070dd7500cd4d1cde6d60716a4d49ff60ef18227b9a7a6f93ee6410eea0310b75f2c93d301f3f6b9caf2d7a25d603c9ca0a8e4afedb134d00d8337e5e3fd404bcb2694a40c72630a18638c8f96e64977cff073c24bf2bd0435b1c3aff4cebe2d441f440c81496fa937deb20d18a6c3677f6b1aa2b8eb62fa5cc036c0ccc6de8c4b2dc885239d1d3176494393d8b873d9cf250fdfdbf7d96dd28187d170b3a7762a01cc86a029f2babf6f4148e910ca76e785c2215d14e55701938d39678f1192ad13e4adacd7c51311f71c86479b71c82cfe045613055a0c58b1bb1b9972d04477227a99ac8131fbac8ed2df293a74254adb3cc7d266249f84c4e619e52d99d80919a876f3b0120b0566c1c8e6f7c8e824324baa9decc218a64b59523119c3d6e92b6683dc4861fd13523a560129aa9a8e9073c07f3a3efa6cfacbeb57f057c1e40c3103adbfa383f9cde0da47a5222d6b757230924bd77de8c712510e17696bae098a114c6155ed335e96986ee00ff77c62a46cbff63ffdb7897d697ee3593aba28d1679f1ef271a8f6d6b340404a078e06c44c38911841b3b36cc716b202e4a115abb4463a0dd3b144db64cdaef55e01cc0da388c8851051a8c3a19556e8b84e15ba342407c1705d5712c7488e77eacf00835206045d07023b30420920d129bf150e8db712742cf86866564fb23621b9d0bce53816f4760f0a2380fead6a58181a70916c9993f331980a70278b62376a36cb028c762337dbc2983bd3c50d876209a9c8bf1399fdf4d7a25dba176788be481db9dd6fc7494f76cd506d8415a7cf2d3ad1e949ebe3c2fdde51cdc2991dfbe691da45dfa945d100401024f5b97d7623b60713ab6981b6069bb6dab3d612d915046c099e789e3ab3bb3eeaddabf50903ceeb9162a78253af15d542eed2c1fd1d6be84f7d7cd1a237be55c293b2b2fc1162aa4287d0573bc827a35930ab95a27f5164c21a1599dc4ba8db4a50ecf4700ddb7aa9b8005f8e7e594484f95d2c70b679a46e2a3ea16ff0310dd17c0a76ef05f2d0b47802182cddb161d902e819b632f14604fee4a604eb587d2095dff6c5117deeea33e676d4621d1d8d0d03b5448efc4c82d90bd8ff2e278afa1ee5aa96043fe6b0c3396dc55703c26ab6b963e5a446b26dd4161f1c89a9e22c0ddc42702f2a084246a0a95db8a8ab013c668fc42c0594a090d4f61c90876669a61ded092b1f298d8fbd66292c3d0487edfe4c65bad07b9978f3d3fb7dd421daf98a7bc4293376f33638f92cc03ca6278399b085e8b4af5fac9706bac9e7928c7e80b2fb0698ef5db1515a1d0d3d1f83963107362576d559d7d072c49b4f4be1edbaa3792c13eb0b2181b94092d82cae9c41523a3ba50c33ac19e0ca0f2428633647500d13ff00239ef45e454a85de5607ceae1629e0d1e5ed5fa53ad53ba95c95a0589e048b2eda445137824b9a5928875115dee9655b741529fb20d5d0ad5cde5f9cb601736cf6a7a8ace4d68c24b56609a327ea9356d7ce1db25bdc386d0cfcd9af182a22de04b61a633d3f4923e52e0275123c44df8461b721ff10a997f82f3e47151b480f4ac9f4ec372dd62686263cc35d7ab44f8010934ce56bc2e02f5907c1700f5de62a51948bc9c26c9673d7a07a84a62b3357d62457d4c2df26eeec9abd83048afcfb142058458bb89d6ccfd5abec9bfe3fa4120222fcd36652ee71dbf4c9066a1670389e18514e90f6b3fc6d4d99b3eb04be7fed34a194d53e8633b6180d200095603e5192ab80036b555dc8ba23ef15df10f8dbd7a2f4df7b9dcd9de9d320c486b668c9600e38edad6aa967c3879e37ea6aa561efbf5bec468e10adc41b18173d997e6457255319c7f8e220fb815484a0af39ef4c5a36ded8dc7f57a8d41a884c4a9cce4bfb48c954e4860febab975ba9a3266104ed80b8b8ae181edc8e0c832826b2f972b339b27b13013c075e819d48db5000a85d1abef9670678f8912959be892628a49dea54cd08aee7af273ddc7939e95b3e0a43f196aef01db99d23d646b7b09aa81eb417e94dfdf234f723c7c7b21dedff463b7b01efa5ba8d7807eacf8fd11b3e10cf81e8f1193562c2dd3e99041dccdf4c5e98ba010584be2d247e9118750687665b038bed77cb84e1e65645bbb7e2dbe7aafbc2f1033affa9" as `0x${string}`;
+    const nonce = getNonce(newSenderBalance);
+    let res = await privateToken.write.transfer([
+      to,
+      from,
+      processFee,
+      relayFee,
+      relayFeeRecipient,
+      amount,
+      newSenderBalance,
+      proof,
+    ]);
+
+    console.log(res);
   });
 });
 
@@ -299,4 +288,28 @@ async function deploy(name: string, constructorArgs: any[]) {
   const contract = await hre.viem.deployContract(name, constructorArgs);
 
   return { contract };
+}
+
+function getNonce(encryptedAmount: {
+  C1x: bigint;
+  C1y: bigint;
+  C2x: bigint;
+  C2y: bigint;
+}) {
+  return keccak256(
+    encodeAbiParameters(
+      [
+        { name: "C1x", type: "uint256" },
+        { name: "C1y", type: "uint256" },
+        { name: "C2x", type: "uint256" },
+        { name: "C1y", type: "uint256" },
+      ],
+      [
+        encryptedAmount.C1x,
+        encryptedAmount.C1y,
+        encryptedAmount.C2x,
+        encryptedAmount.C1y,
+      ]
+    )
+  );
 }
