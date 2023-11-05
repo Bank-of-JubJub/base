@@ -68,6 +68,7 @@ fn main(private_key: Field,
     let bjj_affine = bjj::get_affine_curve();
     let base_pt = bjj::get_base_point();
     let embedded_balance_old_me_clear = bjj_affine.mul(balance_old_me_clear as Field, base_pt);
+
     let decoded_value = bjj::exp_elgamal_decrypt(private_key, (old_balance_encrypted_1,old_balance_encrypted_2));
     // check that unencrypted balance of sender really corresponds to his encrypted balance
     assert((decoded_value.x == embedded_balance_old_me_clear.x) & (decoded_value.y == embedded_balance_old_me_clear.y)); 
@@ -124,23 +125,16 @@ fn test_transfer() {
     Gaffine::new(0x1a71ea2eae3ddac2aac76373cbb880c5c6cc76e9d29807d82d05f3c85b5beabb, 
     0x2a179ce3f5cbeec397a3d14154d38fae55ffc6163f89ff324171ead91f110ff5)) ; //bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, randomness);
 
-// 991,  encrypted with sender_pub_key 
+// 992,  encrypted with sender_pub_key 
     let new_balance_encrypted : (Gaffine,Gaffine) = 
     (Gaffine::new(0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368, 
     0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f), 
-    Gaffine::new(0x0e1e666f8f0b88b8f95cf51f00175a83a338557351c4c34da8cf4049a5adc77c, 
-    0x2271fba8cd2dc38d663006ae7ca0c3ab9a5cdc842d98ac39878e271208827b5d)) ; //bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, randomness);
+    Gaffine::new(0x2795109cf233e0d54d88f75d6c8b28b37ea224b6083e2f76efed55710e1fd425, 
+    0x3006aa76f9499aeee9080237f3c24005be7ca83627f6600f7b278dff77a37df5)) ; //bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, randomness);
 
 
     // let old_encrypted_balance : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, randomness);
     // let new_balance_encrypted : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(sender_pub_key, old_balance - process_fee - relay_fee - value, randomness);
-
-
-    // std::println(encrypted_amount.0);
-    // std::println(encrypted_amount.1);
-    // std::println(new_balance_encrypted.0);
-    // std::println(new_balance_encrypted.1);
-
     main(private_key,randomness, 
         value, 
         old_balance, 
