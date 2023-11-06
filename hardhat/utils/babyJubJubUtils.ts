@@ -1,6 +1,13 @@
 import { buildBabyjub } from "circomlibjs";
 import crypto from "crypto";
 
+/*
+TODO: debug and use for tests
+
+Pack and unpack functions arent working properly for some reason.
+
+*/
+
 export type BigNumberish = string | bigint | number | Uint8Array;
 export type PointObject = { x: bigint; y: bigint };
 
