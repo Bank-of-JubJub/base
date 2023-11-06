@@ -23,14 +23,7 @@ const babyjub = new BabyJubJubUtils();
 
 describe("Private Token integration testing", async function () {
   it("should add a deposit", async () => {
-    const {
-      privateToken,
-      token,
-      walletClient0,
-      account1,
-      convertedAmount,
-      fee,
-    } = await deposit();
+    const { privateToken, account1, convertedAmount, fee } = await deposit();
 
     let pending = await privateToken.read.pendingDepositCounts([account1]);
     assert(pending == 1n, "Pending deposits should be 1.");
@@ -55,9 +48,8 @@ describe("Private Token integration testing", async function () {
   });
 
   it("should process pending deposits", async function () {
-    const txsToProcess = [0n];
     const { privateToken, account1 } = await processPendingDeposit(
-      txsToProcess,
+      [0n], // txs (indeexes) to process
       processDepositInputs
     );
 
@@ -69,26 +61,15 @@ describe("Private Token integration testing", async function () {
   });
 
   it("should perform transfers", async function () {
-    const from = account1;
-    const processFee = 0;
-    const relayFee = 2;
-
-    const {
-      privateToken,
-      walletClient0,
-      walletClient1,
-      convertedAmount,
-      fee,
-      relayFeeRecipient,
-    } = await transfer(
-      account2,
-      from,
-      processFee,
-      relayFee,
+    const { privateToken } = await transfer(
+      account2, // to
+      account1, // from
+      0, // process fee
+      2, // relay fee
       processTransferInputs
     );
 
-    let sender_balance = privateToken.read.balances([from]);
+    let sender_balance = privateToken.read.balances([account1]);
     let recipient_balance = privateToken.read.balances([account2]);
   });
 
@@ -147,8 +128,7 @@ async function transfer(
   to: `0x${string}`,
   from: `0x${string}`,
   processFee: number,
-  relayFee: number,
-  transfer_inputs: any
+  relayFee: number
 ) {
   const {
     privateToken,
