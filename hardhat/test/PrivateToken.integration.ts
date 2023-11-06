@@ -5,6 +5,7 @@ import { spawn } from "child_process";
 import { keccak256, encodeAbiParameters } from "viem";
 import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
 // import * as proofUtils from "../../utils/proof_utils.js";
+import { EncryptedBalanceArray } from "../utils/types.ts"
 
 import {
   BJJ_PRIME,
@@ -13,6 +14,10 @@ import {
   account1,
   account2,
   processFeeRecipient,
+  getTransferProof,
+  getProcessDepositProof,
+  getProcessTransfersProof,
+  getWithdrawProof
 } from "../utils/config.ts";
 
 const viem = hre.viem;
@@ -31,7 +36,7 @@ describe("Private Token integration testing", async function () {
     let pendingDeposit = await privateToken.read.allPendingDepositsMapping([
       account1,
       0n,
-    ]);
+    ]) as [bigint, number];
 
     const expectedAmount = convertedAmount - BigInt(fee);
     let totalSupply = await privateToken.read.totalSupply();
@@ -49,11 +54,11 @@ describe("Private Token integration testing", async function () {
 
   it("should process pending deposits", async function () {
     const { privateToken, account1 } = await processPendingDeposit(
-      [0n], // txs (indeexes) to process
+      [0n], // txs (indexes) to process
       processDepositInputs
     );
 
-    let balance = await privateToken.read.balances([account1]);
+    let balance = await privateToken.read.balances([account1]) as EncryptedBalanceArray;
     expect(balance[0] == processDepositInputs.new_enc_balance_1.C1x);
     expect(balance[1] == processDepositInputs.new_enc_balance_1.C1y);
     expect(balance[2] == processDepositInputs.new_enc_balance_1.C2x);
@@ -66,14 +71,16 @@ describe("Private Token integration testing", async function () {
       account1, // from
       0, // process fee
       2, // relay fee
-      processTransferInputs
     );
 
     let sender_balance = privateToken.read.balances([account1]);
     let recipient_balance = privateToken.read.balances([account2]);
   });
 
-  it("should process pending transfers", async () => {});
+  it("should process pending transfers", async () => {
+
+    console.log("TODO: implement test")
+  });
 
   it("should do withdrawals", async () => {
     const {
@@ -87,21 +94,19 @@ describe("Private Token integration testing", async function () {
     } = await deposit();
 
     const txsToProcess = [0n];
-    const {} = await processPendingDeposit(txsToProcess, processDepositInputs);
+    const { } = await processPendingDeposit(txsToProcess, processDepositInputs);
 
     const from = account1;
     const processFee = 0;
     const relayFee = 2;
 
-    let proof = (await getProof("../proofs/transfer.proof")) as `0x${string}`;
+    let proof = getTransferProof();
 
-    await transfer(account2, from, processFee, relayFee, processTransferInputs);
+    await transfer(account2, from, processFee, relayFee);
 
     const amount = 5;
     const withdrawRelayFee = 1;
-    const withdrawProof = (await getProof(
-      "../proofs/withdraw.proof"
-    )) as `0x${string}`;
+    const withdrawProof = getWithdrawProof();
 
     const newEncryptedBalance = {
       C1x: 0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368n,
@@ -138,7 +143,7 @@ async function transfer(
     convertedAmount,
     fee,
   } = await processPendingDeposit([0], processDepositInputs);
-  let proof = (await getProof("../proofs/transfer.proof")) as `0x${string}`;
+  let proof = await getTransferProof();
   const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
 
   await privateToken.write.transfer([
@@ -169,7 +174,7 @@ async function deposit() {
   await token.write.approve([privateToken.address, balance]);
 
   let tokenDecimals = (await token.read.decimals()) as number;
-  let bojDecimals = await privateToken.read.decimals();
+  let bojDecimals = await privateToken.read.decimals() as number;
 
   let depositAmount = BigInt(10 * 10 ** 18);
   let convertedAmount =
@@ -352,21 +357,8 @@ function getNonce(encryptedAmount: {
   );
 }
 
-async function getProof(filePath: string) {
-  let proof = "";
-  try {
-    const data = fs.readFileSync(filePath, { encoding: "utf-8" });
-    proof = `0x${data}`;
-  } catch (error) {
-    console.error("Error reading file:", error);
-  }
-  return proof;
-}
-
 async function processPendingDeposit(txsToProcess: any, inputs: any) {
-  const proof = (await getProof(
-    "../proofs/process_pending_deposits.proof"
-  )) as `0x${string}`;
+  const proof = await getProcessDepositProof();
   const {
     privateToken,
     token,

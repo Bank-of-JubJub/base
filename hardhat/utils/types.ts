@@ -1,0 +1,1 @@
+export type EncryptedBalanceArray = [bigint, bigint, bigint, bigint];
