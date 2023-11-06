@@ -17,7 +17,7 @@ import {
 import { hardhat } from "viem/chains";
 import { Contract } from "hardhat/internal/hardhat-network/stack-traces/model.js";
 import exp from "constants";
-import BabyJubJubUtils from "../utils/index.ts";
+import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
 // import * as proofUtils from "../../utils/proof_utils.js";
 
 import * as inputs from "../utils/config.ts";
