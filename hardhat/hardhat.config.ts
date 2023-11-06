@@ -17,7 +17,10 @@ module.exports = {
   },
   paths: {
     sources: "./contracts",
-    tests: "./test"
+    tests: "./test",
+  },
+  gasReporter: {
+    enabled: process.env.REPORT_GAS ? true : false,
   },
   networks: {
     hardhat: {
@@ -43,5 +46,5 @@ module.exports = {
       sepolia: process.env.TESTING_PUBLIC_KEY || "", //it can also specify a specific netwotk name (specified in hardhat.config.js)
       31337: 0,
     },
-  }
+  },
 };
