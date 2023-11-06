@@ -17,53 +17,30 @@ import {
 import { hardhat } from "viem/chains";
 import { Contract } from "hardhat/internal/hardhat-network/stack-traces/model.js";
 import exp from "constants";
+import BabyJubJubUtils from "../utils/index.ts";
 // import * as proofUtils from "../../utils/proof_utils.js";
+
+import * as inputs from "../utils/config.ts";
 
 const viem = hre.viem;
 const BJJ_PRIME =
   21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 
-let process_pending_deposits_inputs = {
-  amount_sum: 999,
-  old_enc_balance_1: {
-    C1x: 0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368n,
-    C1y: 0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036fn,
-    C2x: 0x26e2d952913cecf5261ce7caea0ded4a9c46a3a10dda292c565868d5f98aa5dbn,
-    C2y: 0x1e8449b223a9d7b6215d5976bd0bec814de2115961f71590878e389a1cff5d09n,
-  },
-  new_enc_balance_1: {
-    C1x: 0x0b958e9d5d179fd5cb5ff51738a09adffb9ce39554074dcc8332a2e9775ffcc0n,
-    C1y: 0x2afe00f5544394d2ffdefbb9be1e255374c5c9f9c3f89df5e373cfb9148d63a2n,
-    C2x: 0x06deb02e81b49cc0e215e0453b6135d52827629df1a12914da953199d39f333bn,
-    C2y: 0x211de3374abedea3113aa1f312173764eb804dab7ead931971a4dbba832baf00n,
-  },
-};
-
-const transfer_inputs = {
-  // 5, ecrypted to `to`
-  amount: {
-    C1x: 0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368n,
-    C1y: 0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036fn,
-    C2x: 0x25bd68ade5a08a4a012250cff52bd6e92752413aacb5a01ef8157e7c65b1b1c6n,
-    C2y: 0x22ce61a67a4ee826534fca1d6276fd1c80ff05a5831f90ce1c9f5963a6393e5fn,
-  },
-  // 992, encrypted to `from`
-  newSenderBalance: {
-    C1x: 0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368n,
-    C1y: 0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036fn,
-    C2x: 0x2795109cf233e0d54d88f75d6c8b28b37ea224b6083e2f76efed55710e1fd425n,
-    C2y: 0x3006aa76f9499aeee9080237f3c24005be7ca83627f6600f7b278dff77a37df5n,
-  },
-};
+let recipient = "" as `0x${string}`;
+const processFeeRecipient =
+  "0xbEa2940f35737EDb9a9Ad2bB938A955F9b7892e3" as `0x${string}`;
+const babyjub = new BabyJubJubUtils();
 
 describe("Private Token integration testing", async function () {
   it("should add a deposit", async () => {
-    const { privateToken, token, walletClient0 } = await setup();
-    const { recipient, convertedAmount, fee } = await deposit(
+    const {
       privateToken,
       token,
-      walletClient0
-    );
+      walletClient0,
+      recipient,
+      convertedAmount,
+      fee,
+    } = await deposit();
 
     let pending = await privateToken.read.pendingDepositCounts([recipient]);
     assert(pending == 1n, "Pending deposits should be 1.");
@@ -88,59 +65,62 @@ describe("Private Token integration testing", async function () {
   });
 
   it("should process pending deposits", async function () {
-    const { privateToken, token, walletClient0, walletClient1 } = await setup();
-    const { recipient, convertedAmount, fee } = await deposit(
-      privateToken,
-      token,
-      walletClient0
-    );
-    const proof = (await getProof(
-      "../proofs/process_pending_deposits.proof"
-    )) as `0x${string}`;
-
     const txsToProcess = [0n];
-    const feeRecipient =
-      "0xbEa2940f35737EDb9a9Ad2bB938A955F9b7892e3" as `0x${string}`;
-
-    await processPendingDeposit(
-      proof,
-      privateToken,
+    const { privateToken, recipient } = await processPendingDeposit(
       txsToProcess,
-      feeRecipient,
-      recipient,
-      process_pending_deposits_inputs
+      inputs.processDepositInputs
     );
 
     let balance = await privateToken.read.balances([recipient]);
-    expect(balance[0] == process_pending_deposits_inputs.new_enc_balance_1.C1x);
-    expect(balance[1] == process_pending_deposits_inputs.new_enc_balance_1.C1y);
-    expect(balance[2] == process_pending_deposits_inputs.new_enc_balance_1.C2x);
-    expect(balance[3] == process_pending_deposits_inputs.new_enc_balance_1.C2y);
+    expect(balance[0] == inputs.processDepositInputs.new_enc_balance_1.C1x);
+    expect(balance[1] == inputs.processDepositInputs.new_enc_balance_1.C1y);
+    expect(balance[2] == inputs.processDepositInputs.new_enc_balance_1.C2x);
+    expect(balance[3] == inputs.processDepositInputs.new_enc_balance_1.C2y);
   });
 
   it("should perform transfers", async function () {
-    const { privateToken, token, walletClient0, walletClient1 } = await setup();
-    const { recipient, convertedAmount, fee } = await deposit(
+    const from = recipient;
+    const to =
+      "0x0c07999c15d406bc08d7f3f31f62cedbc89ebf3a53ff4d3bf7e2d0dda9314904";
+    const processFee = 0;
+    const relayFee = 2;
+
+    const {
       privateToken,
-      token,
-      walletClient0
+      walletClient0,
+      walletClient1,
+      convertedAmount,
+      fee,
+      relayFeeRecipient,
+    } = await transfer(
+      to,
+      from,
+      processFee,
+      relayFee,
+      inputs.processTransferInputs
     );
 
-    const processDepositProof = (await getProof(
-      "../proofs/process_pending_deposits.proof"
-    )) as `0x${string}`;
+    let sender_balance = privateToken.read.balances([from]);
+    let recipient_balance = privateToken.read.balances([to]);
+  });
+
+  it("should process pending transfers", async () => {});
+
+  it("should do withdrawals", async () => {
+    const {
+      privateToken,
+      token,
+      walletClient0,
+      walletClient1,
+      recipient,
+      convertedAmount,
+      fee,
+    } = await deposit();
 
     const txsToProcess = [0n];
-    const feeRecipient =
-      "0xbEa2940f35737EDb9a9Ad2bB938A955F9b7892e3" as `0x${string}`;
-
-    await processPendingDeposit(
-      processDepositProof,
-      privateToken,
+    const {} = await processPendingDeposit(
       txsToProcess,
-      feeRecipient,
-      recipient,
-      process_pending_deposits_inputs
+      inputs.processDepositInputs
     );
 
     const from = recipient;
@@ -148,61 +128,96 @@ describe("Private Token integration testing", async function () {
       "0x0c07999c15d406bc08d7f3f31f62cedbc89ebf3a53ff4d3bf7e2d0dda9314904";
     const processFee = 0;
     const relayFee = 2;
-    const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
 
-    const amountToSend = 5;
-    const filePath = "../proofs/transfer.proof";
-    let proof = (await getProof(filePath)) as `0x${string}`;
+    let proof = (await getProof("../proofs/transfer.proof")) as `0x${string}`;
 
-    let res = await transfer(
-      privateToken,
+    await transfer(
       to,
       from,
       processFee,
       relayFee,
-      relayFeeRecipient,
-      transfer_inputs,
-      proof
+      inputs.processTransferInputs
     );
 
-    let sender_balance = privateToken.read.balances([from]);
-    let recipient_balance = privateToken.read.balances([to]);
+    const amount = 5;
+    const withdrawRelayFee = 1;
+    const withdrawProof = (await getProof(
+      "../proofs/withdraw.proof"
+    )) as `0x${string}`;
+
+    const newEncryptedBalance = {
+      C1x: 0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368n,
+      C1y: 0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036fn,
+      C2x: 0x24992c487642ad804322be7024633e21857873c6b2f169a4dd3a370985d46678n,
+      C2y: 0x25e90aa472ac81af98d86ae821ae2a50808066149b20c76e67a4cb6838054b2en,
+    };
+
+    console.log("TODO: finish withdraw test");
+
+    // await privateToken.write.withdraw([
+    //   from,
+    //   walletClient0.account.address,
+    //   amount,
+    //   withdrawRelayFee,
+    //   relayFeeRecipient,
+    //   withdrawProof,
+    //   newEncryptedBalance,
+    // ]);
   });
 });
 
 async function transfer(
-  privateToken: any,
-  to: string,
-  from: string,
+  to: `0x${string}`,
+  from: `0x${string}`,
   processFee: number,
   relayFee: number,
-  relayFeeRecipient: `0x${string}`,
-  transfer_inputs: any,
-  proof: string
+  transfer_inputs: any
 ) {
-  return await privateToken.write.transfer([
+  const {
+    privateToken,
+    token,
+    walletClient0,
+    walletClient1,
+    convertedAmount,
+    fee,
+  } = await processPendingDeposit([0], inputs.processDepositInputs);
+  let proof = (await getProof("../proofs/transfer.proof")) as `0x${string}`;
+  const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
+
+  await privateToken.write.transfer([
     to,
     from,
     processFee,
     relayFee,
     relayFeeRecipient,
-    transfer_inputs.amount,
-    transfer_inputs.newSenderBalance,
+    inputs.processTransferInputs.amount,
+    inputs.processTransferInputs.newSenderBalance,
     proof,
   ]);
+
+  return {
+    privateToken,
+    token,
+    walletClient0,
+    walletClient1,
+    convertedAmount,
+    fee,
+    relayFeeRecipient,
+  };
 }
 
-async function deposit(privateToken: any, token: any, walletClient0: any) {
+async function deposit() {
+  const { privateToken, token, walletClient0, walletClient1 } = await setup();
   let balance = await token.read.balanceOf([walletClient0.account.address]);
   await token.write.approve([privateToken.address, balance]);
 
   let tokenDecimals = (await token.read.decimals()) as number;
   let bojDecimals = await privateToken.read.decimals();
 
-  let recipient =
+  recipient =
     "0xdc9f9fdb746d0f07b004cc4316e3495a58570b90661499f8a6a6696ff4156baa" as `0x${string}`;
 
-  let depositAmount = 10 * 10 ** 18;
+  let depositAmount = BigInt(10 * 10 ** 18);
   let convertedAmount =
     BigInt(depositAmount) / BigInt(10 ** (tokenDecimals - bojDecimals));
   let fee = 1;
@@ -215,6 +230,10 @@ async function deposit(privateToken: any, token: any, walletClient0: any) {
   ]);
 
   return {
+    privateToken,
+    token,
+    walletClient0,
+    walletClient1,
     recipient,
     convertedAmount,
     fee,
@@ -298,6 +317,27 @@ function bigIntToHexString(bigIntValue: bigint) {
   return "0x" + hexString;
 }
 
+function hexToUint8Array(hexString: string): Uint8Array {
+  // Ensure the input string length is even
+  if (hexString.length % 2 !== 0) {
+    throw new Error("Hex string must have an even number of characters");
+  }
+
+  const arrayBuffer = new Uint8Array(hexString.length / 2);
+
+  for (let i = 0; i < arrayBuffer.length; i++) {
+    const byteValue = parseInt(hexString.substr(i * 2, 2), 16);
+    if (Number.isNaN(byteValue)) {
+      throw new Error("Invalid hex string");
+    }
+    arrayBuffer[i] = byteValue;
+  }
+
+  console.log(arrayBuffer);
+
+  return arrayBuffer;
+}
+
 async function runRustScriptBabyGiant(X: any, Y: any) {
   // this is to compute the DLP during decryption of the balances with baby-step giant-step algo in circuits/exponential_elgamal/babygiant_native
   //  inside the browser this should be replaced by the WASM version in circuits/exponential_elgamal/babygiant
@@ -369,20 +409,35 @@ async function getProof(filePath: string) {
   return proof;
 }
 
-async function processPendingDeposit(
-  proof: any,
-  privateToken: any,
-  txsToProcess: any,
-  feeRecipient: any,
-  recipient: any,
-  inputs: any
-) {
+async function processPendingDeposit(txsToProcess: any, inputs: any) {
+  const proof = (await getProof(
+    "../proofs/process_pending_deposits.proof"
+  )) as `0x${string}`;
+  const {
+    privateToken,
+    token,
+    walletClient0,
+    walletClient1,
+    recipient,
+    convertedAmount,
+    fee,
+  } = await deposit();
+
   await privateToken.write.processPendingDeposit([
     proof,
     txsToProcess,
-    feeRecipient,
+    processFeeRecipient,
     recipient,
     inputs.old_enc_balance_1,
     inputs.new_enc_balance_1,
   ]);
+  return {
+    privateToken,
+    token,
+    walletClient0,
+    walletClient1,
+    recipient,
+    convertedAmount,
+    fee,
+  };
 }
