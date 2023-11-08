@@ -1,11 +1,11 @@
 import * as fs from "fs";
 import BabyJubJubUtils from "./babyJubJubUtils";
 import { hexToUint8Array, getEncryptedValue } from "./utils";
-import { EncryptedBalance } from "./types";
+import { EncryptedBalance, EncryptedBalanceArray } from "./types";
 
 const babyjub = new BabyJubJubUtils();
 
-export async function getProcessDepositInputs(
+export function getProcessDepositInputs(
   account: string,
   previousBalance: number,
   value: number
@@ -29,7 +29,7 @@ export async function getProcessDepositInputs(
   return { oldBalance, newBalance };
 }
 
-export async function getTransferInputs(
+export function getTransferInputs(
   to: string,
   from: string,
   amount: number,
@@ -55,6 +55,12 @@ export async function getTransferInputs(
     encryptedNewBalance,
   };
 }
+
+export function getProcessTransferInputs(
+  to: string,
+  oldEncBalance: EncryptedBalanceArray,
+  newBalance: number
+) {}
 
 export const account2 =
   "0x0c07999c15d406bc08d7f3f31f62cedbc89ebf3a53ff4d3bf7e2d0dda9314904" as `0x${string}`;

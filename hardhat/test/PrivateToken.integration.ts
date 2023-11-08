@@ -19,6 +19,7 @@ import {
   depositProcessFee,
   getProcessDepositInputs,
   getTransferInputs,
+  getProcessTransferInputs,
 } from "../utils/config.ts";
 
 const viem = hre.viem;
@@ -34,11 +35,14 @@ let transferInputs = {
   encryptedAmount: {} as EncryptedBalance,
   encryptedNewBalance: {} as EncryptedBalance,
 };
+let processTransferInputs = {
+  encryptedNewBalance: {} as EncryptedBalance,
+};
 
 describe("Private Token integration testing", async function () {
   this.beforeAll(async () => {
-    processDepositInputs = await getProcessDepositInputs(account1, 0, 999);
-    transferInputs = await getTransferInputs(account2, account1, 5, 992);
+    processDepositInputs = getProcessDepositInputs(account1, 0, 999);
+    transferInputs = getTransferInputs(account2, account1, 5, 992);
   });
 
   it("should add a deposit", async () => {
@@ -91,10 +95,12 @@ describe("Private Token integration testing", async function () {
 
     let sender_balance = privateToken.read.balances([account1]);
     let recipient_balance = privateToken.read.balances([account2]);
+
+    console.log();
   });
 
   it("should process pending transfers", async () => {
-    // await processPendingTransfer();
+    await processPendingTransfer();
     console.log("TODO: implement test");
   });
 
@@ -114,16 +120,38 @@ async function processPendingTransfer() {
     relayFeeRecipient,
   } = await transfer(account2, account1);
 
-  let proof = await getProcessTransfersProof();
+  // need to do another transfer since the first transfer from an account doesnt need to be processed
+  // await privateToken.write.transfer([
+  //   account2,
+  //   account1,
+  //   transferProcessFee,
+  //   transferRelayFee,
+  //   relayFeeRecipient,
+  //   transferInputs.encryptedAmount,
+  //   transferInputs.encryptedNewBalance,
+  //   proof,
+  // ]);
 
-  await privateToken.write.processPendingTransfer([
-    proof,
-    [0],
-    processFeeRecipient,
+  // let proof = await getProcessTransfersProof();
+
+  let oldBalance = await privateToken.read.balances([account2]);
+  let count = await privateToken.read.pendingTransferCounts([account2]);
+  let pendingTransfer = await privateToken.read.allPendingTransfersMapping([
     account2,
-    processTransferInputs.newSenderBalance,
-    // getEncryptedValue(account1, 992),
+    0n,
   ]);
+
+  console.log(count);
+  //let processTransferInputs = getProcessTransferInputs(account2, oldBalance);
+
+  // await privateToken.write.processPendingTransfer([
+  //   proof,
+  //   [0],
+  //   processFeeRecipient,
+  //   account2,
+  //   //processTransferInputs.newSenderBalance,
+  //   //getEncryptedValue(account1, 992),
+  // ]);
 }
 
 async function transfer(to: `0x${string}`, from: `0x${string}`) {
