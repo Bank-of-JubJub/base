@@ -954,10 +954,10 @@
   resolved "https://registry.yarnpkg.com/@types/chai/-/chai-4.3.9.tgz#144d762491967db8c6dea38e03d2206c2623feec"
   integrity sha512-69TtiDzu0bcmKQv3yg1Zx409/Kd7r0b5F1PfpYJfSHzLGtB53547V4u+9iqKYsTu/O2ai6KTb0TInNpvuQ3qmg==
 
-"@types/circomlibjs@^0.1.5":
-  version "0.1.5"
-  resolved "https://registry.yarnpkg.com/@types/circomlibjs/-/circomlibjs-0.1.5.tgz#6fa96ae2bcb74146f66170ef3912b688b7fd57b2"
-  integrity sha512-UqLjjcMTB/Bbe28LvdoNEdXg4oAwM6xD5uf+uImv7nR5mjRntaD8qEy9RnAA32nkP+Ik1sxBh7gTboyKX6lklA==
+"@types/circomlibjs@^0.1.6":
+  version "0.1.6"
+  resolved "https://registry.yarnpkg.com/@types/circomlibjs/-/circomlibjs-0.1.6.tgz#dba1b9cc68ae4f75da045b8b14c50f3444b31d7f"
+  integrity sha512-yF174bPDaiKgejlZzCSqKwZaqXhlxMcVEHrAtstFohwP05OjtvHXOdxO6HQeTg8WwIdgMg7MJb1WyWZdUCGlPQ==
 
 "@types/concat-stream@^1.6.0":
   version "1.6.1"

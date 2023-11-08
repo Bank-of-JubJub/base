@@ -1,4 +1,4 @@
-import { buildBabyjub } from "circomlibjs";
+import { buildBabyjub, Point } from "circomlibjs";
 import crypto from "crypto";
 
 /*
@@ -52,7 +52,7 @@ class BabyJubJubUtils {
     }
   }
 
-  private _bigIntToUint8Array(bigInt: bigint): Uint8Array {
+  public _bigIntToUint8Array(bigInt: bigint): Uint8Array {
     let hex = bigInt.toString(16);
 
     // Ensure even number of characters
@@ -111,8 +111,7 @@ class BabyJubJubUtils {
       const max_value = BigInt(
         "2736030358979909402780800718157159386076813972158567259200215660948447373041"
       ); // max value should be l (https://eips.ethereum.org/EIPS/eip-2494), the order of the big subgroup to avoid modulo bias
-      const randomness =
-        168986485046885582825082387270879151100288537211746581237924789162159767775n; // this._getRandomBigInt(max_value);
+      const randomness = this._getRandomBigInt(max_value); // this._getRandomBigInt(max_value);
       // console.log(randomness.toString(16).length);
       const C1P = this.babyJub.mulPointEscalar(this.babyJub.Base8, randomness);
       const plain_embedded = this.babyJub.mulPointEscalar(
@@ -234,25 +233,22 @@ class BabyJubJubUtils {
     return littleEndian.padEnd(64, "0");
   }
 
-  public packPublicKey(P1: PointObject): Uint8Array {
-    const pa: [Uint8Array, Uint8Array] = [
-      this._bigIntToUint8Array(P1.x),
-      this._bigIntToUint8Array(P1.y),
-    ];
+  public packPublicKey(P1: Point): Uint8Array {
     const montgomeryForm: [Uint8Array, Uint8Array] = [
-      this.babyJub.F.toMontgomery(pa[0].reverse()),
-      this.babyJub.F.toMontgomery(pa[1].reverse()),
+      this.babyJub.F.toMontgomery(P1[0].reverse()),
+      this.babyJub.F.toMontgomery(P1[1].reverse()),
     ];
+
     return this.babyJub.packPoint(montgomeryForm);
   }
 
-  public unpackPoint(point: Uint8Array): PointObject {
+  public unpackPoint(point: Uint8Array): Point {
     let p = this.babyJub.unpackPoint(point);
 
-    return {
-      x: this.babyJub.F.fromMontgomery(this.babyJub.F.e(p[0])).reverse(),
-      y: this.babyJub.F.fromMontgomery(this.babyJub.F.e(p[1])).reverse(),
-    };
+    return [
+      this.babyJub.F.fromMontgomery(this.babyJub.F.e(p[0])).reverse(),
+      this.babyJub.F.fromMontgomery(this.babyJub.F.e(p[1])).reverse(),
+    ];
   }
 }
 
