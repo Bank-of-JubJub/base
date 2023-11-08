@@ -2,41 +2,57 @@ import { assert, expect } from "chai";
 import * as fs from "fs";
 import hre from "hardhat";
 import { spawn } from "child_process";
-import { keccak256, encodeAbiParameters } from "viem";
 import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
 // import * as proofUtils from "../../utils/proof_utils.js";
-import { EncryptedBalanceArray } from "../utils/types.ts"
+import { EncryptedBalanceArray, EncryptedBalance } from "../utils/types.ts";
 
 import {
-  BJJ_PRIME,
-  processDepositInputs,
-  processTransferInputs,
   account1,
   account2,
   processFeeRecipient,
   getTransferProof,
   getProcessDepositProof,
   getProcessTransfersProof,
-  getWithdrawProof
+  getWithdrawProof,
+  transferProcessFee,
+  transferRelayFee,
+  depositProcessFee,
+  getProcessDepositInputs,
+  getTransferInputs,
 } from "../utils/config.ts";
 
 const viem = hre.viem;
 
-// let account1 = "" as `0x${string}`;
-
 const babyjub = new BabyJubJubUtils();
 
+let processDepositInputs = {
+  oldBalance: {} as EncryptedBalance,
+  newBalance: {} as EncryptedBalance,
+};
+
+let transferInputs = {
+  encryptedAmount: {} as EncryptedBalance,
+  encryptedNewBalance: {} as EncryptedBalance,
+};
+
 describe("Private Token integration testing", async function () {
+  this.beforeAll(async () => {
+    processDepositInputs = await getProcessDepositInputs(account1, 0, 999);
+    transferInputs = await getTransferInputs(account2, account1, 5, 992);
+  });
+
   it("should add a deposit", async () => {
+    await babyjub.init();
+
     const { privateToken, account1, convertedAmount, fee } = await deposit();
 
     let pending = await privateToken.read.pendingDepositCounts([account1]);
     assert(pending == 1n, "Pending deposits should be 1.");
 
-    let pendingDeposit = await privateToken.read.allPendingDepositsMapping([
+    let pendingDeposit = (await privateToken.read.allPendingDepositsMapping([
       account1,
       0n,
-    ]) as [bigint, number];
+    ])) as [bigint, number];
 
     const expectedAmount = convertedAmount - BigInt(fee);
     let totalSupply = await privateToken.read.totalSupply();
@@ -58,19 +74,19 @@ describe("Private Token integration testing", async function () {
       processDepositInputs
     );
 
-    let balance = await privateToken.read.balances([account1]) as EncryptedBalanceArray;
-    expect(balance[0] == processDepositInputs.new_enc_balance_1.C1x);
-    expect(balance[1] == processDepositInputs.new_enc_balance_1.C1y);
-    expect(balance[2] == processDepositInputs.new_enc_balance_1.C2x);
-    expect(balance[3] == processDepositInputs.new_enc_balance_1.C2y);
+    let balance = (await privateToken.read.balances([
+      account1,
+    ])) as EncryptedBalanceArray;
+    expect(balance[0] == processDepositInputs.newBalance.C1x);
+    expect(balance[1] == processDepositInputs.newBalance.C1y);
+    expect(balance[2] == processDepositInputs.newBalance.C2x);
+    expect(balance[3] == processDepositInputs.newBalance.C2y);
   });
 
   it("should perform transfers", async function () {
     const { privateToken } = await transfer(
       account2, // to
-      account1, // from
-      0, // process fee
-      2, // relay fee
+      account1 // from
     );
 
     let sender_balance = privateToken.read.balances([account1]);
@@ -78,63 +94,39 @@ describe("Private Token integration testing", async function () {
   });
 
   it("should process pending transfers", async () => {
-
-    console.log("TODO: implement test")
+    // await processPendingTransfer();
+    console.log("TODO: implement test");
   });
 
   it("should do withdrawals", async () => {
-    const {
-      privateToken,
-      token,
-      walletClient0,
-      walletClient1,
-      account1,
-      convertedAmount,
-      fee,
-    } = await deposit();
-
-    const txsToProcess = [0n];
-    const { } = await processPendingDeposit(txsToProcess, processDepositInputs);
-
-    const from = account1;
-    const processFee = 0;
-    const relayFee = 2;
-
-    let proof = getTransferProof();
-
-    await transfer(account2, from, processFee, relayFee);
-
-    const amount = 5;
-    const withdrawRelayFee = 1;
-    const withdrawProof = getWithdrawProof();
-
-    const newEncryptedBalance = {
-      C1x: 0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368n,
-      C1y: 0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036fn,
-      C2x: 0x24992c487642ad804322be7024633e21857873c6b2f169a4dd3a370985d46678n,
-      C2y: 0x25e90aa472ac81af98d86ae821ae2a50808066149b20c76e67a4cb6838054b2en,
-    };
-
     console.log("TODO: finish withdraw test");
-
-    // await privateToken.write.withdraw([
-    //   from,
-    //   walletClient0.account.address,
-    //   amount,
-    //   withdrawRelayFee,
-    //   relayFeeRecipient,
-    //   withdrawProof,
-    //   newEncryptedBalance,
-    // ]);
   });
 });
 
-async function transfer(
-  to: `0x${string}`,
-  from: `0x${string}`,
-  processFee: number,
-  relayFee: number
-) {
+async function processPendingTransfer() {
+  const {
+    privateToken,
+    token,
+    walletClient0,
+    walletClient1,
+    convertedAmount,
+    fee,
+    relayFeeRecipient,
+  } = await transfer(account2, account1);
+
+  let proof = await getProcessTransfersProof();
+
+  await privateToken.write.processPendingTransfer([
+    proof,
+    [0],
+    processFeeRecipient,
+    account2,
+    processTransferInputs.newSenderBalance,
+    // getEncryptedValue(account1, 992),
+  ]);
+}
+
+async function transfer(to: `0x${string}`, from: `0x${string}`) {
   const {
     privateToken,
     token,
@@ -149,11 +141,11 @@ async function transfer(
   await privateToken.write.transfer([
     to,
     from,
-    processFee,
-    relayFee,
+    transferProcessFee,
+    transferRelayFee,
     relayFeeRecipient,
-    processTransferInputs.amount,
-    processTransferInputs.newSenderBalance,
+    transferInputs.encryptedAmount,
+    transferInputs.encryptedNewBalance,
     proof,
   ]);
 
@@ -174,7 +166,7 @@ async function deposit() {
   await token.write.approve([privateToken.address, balance]);
 
   let tokenDecimals = (await token.read.decimals()) as number;
-  let bojDecimals = await privateToken.read.decimals() as number;
+  let bojDecimals = (await privateToken.read.decimals()) as number;
 
   let depositAmount = BigInt(10 * 10 ** 18);
   let convertedAmount =
@@ -185,7 +177,7 @@ async function deposit() {
     walletClient0.account.address,
     depositAmount,
     account1,
-    fee,
+    depositProcessFee,
   ]);
 
   return {
@@ -258,45 +250,6 @@ async function setup() {
   };
 }
 
-function uint8ArrayToHexString(arr: Uint8Array) {
-  return (
-    "0x" +
-    Array.from(arr)
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("")
-  );
-}
-
-function bigIntToHexString(bigIntValue: bigint) {
-  let hexString = bigIntValue.toString(16);
-  // Ensure it's 64 characters long (32 bytes), padding with leading zeros if necessary
-  while (hexString.length < 64) {
-    hexString = "0" + hexString;
-  }
-  return "0x" + hexString;
-}
-
-function hexToUint8Array(hexString: string): Uint8Array {
-  // Ensure the input string length is even
-  if (hexString.length % 2 !== 0) {
-    throw new Error("Hex string must have an even number of characters");
-  }
-
-  const arrayBuffer = new Uint8Array(hexString.length / 2);
-
-  for (let i = 0; i < arrayBuffer.length; i++) {
-    const byteValue = parseInt(hexString.substr(i * 2, 2), 16);
-    if (Number.isNaN(byteValue)) {
-      throw new Error("Invalid hex string");
-    }
-    arrayBuffer[i] = byteValue;
-  }
-
-  console.log(arrayBuffer);
-
-  return arrayBuffer;
-}
-
 async function runRustScriptBabyGiant(X: any, Y: any) {
   // this is to compute the DLP during decryption of the balances with baby-step giant-step algo in circuits/exponential_elgamal/babygiant_native
   //  inside the browser this should be replaced by the WASM version in circuits/exponential_elgamal/babygiant
@@ -329,34 +282,6 @@ async function deploy(name: string, constructorArgs: any[]) {
   return { contract };
 }
 
-function getNonce(encryptedAmount: {
-  C1x: bigint;
-  C1y: bigint;
-  C2x: bigint;
-  C2y: bigint;
-}) {
-  return (
-    BigInt(
-      keccak256(
-        encodeAbiParameters(
-          [
-            { name: "C1x", type: "uint256" },
-            { name: "C1y", type: "uint256" },
-            { name: "C2x", type: "uint256" },
-            { name: "C1y", type: "uint256" },
-          ],
-          [
-            encryptedAmount.C1x,
-            encryptedAmount.C1y,
-            encryptedAmount.C2x,
-            encryptedAmount.C2y,
-          ]
-        )
-      )
-    ) % BJJ_PRIME
-  );
-}
-
 async function processPendingDeposit(txsToProcess: any, inputs: any) {
   const proof = await getProcessDepositProof();
   const {
@@ -374,8 +299,8 @@ async function processPendingDeposit(txsToProcess: any, inputs: any) {
     txsToProcess,
     processFeeRecipient,
     account1,
-    inputs.old_enc_balance_1,
-    inputs.new_enc_balance_1,
+    processDepositInputs.oldBalance,
+    processDepositInputs.newBalance,
   ]);
   return {
     privateToken,
