@@ -62,7 +62,7 @@ fn test_process_deposit() {
         packed_public_key_Field[i] = packed_public_key[i] as Field;
     }
     let old_balance_clear = 0 as u40;
-    let amount = 100 as u40;
+    let amount = 999 as u40;
     let old_balance_enc : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(public_key, old_balance_clear, randomness);
     let encrypted_amount = bjj::exp_elgamal_encrypt(public_key, amount, randomness);
     let bjj_affine = bjj::get_affine_curve();
@@ -75,13 +75,12 @@ fn test_process_deposit() {
     let decoded_value = bjj::exp_elgamal_decrypt(private_key, new_balance_enc);
     assert(decoded_value.x==embedded_balance.x);
     assert(decoded_value.y==embedded_balance.y);
-    std::println(new_balance_enc.0);
 
-    // std::println("new balance enc");
-    // std::println(new_balance_enc.0.x);
-    // std::println(new_balance_enc.0.y);
-    // std::println(new_balance_enc.1.x);
-    // std::println(new_balance_enc.1.y);
+    std::println(amount);
+    std::println(old_balance_enc.0);
+    std::println(old_balance_enc.1);
+    std::println(new_balance_enc.0);
+    std::println(new_balance_enc.1);
 
     main(randomness, packed_public_key_Field, amount, old_balance_enc.0, old_balance_enc.1, new_balance_enc.0, new_balance_enc.1);
 }

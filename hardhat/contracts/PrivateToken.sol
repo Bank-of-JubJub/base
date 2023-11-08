@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
-
+import "hardhat/console.sol";
 import {UltraVerifier as ProcessDepositVerifier} from "./process_pending_deposits/plonk_vk.sol";
 import {UltraVerifier as ProcessTransferVerifier} from "./process_pending_transfers/plonk_vk.sol";
 import {UltraVerifier as TransferVerifier} from "./transfer/plonk_vk.sol";
 import {UltraVerifier as WithdrawVerifier} from "./withdraw/plonk_vk.sol";
 import {UltraVerifier as LockVerifier} from "./lock/plonk_vk.sol";
-
 import {IERC20} from "./IERC20.sol";
 import {IERC165} from "./IERC165.sol";
 import {ERC165Checker} from "./ERC165Checker.sol";
@@ -293,28 +292,32 @@ contract PrivateToken {
             pendingTransferCounts[_to] += 1;
         }
 
-        local.publicInputs = new bytes32[](47);
+        local.publicInputs = new bytes32[](79);
         for (uint8 i = 0; i < 32; i++) {
             // Noir takes an array of 32 bytes32 as public inputs
             bytes1 aByte = bytes1((_from << (i * 8)));
             local.publicInputs[i] = bytes32(uint256(uint8(aByte)));
         }
-        local.publicInputs[32] = bytes32(uint256(_processFee));
-        local.publicInputs[33] = bytes32(uint256(_relayFee));
+        for (uint8 i = 0; i < 32; i++) {
+            bytes1 aByte = bytes1((_to << (i * 8)));
+            local.publicInputs[i + 32] = bytes32(uint256(uint8(aByte)));
+        }
+        local.publicInputs[64] = bytes32(uint256(_processFee));
+        local.publicInputs[65] = bytes32(uint256(_relayFee));
         // this nonce should be unique because it uses the randomness calculated in the encrypted balance
-        local.publicInputs[34] = bytes32(local.txNonce);
-        local.publicInputs[35] = bytes32(local.oldBalance.C1x);
-        local.publicInputs[36] = bytes32(local.oldBalance.C1y);
-        local.publicInputs[37] = bytes32(local.oldBalance.C2x);
-        local.publicInputs[38] = bytes32(local.oldBalance.C2y);
-        local.publicInputs[39] = bytes32(_amountToSend.C1x);
-        local.publicInputs[40] = bytes32(_amountToSend.C1y);
-        local.publicInputs[41] = bytes32(_amountToSend.C2x);
-        local.publicInputs[42] = bytes32(_amountToSend.C2y);
-        local.publicInputs[43] = bytes32(_senderNewBalance.C1x);
-        local.publicInputs[44] = bytes32(_senderNewBalance.C1y);
-        local.publicInputs[45] = bytes32(_senderNewBalance.C2x);
-        local.publicInputs[46] = bytes32(_senderNewBalance.C2y);
+        local.publicInputs[66] = bytes32(local.txNonce);
+        local.publicInputs[67] = bytes32(local.oldBalance.C1x);
+        local.publicInputs[68] = bytes32(local.oldBalance.C1y);
+        local.publicInputs[69] = bytes32(local.oldBalance.C2x);
+        local.publicInputs[70] = bytes32(local.oldBalance.C2y);
+        local.publicInputs[71] = bytes32(_amountToSend.C1x);
+        local.publicInputs[72] = bytes32(_amountToSend.C1y);
+        local.publicInputs[73] = bytes32(_amountToSend.C2x);
+        local.publicInputs[74] = bytes32(_amountToSend.C2y);
+        local.publicInputs[75] = bytes32(_senderNewBalance.C1x);
+        local.publicInputs[76] = bytes32(_senderNewBalance.C1y);
+        local.publicInputs[77] = bytes32(_senderNewBalance.C2x);
+        local.publicInputs[78] = bytes32(_senderNewBalance.C2y);
         require(
             TRANSFER_VERIFIER.verify(_proof_transfer, local.publicInputs),
             "Transfer proof is invalid"
@@ -441,6 +444,7 @@ contract PrivateToken {
             // if this is a fresh account, use the encrypted zero balance
             oldBalance = _zeroBalance;
         }
+
         PendingDeposit[] memory userPendingDepositsArray = new PendingDeposit[](
             4
         );
