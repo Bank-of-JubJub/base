@@ -23,6 +23,8 @@ async function main() {
   ];
 
   let hexstring = bytesArrayToHexString(hexArray);
+
+  let packed = hexToUint8Array(hexstring);
   console.log("hex string", hexstring);
 
   // console.log('private key', priv_key)
@@ -33,39 +35,23 @@ async function main() {
 
   // console.log('array length', pub_key_array[0].length)
 
-  let packedPublicKey = babyjubjubUtils.packPublicKey(pub_key_array);
-  console.log("packed public key", packedPublicKey);
-  console.log("packed as hex", uint8ArrayToHex(packedPublicKey));
-  // The unpacked key is different than the original Public Key,
-  // but additional packing/unpacking will always produce the same
-  // packed/unpacked key
-  let unpackedKey = babyjubjubUtils.unpackPoint(packedPublicKey);
-  // console.log('unpacked pub key', unpackedKey)
-  console.log(
-    "packed and unpacked points match",
-    compareUint8Arrays(unpackedKey[0], bigintToUint8Array(pub_key.x)) &&
-      compareUint8Arrays(unpackedKey[1], bigintToUint8Array(pub_key.y))
-  );
+  // let packedPublicKey = babyjubjubUtils.packPublicKey(pub_key_array);
+  // console.log("packed public key", packedPublicKey);
+  // console.log("packed as hex", uint8ArrayToHex(packedPublicKey));
+  let unpackedKey = babyjubjubUtils.unpackPoint(packed);
 
-  const initial_balance_enc = babyjubjubUtils.exp_elgamal_encrypt(
-    pub_key,
-    initial_balance
-  );
-  const amount_to_add = 100;
-  const encrypted_amount = babyjubjubUtils.exp_elgamal_encrypt(
-    pub_key,
-    amount_to_add
-  );
+  // console.log(unpackedKey);
 
-  const new_balance = {
-    C1: babyjubjubUtils.add_points(initial_balance_enc.C1, encrypted_amount.C1),
-    C2: babyjubjubUtils.add_points(initial_balance_enc.C2, encrypted_amount.C2),
-  };
+  let packed1 = babyjubjubUtils.packPublicKey(unpackedKey);
 
-  console.log("balance after encrypted addition", new_balance);
+  // console.log(packed);
+  // console.log(packed1);
 
-  // console.log("F half", (babyjubjubUtils.getF()).half)
-  // console.log("pm1d2", babyjubjubUtils.getPm1d2())
+  // console.log(
+  //   "packed and unpacked points match",
+  //   compareUint8Arrays(unpackedKey[0], bigintToUint8Array(pub_key.x)) &&
+  //     compareUint8Arrays(unpackedKey[1], bigintToUint8Array(pub_key.y))
+  // );
 }
 
 function bigintToUint8Array(bigint: bigint) {
@@ -158,3 +144,24 @@ function bytesArrayToHexString(bytesArray: any) {
 }
 
 main();
+
+function hexToUint8Array(hexString: string): Uint8Array {
+  // Ensure the input string length is even
+  if (hexString.length % 2 !== 0) {
+    throw new Error("Hex string must have an even number of characters");
+  }
+
+  const arrayBuffer = new Uint8Array(hexString.length / 2);
+
+  for (let i = 0; i < arrayBuffer.length; i++) {
+    const byteValue = parseInt(hexString.substr(i * 2, 2), 16);
+    if (Number.isNaN(byteValue)) {
+      throw new Error("Invalid hex string");
+    }
+    arrayBuffer[i] = byteValue;
+  }
+
+  console.log(arrayBuffer);
+
+  return arrayBuffer;
+}
