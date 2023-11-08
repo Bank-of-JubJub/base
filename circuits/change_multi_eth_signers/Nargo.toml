@@ -1,0 +1,9 @@
+[package]
+name = "change_multi_eth_signers"
+type = "bin"
+authors = [""]
+compiler_version = "0.17.0"
+
+[dependencies]
+bjj = { tag = "v0.1.0", git = "https://github.com/jat9292/noir-elgamal" }
+# add ecrecover lib

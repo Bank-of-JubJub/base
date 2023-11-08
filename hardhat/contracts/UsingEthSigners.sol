@@ -47,16 +47,8 @@ contract UsingEthSingers {
         // % p, so it fits in a field element
         // must pass full packed key as private input to circuit and check the hash matches
         publicInputs[0] = bytes32(uint256(_packedPublicKey) % BJJ_PRIME);
-        // message hash, signed by eth account
         // it should be unique and not reusable
-        publicInputs[1] = keccak256(
-            abi.encodePacked(
-                address(this),
-                _packedPublicKey,
-                _ethSignerAddress,
-                nonce[_packedPublicKey]
-            )
-        );
+        publicInputs[1] = bytes32(nonce[_packedPublicKey]);
 
         // The proof checks that the caller has the private key corresponding to the public key
         // addEthSignerVerifier.verify(proof, publicInputs);
@@ -121,18 +113,11 @@ contract UsingEthSingers {
         // private key corresponding to the packed public key controls the account until registered
         publicInputs[0] = bytes32(uint256(_packedPublicKey) % BJJ_PRIME);
         // this should be unique and not reusable
-        publicInputs[1] = keccak256(
-            abi.encodePacked(
-                address(this),
-                _packedPublicKey,
-                _ethSignerAddresses,
-                _threshold,
-                nonce[_packedPublicKey]
-            )
-        );
+        publicInputs[1] = bytes32(nonce[_packedPublicKey]);
 
         // the circuit must check that the caller has the private key corresponding to the public key
-        // addMultisigEthSignerVerifier.verify(proof, publicInputs);
+        // can use the same circuit as single addEthSigner
+        // addEthSignerVerifier.verify(proof, publicInputs);
         nonce[_packedPublicKey] += 1;
         multisigEthSigners[_packedPublicKey].ethSigners = _ethSignerAddresses;
     }
