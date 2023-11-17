@@ -5,7 +5,7 @@ import { spawn } from "child_process";
 import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
 // import * as proofUtils from "../../utils/proof_utils.js";
 import { EncryptedBalanceArray, EncryptedBalance } from "../utils/types.ts";
-
+import { uint8ArrayToEncryptedBalance } from "../utils/utils.ts";
 import {
   account1,
   account2,
@@ -20,6 +20,8 @@ import {
   getProcessDepositInputs,
   getTransferInputs,
   getProcessTransferInputs,
+  generateProcessDepositProof,
+  randomness,
 } from "../utils/config.ts";
 
 const viem = hre.viem;
@@ -48,7 +50,8 @@ describe("Private Token integration testing", async function () {
   it("should add a deposit", async () => {
     await babyjub.init();
 
-    const { privateToken, account1, convertedAmount, fee } = await deposit();
+    const { privateToken, account1, convertedAmount, depositProcessFee } =
+      await deposit();
 
     let pending = await privateToken.read.pendingDepositCounts([account1]);
     assert(pending == 1n, "Pending deposits should be 1.");
@@ -58,14 +61,17 @@ describe("Private Token integration testing", async function () {
       0n,
     ])) as [bigint, number];
 
-    const expectedAmount = convertedAmount - BigInt(fee);
+    const expectedAmount = convertedAmount - BigInt(depositProcessFee);
     let totalSupply = await privateToken.read.totalSupply();
 
     assert(
       pendingDeposit[0] == expectedAmount,
       "pending deposit should match deposit amount"
     );
-    assert(pendingDeposit[1] == fee, "pending deposit fee should match input");
+    assert(
+      pendingDeposit[1] == depositProcessFee,
+      "pending deposit fee should match input"
+    );
     assert(
       totalSupply == Number(expectedAmount),
       "deposit amount should be the total supply"
@@ -95,8 +101,6 @@ describe("Private Token integration testing", async function () {
 
     let sender_balance = privateToken.read.balances([account1]);
     let recipient_balance = privateToken.read.balances([account2]);
-
-    console.log();
   });
 
   it("should process pending transfers", async () => {
@@ -141,7 +145,6 @@ async function processPendingTransfer() {
     0n,
   ]);
 
-  console.log(count);
   //let processTransferInputs = getProcessTransferInputs(account2, oldBalance);
 
   // await privateToken.write.processPendingTransfer([
@@ -199,7 +202,6 @@ async function deposit() {
   let depositAmount = BigInt(10 * 10 ** 18);
   let convertedAmount =
     BigInt(depositAmount) / BigInt(10 ** (tokenDecimals - bojDecimals));
-  let fee = 1;
 
   await privateToken.write.deposit([
     walletClient0.account.address,
@@ -215,7 +217,7 @@ async function deposit() {
     walletClient1,
     account1,
     convertedAmount,
-    fee,
+    depositProcessFee,
   };
 }
 
@@ -312,6 +314,7 @@ async function deploy(name: string, constructorArgs: any[]) {
 
 async function processPendingDeposit(txsToProcess: any, inputs: any) {
   const proof = await getProcessDepositProof();
+
   const {
     privateToken,
     token,
@@ -319,14 +322,24 @@ async function processPendingDeposit(txsToProcess: any, inputs: any) {
     walletClient1,
     account1,
     convertedAmount,
-    fee,
+    depositProcessFee,
   } = await deposit();
+
+  // const proof = await generateProcessDepositProof(account1, 0, 999, randomness);
+
+  // const oldBalance = proof.publicInputs.slice(-8, -4);
+  // const newBalance = proof.publicInputs.slice(-4);
+  // const oldBalanceInput = uint8ArrayToEncryptedBalance(oldBalance);
+  // const newBalanceInput = uint8ArrayToEncryptedBalance(newBalance);
 
   await privateToken.write.processPendingDeposit([
     proof,
+    // proof.proof.toString() as `0x${string}`,
     txsToProcess,
     processFeeRecipient,
     account1,
+    // oldBalanceInput,
+    // newBalanceInput,
     processDepositInputs.oldBalance,
     processDepositInputs.newBalance,
   ]);
@@ -337,6 +350,6 @@ async function processPendingDeposit(txsToProcess: any, inputs: any) {
     walletClient1,
     account1,
     convertedAmount,
-    fee,
+    depositProcessFee,
   };
 }

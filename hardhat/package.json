@@ -35,6 +35,9 @@
   "postinstall": "yarn typechain",
   "dependencies": {
     "-": "^0.0.1",
+    "@aztec/bb.js": "^0.15.0",
+    "@noir-lang/backend_barretenberg": "0.19.2",
+    "@noir-lang/noir_js": "0.19.2",
     "@nomicfoundation/hardhat-toolbox-viem": "^1.0.0",
     "@nomicfoundation/hardhat-viem": "1.0.0",
     "abitype": "0.10.1",

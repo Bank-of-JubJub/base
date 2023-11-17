@@ -1,6 +1,7 @@
 import { keccak256, encodeAbiParameters } from "viem";
 import { BJJ_PRIME } from "./config.ts";
 import BabyJubJubUtils from "./babyJubJubUtils";
+import { EncryptedBalance } from "./types.ts";
 const babyjub = new BabyJubJubUtils();
 
 export function getEncryptedValue(packedPublicKey: string, amount: number) {
@@ -18,6 +19,17 @@ export function getEncryptedValue(packedPublicKey: string, amount: number) {
 function uint8ArrayToBigInt(bytes: Uint8Array): bigint {
   let hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
   return BigInt("0x" + hex);
+}
+
+export function uint8ArrayToEncryptedBalance(
+  bytes: Uint8Array[]
+): EncryptedBalance {
+  return {
+    C1x: BigInt(bytes[0].toString()),
+    C1y: BigInt(bytes[1].toString()),
+    C2x: BigInt(bytes[2].toString()),
+    C2y: BigInt(bytes[3].toString()),
+  };
 }
 
 export function uint8ArrayToHexString(arr: Uint8Array) {
@@ -83,4 +95,15 @@ export function getNonce(encryptedAmount: {
       )
     ) % BJJ_PRIME
   );
+}
+
+export function toHexString(
+  bigintValue: bigint,
+  desiredLength: number
+): string {
+  let hexString = bigintValue.toString(16);
+  while (hexString.length < desiredLength) {
+    hexString = "0" + hexString;
+  }
+  return hexString;
 }
