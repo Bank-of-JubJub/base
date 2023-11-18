@@ -2,6 +2,7 @@ import { keccak256, encodeAbiParameters } from "viem";
 import { BJJ_PRIME } from "./config.ts";
 import BabyJubJubUtils from "./babyJubJubUtils";
 import { EncryptedBalance } from "./types.ts";
+import { type } from "os";
 const babyjub = new BabyJubJubUtils();
 
 export function getEncryptedValue(packedPublicKey: string, amount: number) {
@@ -115,4 +116,25 @@ export function toHexString(
     hexString = "0" + hexString;
   }
   return hexString;
+}
+
+export function processHexString(hexString: string): string[] {
+  // Check if the hexString length is 64
+  if (hexString.length !== 64) {
+    throw new Error("Hex string must be of length 64");
+  }
+
+  // Initialize an array to hold the processed hex strings
+  const processedArray: string[] = new Array(32).fill("00");
+
+  // Loop through each byte in the hex string
+  for (let i = 0; i < 32; i++) {
+    // Extract each byte (2 characters)
+    const byte = hexString.substr(i * 2, 2);
+    const paddedByte = "0x" + byte.padStart(64, "0");
+    // Place the byte at the end of the corresponding array element
+    processedArray[i] = paddedByte;
+  }
+
+  return processedArray;
 }

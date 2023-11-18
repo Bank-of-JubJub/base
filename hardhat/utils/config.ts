@@ -6,8 +6,10 @@ import {
   toHexString,
   encryptedBalanceToUint8Array,
   uint8ArrayToHexString,
+  processHexString,
+  getNonce,
 } from "./utils";
-import { EncryptedBalance, EncryptedBalanceArray } from "./types";
+import { BankAccount, EncryptedBalance, EncryptedBalanceArray } from "./types";
 import {
   BarretenbergBackend,
   CompiledCircuit,
@@ -24,17 +26,6 @@ import withdrawCircuit from "../../target/withdraw.json";
 
 const babyjub = new BabyJubJubUtils();
 
-// let circuits = [
-//   lockCircuit,
-//   processDepositsCircuit,
-//   processTransferCircuit,
-//   transferCircuit,
-//   withdrawCircuit,
-// ];
-
-// const backend = new BarretenbergBackend(circuit);
-// const noir = new Noir(circuit, backend);
-
 export async function generateProcessDepositProof(
   account: string,
   previousBalance: number,
@@ -46,13 +37,11 @@ export async function generateProcessDepositProof(
     processDepositsCircuit as CompiledCircuit,
     { threads: 8 }
   );
+
   const inputMap = {
     randomness,
     amount_sum: value,
-    packed_public_key: [
-      220, 159, 159, 219, 116, 109, 15, 7, 176, 4, 204, 67, 22, 227, 73, 90, 88,
-      87, 11, 144, 102, 20, 153, 248, 166, 166, 105, 111, 244, 21, 107, 170,
-    ],
+    packed_public_key: processHexString(account.slice(2)),
     old_enc_balance_1: {
       x: "0x" + toHexString(inputs.oldBalance.C1x, 64),
       y: "0x" + toHexString(inputs.oldBalance.C1y, 64),
@@ -71,15 +60,7 @@ export async function generateProcessDepositProof(
     },
   };
   const noir = new Noir(processDepositsCircuit as CompiledCircuit, backend);
-
   const proof = await noir.generateFinalProof(inputMap);
-
-  // works!
-  // const verification = await noir.verifyFinalProof(proof);
-  // if (verification) {
-  //   console.log("logs", "Verifying proof... ✅");
-  // }
-
   return proof;
 }
 
@@ -134,6 +115,67 @@ export function getTransferInputs(
   };
 }
 
+export async function generateTransferProof(
+  to: `0x${string}`,
+  from: `0x${string}`,
+  amount: number,
+  processFee: number,
+  relayFee: number,
+  newBalance: number,
+  oldBalance: number,
+  randomness: string,
+  privateKey: string
+) {
+  const backend = new BarretenbergBackend(transferCircuit as CompiledCircuit, {
+    threads: 8,
+  });
+
+  const encryptedOldBalance = encryptToKey(oldBalance, from);
+  const encryptedSendAmount = encryptToKey(amount, to);
+  const encryptedNewBalance = encryptToKey(newBalance, from);
+  const nonce = getNonce(encryptedNewBalance);
+  const inputMap = {
+    balance_old_me_clear: oldBalance,
+    private_key: privateKey,
+    value: 5,
+    randomness,
+    sender_pub_key: processHexString(from.slice(2)),
+    recipient_pub_key: processHexString(to.slice(2)),
+    process_fee: 0,
+    relay_fee: 2,
+    nonce,
+    old_balance_encrypted_1: {
+      x: "0x" + toHexString(encryptedOldBalance.C1x, 64),
+      y: "0x" + toHexString(encryptedOldBalance.C1y, 64),
+    },
+    old_balance_encrypted_2: {
+      x: "0x" + toHexString(encryptedOldBalance.C2x, 64),
+      y: "0x" + toHexString(encryptedOldBalance.C2y, 64),
+    },
+    encrypted_amount_1: {
+      x: "0x" + toHexString(encryptedSendAmount.C1x, 64),
+      y: "0x" + toHexString(encryptedSendAmount.C1y, 64),
+    },
+    encrypted_amount_2: {
+      x: "0x" + toHexString(encryptedSendAmount.C2x, 64),
+      y: "0x" + toHexString(encryptedSendAmount.C2y, 64),
+    },
+    new_balance_encrypted_1: {
+      x: "0x" + toHexString(encryptedNewBalance.C1x, 64),
+      y: "0x" + toHexString(encryptedNewBalance.C1y, 64),
+    },
+    new_balance_encrypted_2: {
+      x: "0x" + toHexString(encryptedNewBalance.C2x, 64),
+      y: "0x" + toHexString(encryptedNewBalance.C2y, 64),
+    },
+  };
+
+  const noir = new Noir(transferCircuit as CompiledCircuit, backend);
+  const proof = await noir.generateFinalProof(inputMap);
+  await noir.verifyFinalProof(proof);
+  return proof;
+}
+
 export function getProcessTransferInputs(
   to: string,
   oldEncBalance: EncryptedBalanceArray,
@@ -142,10 +184,17 @@ export function getProcessTransferInputs(
 
 export const account2 =
   "0x0c07999c15d406bc08d7f3f31f62cedbc89ebf3a53ff4d3bf7e2d0dda9314904" as `0x${string}`;
-export const account1 =
-  "0xdc9f9fdb746d0f07b004cc4316e3495a58570b90661499f8a6a6696ff4156baa" as `0x${string}`;
+export const account1: BankAccount = {
+  packedPublicKey:
+    "0xdc9f9fdb746d0f07b004cc4316e3495a58570b90661499f8a6a6696ff4156baa" as `0x${string}`,
+  privateKey:
+    "0x0510bae26a9b59ebad67a4324c944b1910a778e8481d7f08ddba6bcd2b94b2c4",
+};
 export const processFeeRecipient =
   "0xbEa2940f35737EDb9a9Ad2bB938A955F9b7892e3" as `0x${string}`;
+
+export const transferNonce =
+  "0x61FC08028AD9CCB3BCD0716DCCE36A433215F972FC435D957A3A228666F5C25";
 
 export const depositProcessFee = 1;
 export const transferProcessFee = 1;
@@ -155,11 +204,21 @@ export const withdrawRelayFee = 1;
 export const BJJ_PRIME =
   21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 
-export const randomness =
+export const random =
   "0x" +
   168986485046885582825082387270879151100288537211746581237924789162159767775n.toString(
     16
   );
+
+function encryptToKey(amount: number, packedPublicKey: `0x${string}`) {
+  const unformattedEncryptedAmount = getEncryptedValue(packedPublicKey, amount);
+  return {
+    C1x: unformattedEncryptedAmount.C1.x,
+    C1y: unformattedEncryptedAmount.C1.y,
+    C2x: unformattedEncryptedAmount.C2.x,
+    C2y: unformattedEncryptedAmount.C2.y,
+  } as EncryptedBalance;
+}
 
 export async function getTransferProof() {
   return (await getProof("../proofs/transfer.proof")) as `0x${string}`;

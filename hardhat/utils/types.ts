@@ -5,3 +5,7 @@ export type EncryptedBalance = {
   C2x: bigint;
   C2y: bigint;
 };
+export type BankAccount = {
+  packedPublicKey: `0x${string}`;
+  privateKey: `0x${string}`;
+};
