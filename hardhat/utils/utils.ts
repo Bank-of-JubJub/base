@@ -33,6 +33,17 @@ export function uint8ArrayToEncryptedBalance(
   };
 }
 
+export function bigintArrayToEncryptedBalance(
+  array: [bigint, bigint, bigint, bigint]
+) {
+  return {
+    C1x: array[0],
+    C1y: array[1],
+    C2x: array[2],
+    C2y: array[3],
+  } as EncryptedBalance;
+}
+
 export function encryptedBalanceToUint8Array(balance: EncryptedBalance) {
   return [
     hexToUint8Array(toHexString(balance.C1x, 64)),
@@ -86,24 +97,27 @@ export function getNonce(encryptedAmount: {
   C2y: bigint;
 }) {
   return (
-    BigInt(
-      keccak256(
-        encodeAbiParameters(
-          [
-            { name: "C1x", type: "uint256" },
-            { name: "C1y", type: "uint256" },
-            { name: "C2x", type: "uint256" },
-            { name: "C1y", type: "uint256" },
-          ],
-          [
-            encryptedAmount.C1x,
-            encryptedAmount.C1y,
-            encryptedAmount.C2x,
-            encryptedAmount.C2y,
-          ]
+    "0x" +
+    (
+      BigInt(
+        keccak256(
+          encodeAbiParameters(
+            [
+              { name: "C1x", type: "uint256" },
+              { name: "C1y", type: "uint256" },
+              { name: "C2x", type: "uint256" },
+              { name: "C1y", type: "uint256" },
+            ],
+            [
+              encryptedAmount.C1x,
+              encryptedAmount.C1y,
+              encryptedAmount.C2x,
+              encryptedAmount.C2y,
+            ]
+          )
         )
-      )
-    ) % BJJ_PRIME
+      ) % BJJ_PRIME
+    ).toString(16)
   );
 }
 

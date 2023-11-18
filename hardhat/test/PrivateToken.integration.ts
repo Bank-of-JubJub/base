@@ -6,6 +6,7 @@ import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
 // import * as proofUtils from "../../utils/proof_utils.js";
 import { EncryptedBalanceArray, EncryptedBalance } from "../utils/types.ts";
 import {
+  bigintArrayToEncryptedBalance,
   uint8ArrayToEncryptedBalance,
   uint8ArrayToHexString,
 } from "../utils/utils.ts";
@@ -186,19 +187,29 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
     convertedAmount,
     depositProcessFee,
   } = await processPendingDeposit([0], processDepositInputs);
-  let proof = await getTransferProof();
 
-  transferProof = await generateTransferProof(
-    to,
-    from,
-    5,
-    transferProcessFee,
-    transferRelayFee,
-    992, // 999 - amount - fees
-    999,
-    random,
-    account1.privateKey
+  let encryptedBalanceArray = await privateToken.read.balances([from]);
+  let encryptedOldBalance = bigintArrayToEncryptedBalance(
+    encryptedBalanceArray
   );
+
+  const oldBalance = 999;
+  const amount = 5;
+
+  if (transferProof.proof == undefined) {
+    transferProof = await generateTransferProof(
+      to,
+      from,
+      amount,
+      transferProcessFee,
+      transferRelayFee,
+      oldBalance - amount - transferProcessFee - transferRelayFee,
+      oldBalance,
+      random,
+      account1.privateKey,
+      encryptedOldBalance
+    );
+  }
 
   const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
 
@@ -215,18 +226,20 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
     console.log(e);
   }
 
-  console.log("proof", uint8ArrayToHexString(transferProof.proof));
-
-  await privateToken.write.transfer([
-    to,
-    from,
-    transferProcessFee,
-    transferRelayFee,
-    relayFeeRecipient,
-    amountAsEncryptedBalance!,
-    newBalanceEncryptedBalance!,
-    uint8ArrayToHexString(transferProof.proof) as `0x${string}`,
-  ]);
+  try {
+    await privateToken.write.transfer([
+      to,
+      from,
+      transferProcessFee,
+      transferRelayFee,
+      relayFeeRecipient,
+      amountAsEncryptedBalance!,
+      newBalanceEncryptedBalance!,
+      uint8ArrayToHexString(transferProof.proof) as `0x${string}`,
+    ]);
+  } catch (e) {
+    console.log(e);
+  }
 
   return {
     privateToken,

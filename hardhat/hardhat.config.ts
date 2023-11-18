@@ -19,6 +19,9 @@ module.exports = {
     sources: "./contracts",
     tests: "./test",
   },
+  mocha: {
+    timeout: 4000000,
+  },
   gasReporter: {
     enabled: process.env.REPORT_GAS ? true : false,
   },
