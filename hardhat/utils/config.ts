@@ -1,10 +1,17 @@
 import * as fs from "fs";
 import BabyJubJubUtils from "./babyJubJubUtils";
-import { hexToUint8Array, getEncryptedValue, toHexString } from "./utils";
+import {
+  hexToUint8Array,
+  getEncryptedValue,
+  toHexString,
+  encryptedBalanceToUint8Array,
+  uint8ArrayToHexString,
+} from "./utils";
 import { EncryptedBalance, EncryptedBalanceArray } from "./types";
 import {
   BarretenbergBackend,
   CompiledCircuit,
+  ProofData,
 } from "@noir-lang/backend_barretenberg";
 import { Noir } from "@noir-lang/noir_js";
 import { Fr } from "@aztec/bb.js";
@@ -33,11 +40,11 @@ export async function generateProcessDepositProof(
   previousBalance: number,
   value: number,
   randomness: string
-) {
+): Promise<ProofData> {
   const inputs = getProcessDepositInputs(account, previousBalance, value);
   const backend = new BarretenbergBackend(
     processDepositsCircuit as CompiledCircuit,
-    { threads: 6 }
+    { threads: 8 }
   );
   const inputMap = {
     randomness,

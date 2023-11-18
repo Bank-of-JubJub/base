@@ -25,11 +25,20 @@ export function uint8ArrayToEncryptedBalance(
   bytes: Uint8Array[]
 ): EncryptedBalance {
   return {
-    C1x: BigInt(bytes[0].toString()),
-    C1y: BigInt(bytes[1].toString()),
-    C2x: BigInt(bytes[2].toString()),
-    C2y: BigInt(bytes[3].toString()),
+    C1x: uint8ArrayToBigInt(bytes[0]),
+    C1y: uint8ArrayToBigInt(bytes[1]),
+    C2x: uint8ArrayToBigInt(bytes[2]),
+    C2y: uint8ArrayToBigInt(bytes[3]),
   };
+}
+
+export function encryptedBalanceToUint8Array(balance: EncryptedBalance) {
+  return [
+    hexToUint8Array(toHexString(balance.C1x, 64)),
+    hexToUint8Array(toHexString(balance.C1y, 64)),
+    hexToUint8Array(toHexString(balance.C2x, 64)),
+    hexToUint8Array(toHexString(balance.C2y, 64)),
+  ];
 }
 
 export function uint8ArrayToHexString(arr: Uint8Array) {

@@ -5,7 +5,10 @@ import { spawn } from "child_process";
 import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
 // import * as proofUtils from "../../utils/proof_utils.js";
 import { EncryptedBalanceArray, EncryptedBalance } from "../utils/types.ts";
-import { uint8ArrayToEncryptedBalance } from "../utils/utils.ts";
+import {
+  uint8ArrayToEncryptedBalance,
+  uint8ArrayToHexString,
+} from "../utils/utils.ts";
 import {
   account1,
   account2,
@@ -23,6 +26,7 @@ import {
   generateProcessDepositProof,
   randomness,
 } from "../utils/config.ts";
+import { ProofData } from "@noir-lang/noir_js";
 
 const viem = hre.viem;
 
@@ -32,6 +36,9 @@ let processDepositInputs = {
   oldBalance: {} as EncryptedBalance,
   newBalance: {} as EncryptedBalance,
 };
+
+let processDepositProof = {} as ProofData;
+let transferProof = {} as ProofData;
 
 let transferInputs = {
   encryptedAmount: {} as EncryptedBalance,
@@ -43,7 +50,7 @@ let processTransferInputs = {
 
 describe("Private Token integration testing", async function () {
   this.beforeAll(async () => {
-    processDepositInputs = getProcessDepositInputs(account1, 0, 999);
+    // processDepositInputs = getProcessDepositInputs(account1, 0, 999);
     transferInputs = getTransferInputs(account2, account1, 5, 992);
   });
 
@@ -164,7 +171,7 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
     walletClient0,
     walletClient1,
     convertedAmount,
-    fee,
+    depositProcessFee,
   } = await processPendingDeposit([0], processDepositInputs);
   let proof = await getTransferProof();
   const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
@@ -186,7 +193,7 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
     walletClient0,
     walletClient1,
     convertedAmount,
-    fee,
+    depositProcessFee,
     relayFeeRecipient,
   };
 }
@@ -313,7 +320,7 @@ async function deploy(name: string, constructorArgs: any[]) {
 }
 
 async function processPendingDeposit(txsToProcess: any, inputs: any) {
-  const proof = await getProcessDepositProof();
+  // const proof = await getProcessDepositProof();
 
   const {
     privateToken,
@@ -325,23 +332,30 @@ async function processPendingDeposit(txsToProcess: any, inputs: any) {
     depositProcessFee,
   } = await deposit();
 
-  // const proof = await generateProcessDepositProof(account1, 0, 999, randomness);
+  if (processDepositProof.proof == undefined) {
+    processDepositProof = await generateProcessDepositProof(
+      account1,
+      0,
+      999,
+      randomness
+    );
+  }
 
-  // const oldBalance = proof.publicInputs.slice(-8, -4);
-  // const newBalance = proof.publicInputs.slice(-4);
-  // const oldBalanceInput = uint8ArrayToEncryptedBalance(oldBalance);
-  // const newBalanceInput = uint8ArrayToEncryptedBalance(newBalance);
+  const oldBalance = processDepositProof.publicInputs.slice(-8, -4);
+  const newBalance = processDepositProof.publicInputs.slice(-4);
+  const oldBalanceInput = uint8ArrayToEncryptedBalance(oldBalance);
+  const newBalanceInput = uint8ArrayToEncryptedBalance(newBalance);
 
   await privateToken.write.processPendingDeposit([
-    proof,
-    // proof.proof.toString() as `0x${string}`,
+    // proof,
+    uint8ArrayToHexString(processDepositProof.proof) as `0x${string}`,
     txsToProcess,
     processFeeRecipient,
     account1,
-    // oldBalanceInput,
-    // newBalanceInput,
-    processDepositInputs.oldBalance,
-    processDepositInputs.newBalance,
+    oldBalanceInput,
+    newBalanceInput,
+    // processDepositInputs.oldBalance,
+    // processDepositInputs.newBalance,
   ]);
   return {
     privateToken,
