@@ -31,7 +31,7 @@ fn main(randomness: Field, // randomness used for encryption, amount is already 
     ) { 
 
     let bjj_affine = bjj::get_affine_curve();
-    let mut packed_public_key_u8: [u8;32] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
+    let mut packed_public_key_u8: [u8;32] = [0;32]; // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
     for i in 0..32 {
         packed_public_key_u8[i] = packed_public_key[i] as u8;
     }
