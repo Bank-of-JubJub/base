@@ -15,6 +15,7 @@ import {
   depositAmount,
   depositProcessFee,
   random,
+  transferAmount,
 } from "../utils/constants.ts";
 
 import {
@@ -29,6 +30,7 @@ import {
 import { TomlKeyValue, createAndWriteToml } from "./createToml.ts";
 import {
   getC1PointFromEncryptedBalance,
+  getEncryptedValue,
   getNonce,
   hexToUint8Array,
 } from "../utils/utils.ts";
@@ -62,7 +64,7 @@ describe("Private Token integration testing", async function () {
     transferInputs = getTransferInputs(
       account2.packedPublicKey,
       account1.packedPublicKey,
-      5,
+      transferAmount,
       992
     );
   });
@@ -262,6 +264,19 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
     account1.packedPublicKey,
   ]);
 
+  const encryptedAmount = getEncryptedValue(
+    account2.packedPublicKey,
+    transferAmount
+  );
+  const encNewBalance = getEncryptedValue(
+    account1.packedPublicKey,
+    // 992
+    Number(convertedAmount) -
+      depositProcessFee -
+      transferAmount -
+      transferRelayFee
+  );
+
   const proofInputs: Array<TomlKeyValue> = [
     {
       key: "balance_old_me_clear",
@@ -273,7 +288,7 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
     },
     {
       key: "value",
-      value: 5,
+      value: transferAmount,
     },
     {
       key: "randomness",
@@ -315,8 +330,20 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
     },
     {
       key: "encrypted_amount_1",
-      value: 
-    }
+      value: encryptedAmount.C1,
+    },
+    {
+      key: "encrypted_amount_2",
+      value: encryptedAmount.C2,
+    },
+    {
+      key: "new_balance_encrypted_1",
+      value: encNewBalance.C1,
+    },
+    {
+      key: "new_balance_encrypted_2",
+      value: encNewBalance.C2,
+    },
   ];
   // createAndWriteToml("../../circuits/transfer/Test.toml", proofInputs);
   // await runNargoProve("transfer", "Test.toml");
