@@ -12,6 +12,7 @@ import {
   processFeeRecipient,
   transferProcessFee,
   transferRelayFee,
+  depositAmount,
   depositProcessFee,
   random,
 } from "../utils/constants.ts";
@@ -48,33 +49,50 @@ let processTransferInputs = {
   encryptedNewBalance: {} as EncryptedBalance,
 };
 
+let convertedAmount: bigint;
+
 describe("Private Token integration testing", async function () {
   this.beforeAll(async () => {
-    processDepositInputs = getProcessDepositInputs(account1, 0, 999);
-    transferInputs = getTransferInputs(account2, account1, 5, 992);
+    processDepositInputs = getProcessDepositInputs(
+      account1.packedPublicKey,
+      0,
+      999
+    );
+    transferInputs = getTransferInputs(
+      account2.packedPublicKey,
+      account1.packedPublicKey,
+      5,
+      992
+    );
   });
 
   it("should add a deposit", async () => {
     await babyjub.init();
 
-    const { privateToken, account1, convertedAmount, fee } = await deposit();
+    const { privateToken, account1, convertedAmount, depositProcessFee } =
+      await deposit();
 
-    let pending = await privateToken.read.pendingDepositCounts([account1]);
+    let pending = await privateToken.read.pendingDepositCounts([
+      account1.packedPublicKey,
+    ]);
     assert(pending == 1n, "Pending deposits should be 1.");
 
     let pendingDeposit = (await privateToken.read.allPendingDepositsMapping([
-      account1,
+      account1.packedPublicKey,
       0n,
     ])) as [bigint, number];
 
-    const expectedAmount = convertedAmount - BigInt(fee);
+    const expectedAmount = convertedAmount - BigInt(depositProcessFee);
     let totalSupply = await privateToken.read.totalSupply();
 
     assert(
       pendingDeposit[0] == expectedAmount,
       "pending deposit should match deposit amount"
     );
-    assert(pendingDeposit[1] == fee, "pending deposit fee should match input");
+    assert(
+      pendingDeposit[1] == depositProcessFee,
+      "pending deposit fee should match input"
+    );
     assert(
       totalSupply == Number(expectedAmount),
       "deposit amount should be the total supply"
@@ -88,7 +106,7 @@ describe("Private Token integration testing", async function () {
     );
 
     let balance = (await privateToken.read.balances([
-      account1,
+      account1.packedPublicKey,
     ])) as EncryptedBalanceArray;
     expect(balance[0] == processDepositInputs.newBalance.C1x);
     expect(balance[1] == processDepositInputs.newBalance.C1y);
@@ -98,12 +116,14 @@ describe("Private Token integration testing", async function () {
 
   it("should perform transfers", async function () {
     const { privateToken } = await transfer(
-      account2, // to
-      account1 // from
+      account2.packedPublicKey, // to
+      account1.packedPublicKey // from
     );
 
-    let sender_balance = privateToken.read.balances([account1]);
-    let recipient_balance = privateToken.read.balances([account2]);
+    let sender_balance = privateToken.read.balances([account1.packedPublicKey]);
+    let recipient_balance = privateToken.read.balances([
+      account2.packedPublicKey,
+    ]);
 
     console.log();
   });
@@ -126,14 +146,13 @@ async function deposit() {
   let tokenDecimals = (await token.read.decimals()) as number;
   let bojDecimals = (await privateToken.read.decimals()) as number;
 
-  let depositAmount = BigInt(10 * 10 ** 18);
-  let convertedAmount =
+  convertedAmount =
     BigInt(depositAmount) / BigInt(10 ** (tokenDecimals - bojDecimals));
 
   await privateToken.write.deposit([
     walletClient0.account.address,
     depositAmount,
-    account1,
+    account1.packedPublicKey,
     depositProcessFee,
   ]);
 
@@ -166,11 +185,11 @@ async function processPendingDeposit(txsToProcess: any, inputs: any) {
     },
     {
       key: "amount_sum",
-      value: 999,
+      value: Number(convertedAmount) - depositProcessFee,
     },
     {
       key: "packed_public_key",
-      value: hexToUint8Array(account1),
+      value: hexToUint8Array(account1.packedPublicKey),
     },
     {
       key: "old_enc_balance_1",
@@ -202,7 +221,10 @@ async function processPendingDeposit(txsToProcess: any, inputs: any) {
     },
   ];
 
-  // createAndWriteToml("../../circuits/process_pending_deposits/Test.toml");
+  createAndWriteToml(
+    "../../circuits/process_pending_deposits/Test.toml",
+    proofInputs
+  );
   // await runNargoProve("deposit", "Test.toml");
   const proof = await getProcessDepositProof();
 
@@ -210,7 +232,7 @@ async function processPendingDeposit(txsToProcess: any, inputs: any) {
     proof,
     txsToProcess,
     processFeeRecipient,
-    account1,
+    account1.packedPublicKey,
     processDepositInputs.oldBalance,
     processDepositInputs.newBalance,
   ]);
@@ -234,6 +256,37 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
     convertedAmount,
     depositProcessFee,
   } = await processPendingDeposit([0], processDepositInputs);
+
+  const proofInputs: Array<TomlKeyValue> = [
+    {
+      key: "balance_old_me_clear",
+      value: Number(convertedAmount) - depositProcessFee,
+    },
+    {
+      key: "private_key",
+      value: account1.privateKey,
+    },
+    {
+      key: "value",
+      value: 5,
+    },
+    {
+      key: "randomness",
+      value: random,
+    },
+    {
+      key: "sender_pub_key",
+      value: hexToUint8Array(account1.packedPublicKey),
+    },
+    {
+      key: "recipient_pub_key",
+      value: hexToUint8Array(account2.packedPublicKey),
+    },
+    {},
+  ];
+  // createAndWriteToml("../../circuits/transfer/Test.toml", proofInputs);
+  // await runNargoProve("transfer", "Test.toml");
+
   let proof = await getTransferProof();
   const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
 
