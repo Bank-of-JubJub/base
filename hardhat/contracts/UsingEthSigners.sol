@@ -25,12 +25,10 @@ contract UsingEthSingers {
     constructor(
         address _addEthSignerVerifier,
         address _changeEthSignerVerfier,
-        address _addMultisigEthSignerVerifier,
         address _changeMultisigEthSignerVerifier
     ) {
         addEthSignerVerifier = _addEthSignerVerifier;
         changeEthSignerVerifier = _changeEthSignerVerfier;
-        addMultisigEthSignerVerifier = _addMultisigEthSignerVerifier;
         changeMultisigEthSignerVerifier = _changeMultisigEthSignerVerifier;
     }
 
@@ -43,11 +41,13 @@ contract UsingEthSingers {
             "eth signer already exists"
         );
 
-        bytes32[] memory publicInputs = new bytes32[](2);
-        // % p, so it fits in a field element
-        // must pass full packed key as private input to circuit and check the hash matches
-        publicInputs[0] = bytes32(uint256(_packedPublicKey) % BJJ_PRIME);
-        // it should be unique and not reusable
+        bytes32[] memory publicInputs = new bytes32[](32);
+        for (uint8 i = 0; i < 32; i++) {
+            // Noir takes an array of 32 bytes32 as public inputs
+            bytes1 aByte = bytes1((_packedPublicKey << (i * 8)));
+            publicInputs[i] = bytes32(uint256(uint8(aByte)));
+        }
+        // The nonce ensures the proof cannot be reused
         publicInputs[1] = bytes32(nonce[_packedPublicKey]);
 
         // The proof checks that the caller has the private key corresponding to the public key
