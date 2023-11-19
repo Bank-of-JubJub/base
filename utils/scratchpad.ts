@@ -6,52 +6,14 @@ async function main() {
   // const { privateKey, publicKey } = babyjubjubUtils.generatePrivateAndPublicKey();
 
   const priv_key =
-    "0x0000bae26a9b59ebad67a4324c944b1910a778e8481d7f08ddba6bcd2b94b2c4";
-  const pub_key = babyjubjubUtils.privateToPublicKey(priv_key);
-  const pub_key_array: Point = [
-    bigintToUint8Array(pub_key.x),
-    bigintToUint8Array(pub_key.y),
-  ];
+    "0x0510bae26a9b59ebad67a4324c944b1910a778e8481d7f08ddba6bcd2b94b2c4";
+  const publicKey = babyjubjubUtils.privateToPublicKey(priv_key);
+  const packed = babyjubjubUtils.packPublicKey([
+    bigintToUint8Array(publicKey.x),
+    bigintToUint8Array(publicKey.y),
+  ]);
 
-  const initial_balance = 100;
-  const amount = 10;
-
-  let hexArray = [
-    0x0c, 0x07, 0x99, 0x9c, 0x15, 0xd4, 0x06, 0xbc, 0x08, 0xd7, 0xf3, 0xf3,
-    0x1f, 0x62, 0xce, 0xdb, 0xc8, 0x9e, 0xbf, 0x3a, 0x53, 0xff, 0x4d, 0x3b,
-    0xf7, 0xe2, 0xd0, 0xdd, 0xa9, 0x31, 0x49, 0x04,
-  ];
-
-  let hexstring = bytesArrayToHexString(hexArray);
-
-  let packed = hexToUint8Array(hexstring);
-  console.log("hex string", hexstring);
-
-  // console.log('private key', priv_key)
-  // console.log('pub key', pub_key.x.toString(16), pub_key.y.toString(16))
-  // console.log('pub key ARRAY', pub_key_array)
-
-  // console.log(21888242871839275222246405745257275088548364400416034343698204186575808495617n.toString(16) > priv_key)
-
-  // console.log('array length', pub_key_array[0].length)
-
-  // let packedPublicKey = babyjubjubUtils.packPublicKey(pub_key_array);
-  // console.log("packed public key", packedPublicKey);
-  // console.log("packed as hex", uint8ArrayToHex(packedPublicKey));
-  let unpackedKey = babyjubjubUtils.unpackPoint(packed);
-
-  // console.log(unpackedKey);
-
-  let packed1 = babyjubjubUtils.packPublicKey(unpackedKey);
-
-  // console.log(packed);
-  // console.log(packed1);
-
-  // console.log(
-  //   "packed and unpacked points match",
-  //   compareUint8Arrays(unpackedKey[0], bigintToUint8Array(pub_key.x)) &&
-  //     compareUint8Arrays(unpackedKey[1], bigintToUint8Array(pub_key.y))
-  // );
+  console.log(uint8ArrayToBigInt(packed) % babyjubjubUtils.getP());
 }
 
 function bigintToUint8Array(bigint: bigint) {
