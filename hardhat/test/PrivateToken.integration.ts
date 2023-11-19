@@ -228,7 +228,7 @@ async function processPendingDeposit(txsToProcess: any, inputs: any) {
     "../../circuits/process_pending_deposits/Test.toml",
     proofInputs
   );
-  // await runNargoProve("deposit", "Test.toml");
+  await runNargoProve("process_pending_deposits", "Test.toml");
   const proof = await getProcessDepositProof();
 
   await privateToken.write.processPendingDeposit([

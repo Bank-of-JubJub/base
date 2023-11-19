@@ -1,21 +1,22 @@
 import { exec } from "child_process";
 
 export async function runNargoProve(circuitPackage: string, tomlFile: string) {
-  // turn this into a promise that resolves when complete
-
-  exec(
-    `nargo prove --package ${circuitPackage} -p ${tomlFile}`,
-    (error, stdout, stderr) => {
-      if (error) {
-        console.error(`exec error: ${error}`);
-        return;
+  return new Promise((resolve, reject) => {
+    exec(
+      `nargo prove --package ${circuitPackage} -p ${tomlFile}`,
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(`exec error: ${error}`);
+          return;
+        }
+        if (stderr) {
+          reject(`stderr: ${stderr}`);
+        }
+        if (stdout) {
+          console.log(`stdout: ${stdout}`);
+          resolve(stdout);
+        }
       }
-      if (stdout) {
-        console.log(`stdout: ${stdout}`);
-      }
-      if (stderr) {
-        console.error(`stderr: ${stderr}`);
-      }
-    }
-  );
+    );
+  });
 }

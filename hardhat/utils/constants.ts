@@ -1,8 +1,7 @@
 export const account2 = {
   packedPublicKey:
-    "0x0cc3fcaa9bb97b70670e893a83f1733d64f039e4ea4ab2d897dada1b36b1ae17" as `0x${string}`,
-  privateKey:
-    "0x0000bae26a9b59ebad67a4324c944b1910a778e8481d7f08ddba6bcd2b94b2c4",
+    "0xffea1aa658fb7cb3cca174466bc59edc223095deaf9c83890c306bf8c8a76e01" as `0x${string}`,
+  privateKey: "0x981db77d8c3fbc409151aaa068b852143d95c3a5018de668f7b51a2aeb31c",
 };
 // old account 2 ("0x0c07999c15d406bc08d7f3f31f62cedbc89ebf3a53ff4d3bf7e2d0dda9314904");
 export const account1 = {

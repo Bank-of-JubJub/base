@@ -8,6 +8,7 @@ export function getEncryptedValue(packedPublicKey: string, amount: number) {
   const publicKey = babyjub.unpackPoint(
     hexToUint8Array(packedPublicKey.slice(2))
   );
+
   const publicKeyObject = {
     x: uint8ArrayToBigInt(publicKey[0]),
     y: uint8ArrayToBigInt(publicKey[1]),
@@ -43,6 +44,10 @@ export function hexToUint8Array(hexString: string): Uint8Array {
   // Ensure the input string length is even
   if (hexString.length % 2 !== 0) {
     throw new Error("Hex string must have an even number of characters");
+  }
+
+  if (hexString.startsWith("0x")) {
+    hexString = hexString.slice(2);
   }
 
   const arrayBuffer = new Uint8Array(hexString.length / 2);

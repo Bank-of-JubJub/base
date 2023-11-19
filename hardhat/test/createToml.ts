@@ -1,6 +1,5 @@
 import * as fs from "fs";
 import * as toml from "@iarna/toml";
-import { type } from "os";
 
 export type TomlKeyValue = {
   key: string;
@@ -12,20 +11,15 @@ type Point = {
   y: string | bigint;
 };
 
-type TomlValue = string | number | Uint8Array | Point;
+type TomlValue = string | number | Uint8Array | Point | number[];
 
 export function createAndWriteToml(
   filePath: string,
   keyValues: Array<TomlKeyValue>
 ) {
-  // each toml field index starts with the variable name
-
-  let data: any;
+  let data: any = {};
   keyValues.map((item) => {
-    // if (Object.getOwnPropertyNames(item.value).includes('x')) {
     data[item.key] = item.value;
-    // } else {
-    // }
   });
 
   const tomlContent = toml.stringify(data);
