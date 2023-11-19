@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as toml from "@iarna/toml";
 import { type } from "os";
 
-type TomlKeyValue = {
+export type TomlKeyValue = {
   key: string;
   value: TomlValue;
 };
@@ -16,7 +16,7 @@ type TomlValue = string | number | Uint8Array | Point;
 
 export function createAndWriteToml(
   filePath: string,
-  keyValues: [TomlKeyValue]
+  keyValues: Array<TomlKeyValue>
 ) {
   // each toml field index starts with the variable name
 

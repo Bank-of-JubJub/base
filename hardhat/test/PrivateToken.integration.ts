@@ -29,6 +29,7 @@ import {
 import { TomlKeyValue, createAndWriteToml } from "./createToml.ts";
 import {
   getC1PointFromEncryptedBalance,
+  getNonce,
   hexToUint8Array,
 } from "../utils/utils.ts";
 
@@ -257,6 +258,10 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
     depositProcessFee,
   } = await processPendingDeposit([0], processDepositInputs);
 
+  const encOldBalance = await privateToken.read.balances([
+    account1.packedPublicKey,
+  ]);
+
   const proofInputs: Array<TomlKeyValue> = [
     {
       key: "balance_old_me_clear",
@@ -282,7 +287,36 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
       key: "recipient_pub_key",
       value: hexToUint8Array(account2.packedPublicKey),
     },
-    {},
+    {
+      key: "process_fee",
+      value: 0,
+    },
+    {
+      key: "relay_fee",
+      value: 2,
+    },
+    {
+      key: "nonce",
+      value: getNonce(transferInputs.encryptedNewBalance).toString(16),
+    },
+    {
+      key: "old_balance_encrypted_1",
+      value: {
+        x: encOldBalance[0].toString(16),
+        y: encOldBalance[1].toString(16),
+      },
+    },
+    {
+      key: "old_balance_encrypted_2",
+      value: {
+        x: encOldBalance[2].toString(16),
+        y: encOldBalance[3].toString(16),
+      },
+    },
+    {
+      key: "encrypted_amount_1",
+      value: 
+    }
   ];
   // createAndWriteToml("../../circuits/transfer/Test.toml", proofInputs);
   // await runNargoProve("transfer", "Test.toml");

@@ -12,6 +12,7 @@ async function main() {
     bigintToUint8Array(pub_key.x),
     bigintToUint8Array(pub_key.y),
   ];
+  console.log(uint8ArrayToHex(babyjubjubUtils.packPublicKey(pub_key_array)));
 
   const initial_balance = 100;
   const amount = 10;
