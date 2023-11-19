@@ -1,8 +1,8 @@
 use dep::std;
 use dep::bjj;
 
-fn main(eth_pub_key_x: [_;10],
-        eth_pub_key_y: [_;10],
+fn main(eth_pub_key_x: [[u8;32];10],
+        eth_pub_key_y: [[u8;32];10],
         signatures: [Field;10],
         threshold: Field,
         // public inputs
@@ -15,8 +15,5 @@ fn main(eth_pub_key_x: [_;10],
 
 #[test]
 fn test_main() {
-    main(1, 2);
 
-    // Uncomment to make test fail
-    // main(1, 1);
 }
