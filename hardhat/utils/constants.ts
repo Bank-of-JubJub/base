@@ -19,6 +19,7 @@ export const depositProcessFee = 1;
 export const transferProcessFee = 1;
 export const transferRelayFee = 2;
 export const withdrawRelayFee = 1;
+export const transferAmount = 5;
 
 export const BJJ_PRIME =
   21888242871839275222246405745257275088548364400416034343698204186575808495617n;
