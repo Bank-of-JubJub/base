@@ -17,6 +17,3 @@ frontend/lib/wagmiGenerated.ts
 node_modules/
 
 .DS_Store
-
-target/
-proofs/

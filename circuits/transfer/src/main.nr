@@ -37,7 +37,7 @@ fn main(private_key: Field,
         new_balance_encrypted_2: pub Gaffine, 
     ){ 
     let computed_public_key = bjj::priv_to_pub_key(private_key);
-    let mut sender_pub_key_u8: [u8;32] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
+    let mut sender_pub_key_u8: [u8;32] = [0;32]; // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
     for i in 0..32 {
         sender_pub_key_u8[i] = sender_pub_key[i] as u8;
     }
@@ -46,7 +46,7 @@ fn main(private_key: Field,
     assert(computed_public_key.x == unpacked_sender_pub_key.x);
     assert(computed_public_key.y == unpacked_sender_pub_key.y);
 
-    let mut recipient_pub_key_u8: [u8;32] = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]; // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
+    let mut recipient_pub_key_u8: [u8;32] = [0;32]; // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
     for i in 0..32 {
         recipient_pub_key_u8[i] = recipient_pub_key[i] as u8;
     }
@@ -85,6 +85,8 @@ fn main(private_key: Field,
             (encrypted_amount_computed.0.y == encrypted_amount_1.y) &
             (encrypted_amount_computed.1.x == encrypted_amount_2.x) &
             (encrypted_amount_computed.1.y == encrypted_amount_2.y));
+
+    assert(nonce==nonce);
     }
 
 // Because of a bug in Noir 10.3, this test will cause a stack overflow error, but you can check that it passes via `nargo prove` instead of `nargo test`: the values inside Prover.toml are strictly equivalent to this test

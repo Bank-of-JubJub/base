@@ -37,7 +37,7 @@ packed_public_key = [
     107,
     170,
 ]
-nonce = 0x1aa36fc9fd85a7483f09fd76c8593f07b238629009f3f66cb9c62ecf9a5b940b
+nonce = "0x1aa36fc9fd85a7483f09fd76c8593f07b238629009f3f66cb9c62ecf9a5b940b"
 relay_fee = "0x01"
 
 # 992
