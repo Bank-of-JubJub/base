@@ -5,6 +5,7 @@ import { spawn } from "child_process";
 import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
 // import * as proofUtils from "../../utils/proof_utils.js";
 import { EncryptedBalanceArray, EncryptedBalance } from "../utils/types.ts";
+import { runProcessDepositBash } from "./runProcessDepositBash.ts";
 
 import {
   account1,
@@ -207,6 +208,8 @@ async function deposit() {
     account1,
     depositProcessFee,
   ]);
+
+  runProcessDepositBash(randomness);
 
   return {
     privateToken,
