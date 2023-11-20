@@ -27,8 +27,9 @@ import {
   getTransferInputs,
   getProcessTransferInputs,
 } from "../utils/config.ts";
-import { TomlKeyValue, createAndWriteToml } from "./createToml.ts";
+import { TomlKeyValue, createAndWriteToml } from "../../createToml.ts";
 import {
+  formatEncryptedValueForToml,
   getC1PointFromEncryptedBalance,
   getEncryptedValue,
   getNonce,
@@ -192,7 +193,7 @@ async function processPendingDeposit(txsToProcess: any, inputs: any) {
     },
     {
       key: "packed_public_key",
-      value: hexToUint8Array(account1.packedPublicKey),
+      value: Array.from(hexToUint8Array(account1.packedPublicKey)),
     },
     {
       key: "old_enc_balance_1",
@@ -224,10 +225,9 @@ async function processPendingDeposit(txsToProcess: any, inputs: any) {
     },
   ];
 
-  createAndWriteToml(
-    "../../circuits/process_pending_deposits/Test.toml",
-    proofInputs
-  );
+  createAndWriteToml("process_pending_deposits", proofInputs);
+
+  // TODO: optimize to only call once
   await runNargoProve("process_pending_deposits", "Test.toml");
   const proof = await getProcessDepositProof();
 
@@ -296,11 +296,11 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
     },
     {
       key: "sender_pub_key",
-      value: hexToUint8Array(account1.packedPublicKey),
+      value: Array.from(hexToUint8Array(account1.packedPublicKey)),
     },
     {
       key: "recipient_pub_key",
-      value: hexToUint8Array(account2.packedPublicKey),
+      value: Array.from(hexToUint8Array(account2.packedPublicKey)),
     },
     {
       key: "process_fee",
@@ -312,55 +312,60 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
     },
     {
       key: "nonce",
-      value: getNonce(transferInputs.encryptedNewBalance).toString(16),
+      value: "0x" + getNonce(transferInputs.encryptedNewBalance).toString(16),
     },
     {
       key: "old_balance_encrypted_1",
       value: {
-        x: encOldBalance[0].toString(16),
-        y: encOldBalance[1].toString(16),
+        x: "0x" + encOldBalance[0].toString(16),
+        y: "0x" + encOldBalance[1].toString(16),
       },
     },
     {
       key: "old_balance_encrypted_2",
       value: {
-        x: encOldBalance[2].toString(16),
-        y: encOldBalance[3].toString(16),
+        x: "0x" + encOldBalance[2].toString(16),
+        y: "0x" + encOldBalance[3].toString(16),
       },
     },
     {
       key: "encrypted_amount_1",
-      value: encryptedAmount.C1,
+      value: formatEncryptedValueForToml(encryptedAmount.C1),
     },
     {
       key: "encrypted_amount_2",
-      value: encryptedAmount.C2,
+      value: formatEncryptedValueForToml(encryptedAmount.C2),
     },
     {
       key: "new_balance_encrypted_1",
-      value: encNewBalance.C1,
+      value: formatEncryptedValueForToml(encNewBalance.C1),
     },
     {
       key: "new_balance_encrypted_2",
-      value: encNewBalance.C2,
+      value: formatEncryptedValueForToml(encNewBalance.C2),
     },
   ];
-  // createAndWriteToml("../../circuits/transfer/Test.toml", proofInputs);
-  // await runNargoProve("transfer", "Test.toml");
-
-  let proof = await getTransferProof();
   const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
 
-  await privateToken.write.transfer([
-    to,
-    from,
-    transferProcessFee,
-    transferRelayFee,
-    relayFeeRecipient,
-    transferInputs.encryptedAmount,
-    transferInputs.encryptedNewBalance,
-    proof,
-  ]);
+  try {
+    createAndWriteToml("transfer", proofInputs);
+    await runNargoProve("transfer", "Test.toml");
+
+    let proof = await getTransferProof();
+
+    await privateToken.write.transfer([
+      to,
+      from,
+      transferProcessFee,
+      transferRelayFee,
+      relayFeeRecipient,
+      transferInputs.encryptedAmount,
+      transferInputs.encryptedNewBalance,
+      proof,
+    ]);
+  } catch (e) {
+    console.log(e);
+  }
 
   return {
     privateToken,

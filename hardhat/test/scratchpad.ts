@@ -1,6 +1,5 @@
-import { TomlKeyValue } from "./createToml";
 import { runNargoProve } from "./generateNargoProof";
-import { createAndWriteToml } from "./createToml";
+import { TomlKeyValue, createAndWriteToml } from "../../createToml";
 
 async function main() {
   const proofInputs: Array<TomlKeyValue> = [

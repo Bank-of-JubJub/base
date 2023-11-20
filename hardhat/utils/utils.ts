@@ -5,6 +5,7 @@ import { EncryptedBalance } from "./types.ts";
 const babyjub = new BabyJubJubUtils();
 
 export function getEncryptedValue(packedPublicKey: string, amount: number) {
+  console.log(hexToUint8Array(packedPublicKey.slice(2)));
   const publicKey = babyjub.unpackPoint(
     hexToUint8Array(packedPublicKey.slice(2))
   );
@@ -15,6 +16,13 @@ export function getEncryptedValue(packedPublicKey: string, amount: number) {
   };
 
   return babyjub.exp_elgamal_encrypt(publicKeyObject, amount);
+}
+
+export function formatEncryptedValueForToml(envryptedValue: any) {
+  return {
+    x: "0x" + envryptedValue.x.toString(16),
+    y: "0x" + envryptedValue.y.toString(16),
+  };
 }
 
 function uint8ArrayToBigInt(bytes: Uint8Array): bigint {
@@ -69,13 +77,13 @@ export function getC1PointFromEncryptedBalance(
 ) {
   if (isC1) {
     return {
-      x: encBalance.C1x.toString(16),
-      y: encBalance.C1y.toString(16),
+      x: "0x" + encBalance.C1x.toString(16),
+      y: "0x" + encBalance.C1y.toString(16),
     };
   } else {
     return {
-      x: encBalance.C2x.toString(16),
-      y: encBalance.C2y.toString(16),
+      x: "0x" + encBalance.C2x.toString(16),
+      y: "0x" + encBalance.C2y.toString(16),
     };
   }
 }

@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as toml from "@iarna/toml";
+import * as path from "path";
 
 export type TomlKeyValue = {
   key: string;
@@ -11,10 +12,10 @@ type Point = {
   y: string | bigint;
 };
 
-type TomlValue = string | number | Uint8Array | Point | number[];
+type TomlValue = string | number | Point | number[];
 
 export function createAndWriteToml(
-  filePath: string,
+  nargoPackage: string,
   keyValues: Array<TomlKeyValue>
 ) {
   let data: any = {};
@@ -23,5 +24,11 @@ export function createAndWriteToml(
   });
 
   const tomlContent = toml.stringify(data);
+
+  const directoryPath = path.join(__dirname, "circuits", nargoPackage);
+  const filePath = path.join(directoryPath, "Test.toml");
+  if (!fs.existsSync(directoryPath)) {
+    fs.mkdirSync(directoryPath, { recursive: true });
+  }
   fs.writeFileSync(filePath, tomlContent);
 }

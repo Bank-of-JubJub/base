@@ -6,6 +6,10 @@ async function main() {
   const { privateKey, publicKey } =
     babyjubjubUtils.generatePrivateAndPublicKey();
 
+  // const privateKey =
+  //   "0x047139e4a103fe86f58972649f4741c177811002742b46d01abe726bb43df1d8";
+  // const publicKey = babyjubjubUtils.privateToPublicKey(privateKey);
+
   console.log(privateKey.toString(16));
 
   const pub_key_array: Point = [
