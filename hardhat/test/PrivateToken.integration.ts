@@ -54,6 +54,8 @@ let processTransferInputs = {
 };
 
 let convertedAmount: bigint;
+let processDepositProof: `0x${string}`;
+let transferProof: `0x${string}`;
 
 describe("Private Token integration testing", async function () {
   this.beforeAll(async () => {
@@ -128,8 +130,6 @@ describe("Private Token integration testing", async function () {
     let recipient_balance = privateToken.read.balances([
       account2.packedPublicKey,
     ]);
-
-    console.log();
   });
 
   it("should process pending transfers", async () => {
@@ -225,14 +225,15 @@ async function processPendingDeposit(txsToProcess: any, inputs: any) {
     },
   ];
 
-  createAndWriteToml("process_pending_deposits", proofInputs);
-
   // TODO: optimize to only call once
-  await runNargoProve("process_pending_deposits", "Test.toml");
-  const proof = await getProcessDepositProof();
+  if (processDepositProof == undefined) {
+    createAndWriteToml("process_pending_deposits", proofInputs);
+    await runNargoProve("process_pending_deposits", "Test.toml");
+    processDepositProof = await getProcessDepositProof();
+  }
 
   await privateToken.write.processPendingDeposit([
-    proof,
+    processDepositProof,
     txsToProcess,
     processFeeRecipient,
     account1.packedPublicKey,
@@ -348,10 +349,11 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
   const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
 
   try {
-    createAndWriteToml("transfer", proofInputs);
-    await runNargoProve("transfer", "Test.toml");
-
-    let proof = await getTransferProof();
+    if (transferProof == undefined) {
+      createAndWriteToml("transfer", proofInputs);
+      await runNargoProve("transfer", "Test.toml");
+      transferProof = await getTransferProof();
+    }
 
     await privateToken.write.transfer([
       to,
@@ -361,7 +363,7 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
       relayFeeRecipient,
       transferInputs.encryptedAmount,
       transferInputs.encryptedNewBalance,
-      proof,
+      transferProof,
     ]);
   } catch (e) {
     console.log(e);
@@ -387,7 +389,7 @@ async function processPendingTransfer() {
     convertedAmount,
     depositProcessFee,
     relayFeeRecipient,
-  } = await transfer(account2, account1);
+  } = await transfer(account2.packedPublicKey, account1.packedPublicKey);
 
   // need to do another transfer since the first transfer from an account doesnt need to be processed
   // await privateToken.write.transfer([
@@ -403,14 +405,15 @@ async function processPendingTransfer() {
 
   // let proof = await getProcessTransfersProof();
 
-  let oldBalance = await privateToken.read.balances([account2]);
-  let count = await privateToken.read.pendingTransferCounts([account2]);
+  let oldBalance = await privateToken.read.balances([account2.packedPublicKey]);
+  let count = await privateToken.read.pendingTransferCounts([
+    account2.packedPublicKey,
+  ]);
   let pendingTransfer = await privateToken.read.allPendingTransfersMapping([
-    account2,
+    account2.packedPublicKey,
     0n,
   ]);
 
-  console.log(count);
   //let processTransferInputs = getProcessTransferInputs(account2, oldBalance);
 
   // await privateToken.write.processPendingTransfer([

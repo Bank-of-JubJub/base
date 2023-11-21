@@ -5,7 +5,6 @@ import { EncryptedBalance } from "./types.ts";
 const babyjub = new BabyJubJubUtils();
 
 export function getEncryptedValue(packedPublicKey: string, amount: number) {
-  console.log(hexToUint8Array(packedPublicKey.slice(2)));
   const publicKey = babyjub.unpackPoint(
     hexToUint8Array(packedPublicKey.slice(2))
   );

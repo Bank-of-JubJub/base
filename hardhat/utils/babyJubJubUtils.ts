@@ -248,7 +248,6 @@ class BabyJubJubUtils {
   public unpackPoint(point: Uint8Array): Point {
     let p = this.babyJub.unpackPoint(point);
 
-    console.log("unpacking", p);
     return [
       this.babyJub.F.fromMontgomery(this.babyJub.F.e(p[0])).reverse(),
       this.babyJub.F.fromMontgomery(this.babyJub.F.e(p[1])).reverse(),
