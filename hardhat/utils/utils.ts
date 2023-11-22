@@ -17,10 +17,10 @@ export function getEncryptedValue(packedPublicKey: string, amount: number) {
   return babyjub.exp_elgamal_encrypt(publicKeyObject, amount);
 }
 
-export function formatEncryptedValueForToml(envryptedValue: any) {
+export function formatEncryptedValueForToml(encryptedValue: any) {
   return {
-    x: "0x" + envryptedValue.x.toString(16),
-    y: "0x" + envryptedValue.y.toString(16),
+    x: "0x" + encryptedValue.x.toString(16),
+    y: "0x" + encryptedValue.y.toString(16),
   };
 }
 
@@ -85,6 +85,15 @@ export function getC1PointFromEncryptedBalance(
       y: "0x" + encBalance.C2y.toString(16),
     };
   }
+}
+
+export function encryptedValueToEncryptedBalance(encValue: any) {
+  return {
+    C1x: encValue.C1.x,
+    C1y: encValue.C1.y,
+    C2x: encValue.C2.x,
+    C2y: encValue.C2.y,
+  } as EncryptedBalance;
 }
 
 export function getNonce(encryptedAmount: {
