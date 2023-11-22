@@ -1,7 +1,7 @@
 import { keccak256, encodeAbiParameters } from "viem";
 import { BJJ_PRIME } from "./constants.ts";
 import BabyJubJubUtils from "./babyJubJubUtils";
-import { EncryptedBalance } from "./types.ts";
+import { BojAccount, EncryptedBalance } from "./types.ts";
 const babyjub = new BabyJubJubUtils();
 
 export function getEncryptedValue(packedPublicKey: string, amount: number) {
@@ -16,6 +16,18 @@ export function getEncryptedValue(packedPublicKey: string, amount: number) {
 
   return babyjub.exp_elgamal_encrypt(publicKeyObject, amount);
 }
+
+// export function getDecryptedValue(
+//   account: BojAccount,
+//   value: EncryptedBalance
+// ) {
+//   const decrypted = babyjub.exp_elgamal_decrypt_embedded(
+//     account.privateKey,
+//     { x: value.C1x, y: value.C1y },
+//     { x: value.C2x, y: value.C2y }
+//   );
+//   console.log*
+// }
 
 export function formatEncryptedValueForToml(encryptedValue: any) {
   return {

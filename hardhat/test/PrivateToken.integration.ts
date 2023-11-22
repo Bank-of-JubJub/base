@@ -4,7 +4,12 @@ import hre from "hardhat";
 import { spawn } from "child_process";
 import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
 // import * as proofUtils from "../../utils/proof_utils.js";
-import { EncryptedBalanceArray, EncryptedBalance } from "../utils/types.ts";
+import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
+import {
+  EncryptedBalanceArray,
+  EncryptedBalance,
+  EncryptedAmount,
+} from "../utils/types.ts";
 import { runNargoProve } from "../test/generateNargoProof";
 import {
   account1,
@@ -41,48 +46,26 @@ const viem = hre.viem;
 
 const babyjub = new BabyJubJubUtils();
 
-let processDepositInputs = {
-  oldBalance: {} as EncryptedBalance,
-  newBalance: {} as EncryptedBalance,
-};
-
-let transferInputs = {
-  encryptedAmount: {} as EncryptedBalance,
-  encryptedNewBalance: {} as EncryptedBalance,
-};
-let processTransferInputs = {
-  encryptedNewBalance: {} as EncryptedBalance,
-};
-
 let convertedAmount: bigint;
 let processDepositProof: `0x${string}`;
 let transferProof: `0x${string}`;
 
-let privateToken: any;
-let token: any;
-let walletClient0: any;
-let walletClient1: any;
+let privateTokenAddress: `0x${string}`;
+let tokenAddress: `0x${string}`;
 
 describe("Private Token integration testing", async function () {
   this.beforeAll(async () => {
-    processDepositInputs = getProcessDepositInputs(
-      account1.packedPublicKey,
-      0,
-      999
-    );
-    // transferInputs = getTransferInputs(
-    //   account2.packedPublicKey,
-    //   account1.packedPublicKey,
-    //   transferAmount,
-    //   992
-    // );
-    await setup();
+    const { privateToken, token } = await setup();
+    privateTokenAddress = privateToken.address;
+    tokenAddress = token.address;
   });
 
   it("should add a deposit", async () => {
     await babyjub.init();
 
-    // const { privateToken, account1, convertedAmount, depositProcessFee } =
+    const { privateToken, token, walletClient0, walletClient1 } =
+      await loadFixture(setup);
+
     await deposit();
 
     let pending = await privateToken.read.pendingDepositCounts([
@@ -113,24 +96,58 @@ describe("Private Token integration testing", async function () {
   });
 
   it("should process pending deposits", async function () {
-    const { privateToken, account1 } = await processPendingDeposit(
+    const { privateToken } = await loadFixture(deposit);
+
+    const startingAmount = getEncryptedValue(account1.packedPublicKey, 0);
+    const startingBalance = encryptedValueToEncryptedBalance(startingAmount);
+    const amount = getEncryptedValue(account1.packedPublicKey, 999);
+    const C1 = babyjub.add_points(startingAmount.C1, amount.C1);
+    const C2 = babyjub.add_points(startingAmount.C2, amount.C2);
+    const newBalance = {
+      C1x: C1.x,
+      C1y: C1.y,
+      C2x: C2.x,
+      C2y: C2.y,
+    } as EncryptedBalance;
+
+    await processPendingDeposit(
       [0n], // txs (indexes) to process
-      processDepositInputs
+      startingBalance,
+      newBalance
     );
 
     let balance = (await privateToken.read.balances([
       account1.packedPublicKey,
     ])) as EncryptedBalanceArray;
-    expect(balance[0] == processDepositInputs.newBalance.C1x);
-    expect(balance[1] == processDepositInputs.newBalance.C1y);
-    expect(balance[2] == processDepositInputs.newBalance.C2x);
-    expect(balance[3] == processDepositInputs.newBalance.C2y);
+    expect(balance[0] == newBalance.C1x);
+    expect(balance[1] == newBalance.C1y);
+    expect(balance[2] == newBalance.C2x);
+    expect(balance[3] == newBalance.C2y);
   });
 
   it("should perform transfers", async function () {
-    const { privateToken } = await transfer(
+    const { privateToken } = await getContracts();
+
+    const encryptedAmount = getEncryptedValue(
+      account2.packedPublicKey,
+      transferAmount
+    );
+    const encAmountToSend = encryptedValueToEncryptedBalance(encryptedAmount);
+    const unfmtEncNewBalance = getEncryptedValue(
+      account1.packedPublicKey,
+      // 992
+      Number(convertedAmount) -
+        depositProcessFee -
+        transferAmount -
+        transferRelayFee
+    );
+    const encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
+
+    await transfer(
       account2.packedPublicKey, // to
-      account1.packedPublicKey // from
+      account1.packedPublicKey, // from
+      encAmountToSend,
+      encNewBalance
     );
 
     let sender_balance = privateToken.read.balances([account1.packedPublicKey]);
@@ -150,7 +167,8 @@ describe("Private Token integration testing", async function () {
 });
 
 async function deposit() {
-  // const { privateToken, token, walletClient0, walletClient1 } = await setup();
+  const { privateToken, token, walletClient0, walletClient1 } =
+    await loadFixture(setup);
   let balance = await token.read.balanceOf([walletClient0.account.address]);
   await token.write.approve([privateToken.address, balance]);
 
@@ -178,27 +196,12 @@ async function deposit() {
   };
 }
 
-async function processPendingDeposit(txsToProcess: any, inputs: any) {
-  // const {
-  //   privateToken,
-  //   token,
-  //   walletClient0,
-  //   walletClient1,
-  //   account1,
-  //   convertedAmount,
-  //   depositProcessFee,
-  // } = await deposit();
-
-  const startingBalance = getEncryptedValue(account1.packedPublicKey, 0);
-  const amount = getEncryptedValue(account1.packedPublicKey, 999);
-  const C1 = babyjub.add_points(startingBalance.C1, amount.C1);
-  const C2 = babyjub.add_points(startingBalance.C2, amount.C2);
-  const newBalance = {
-    C1x: C1.x,
-    C1y: C1.y,
-    C2x: C2.x,
-    C2y: C2.y,
-  } as EncryptedBalance;
+async function processPendingDeposit(
+  txsToProcess: any,
+  startingBalance: EncryptedBalance,
+  newBalance: EncryptedBalance
+) {
+  const { privateToken } = await loadFixture(deposit);
 
   const proofInputs: Array<TomlKeyValue> = [
     {
@@ -215,11 +218,11 @@ async function processPendingDeposit(txsToProcess: any, inputs: any) {
     },
     {
       key: "old_enc_balance_1",
-      value: formatEncryptedValueForToml(startingBalance.C1),
+      value: getC1PointFromEncryptedBalance(startingBalance, true),
     },
     {
       key: "old_enc_balance_2",
-      value: formatEncryptedValueForToml(startingBalance.C2),
+      value: getC1PointFromEncryptedBalance(startingBalance, false),
     },
     {
       key: "new_enc_balance_1",
@@ -231,7 +234,6 @@ async function processPendingDeposit(txsToProcess: any, inputs: any) {
     },
   ];
 
-  // TODO: optimize to only call once
   if (processDepositProof == undefined) {
     createAndWriteToml("process_pending_deposits", proofInputs);
     await runNargoProve("process_pending_deposits", "Test.toml");
@@ -243,46 +245,23 @@ async function processPendingDeposit(txsToProcess: any, inputs: any) {
     txsToProcess,
     processFeeRecipient,
     account1.packedPublicKey,
-    encryptedValueToEncryptedBalance(startingBalance),
+    startingBalance,
     newBalance,
   ]);
-  return {
-    privateToken,
-    token,
-    walletClient0,
-    walletClient1,
-    account1,
-    convertedAmount,
-    depositProcessFee,
-  };
 }
 
-async function transfer(to: `0x${string}`, from: `0x${string}`) {
-  // const {
-  //   privateToken,
-  //   token,
-  //   walletClient0,
-  //   walletClient1,
-  //   convertedAmount,
-  //   depositProcessFee,
-  // } = await processPendingDeposit([0], processDepositInputs);
+async function transfer(
+  to: `0x${string}`,
+  from: `0x${string}`,
+  encryptedAmount: EncryptedBalance,
+  encNewBalance: EncryptedBalance
+) {
+  const { privateToken, token } = await getContracts();
+  const [walletClient0, walletClient1] = await viem.getWalletClients();
 
   const encOldBalance = await privateToken.read.balances([
     account1.packedPublicKey,
   ]);
-
-  const encryptedAmount = getEncryptedValue(
-    account2.packedPublicKey,
-    transferAmount
-  );
-  const encNewBalance = getEncryptedValue(
-    account1.packedPublicKey,
-    // 992
-    Number(convertedAmount) -
-      depositProcessFee -
-      transferAmount -
-      transferRelayFee
-  );
 
   const proofInputs: Array<TomlKeyValue> = [
     {
@@ -319,9 +298,7 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
     },
     {
       key: "nonce",
-      value:
-        "0x" +
-        getNonce(encryptedValueToEncryptedBalance(encNewBalance)).toString(16),
+      value: "0x" + getNonce(encNewBalance).toString(16),
     },
     {
       key: "old_balance_encrypted_1",
@@ -339,19 +316,19 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
     },
     {
       key: "encrypted_amount_1",
-      value: formatEncryptedValueForToml(encryptedAmount.C1),
+      value: getC1PointFromEncryptedBalance(encryptedAmount, true),
     },
     {
       key: "encrypted_amount_2",
-      value: formatEncryptedValueForToml(encryptedAmount.C2),
+      value: getC1PointFromEncryptedBalance(encryptedAmount, false),
     },
     {
       key: "new_balance_encrypted_1",
-      value: formatEncryptedValueForToml(encNewBalance.C1),
+      value: getC1PointFromEncryptedBalance(encNewBalance, true),
     },
     {
       key: "new_balance_encrypted_2",
-      value: formatEncryptedValueForToml(encNewBalance.C2),
+      value: getC1PointFromEncryptedBalance(encNewBalance, false),
     },
   ];
   const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
@@ -389,29 +366,8 @@ async function transfer(to: `0x${string}`, from: `0x${string}`) {
 }
 
 async function processPendingTransfer() {
-  const {
-    privateToken,
-    token,
-    walletClient0,
-    walletClient1,
-    convertedAmount,
-    depositProcessFee,
-    relayFeeRecipient,
-  } = await transfer(account2.packedPublicKey, account1.packedPublicKey);
-
   // need to do another transfer since the first transfer from an account doesnt need to be processed
-  // await privateToken.write.transfer([
-  //   account2,
-  //   account1,
-  //   transferProcessFee,
-  //   transferRelayFee,
-  //   relayFeeRecipient,
-  //   transferInputs.encryptedAmount,
-  //   transferInputs.encryptedNewBalance,
-  //   proof,
-  // ]);
-
-  // let proof = await getProcessTransfersProof();
+  const { privateToken } = await getContracts();
 
   let oldBalance = await privateToken.read.balances([account2.packedPublicKey]);
   let count = await privateToken.read.pendingTransferCounts([
@@ -436,9 +392,8 @@ async function processPendingTransfer() {
 
 async function setup() {
   const publicClient = await hre.viem.getPublicClient();
-  [walletClient0, walletClient1] = await hre.viem.getWalletClients();
-  let { contract: token1 } = await deploy("FunToken", []);
-  token = token1;
+  const [walletClient0, walletClient1] = await hre.viem.getWalletClients();
+  let { contract: token } = await deploy("FunToken", []);
   const { contract: pendingDepositVerifier } = await deploy(
     "contracts/process_pending_deposits/plonk_vk.sol:UltraVerifier",
     []
@@ -476,7 +431,10 @@ async function setup() {
     eventName: "Deployed",
   });
   let privateTokenAddress = logs[0].args.token;
-  privateToken = await viem.getContractAt("PrivateToken", privateTokenAddress);
+  const privateToken = await viem.getContractAt(
+    "PrivateToken",
+    privateTokenAddress
+  );
   return {
     publicClient,
     pendingDepositVerifier,
@@ -521,4 +479,16 @@ async function deploy(name: string, constructorArgs: any[]) {
   const contract = await hre.viem.deployContract(name, constructorArgs);
 
   return { contract };
+}
+
+async function getContracts() {
+  let privateToken = await viem.getContractAt(
+    "PrivateToken",
+    privateTokenAddress
+  );
+  let token = await viem.getContractAt("FunToken", tokenAddress);
+  return {
+    privateToken,
+    token,
+  };
 }

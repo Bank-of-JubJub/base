@@ -75,12 +75,12 @@ relay_fee = 2
 nonce = "0x61fc08028ad9ccb3bcd0716dcce36a433215f972fc435d957a3a228666f5c25"
 
 [old_balance_encrypted_1]
-x = "0xb958e9d5d179fd5cb5ff51738a09adffb9ce39554074dcc8332a2e9775ffcc0"
-y = "0x2afe00f5544394d2ffdefbb9be1e255374c5c9f9c3f89df5e373cfb9148d63a2"
+x = "0x0"
+y = "0x0"
 
 [old_balance_encrypted_2]
-x = "0x6deb02e81b49cc0e215e0453b6135d52827629df1a12914da953199d39f333b"
-y = "0x211de3374abedea3113aa1f312173764eb804dab7ead931971a4dbba832baf00"
+x = "0x0"
+y = "0x0"
 
 [encrypted_amount_1]
 x = "0x34ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368"

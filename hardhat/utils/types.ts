@@ -5,3 +5,19 @@ export type EncryptedBalance = {
   C2x: bigint;
   C2y: bigint;
 };
+export type EncryptedAmount = {
+  C1: {
+    x: bigint;
+    y: bigint;
+  };
+  C2: {
+    x: bigint;
+    y: bigint;
+  };
+  randomness: bigint;
+};
+
+export type BojAccount = {
+  packedPublicKey: `0x${string}`;
+  privateKey: `0x${string}`;
+};
