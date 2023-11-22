@@ -125,6 +125,8 @@ describe("Private Token integration testing", async function () {
     expect(balance[1] == balanceAfterProcessDeposit.C1y);
     expect(balance[2] == balanceAfterProcessDeposit.C2x);
     expect(balance[3] == balanceAfterProcessDeposit.C2y);
+
+    // TODO: decrypt and check 
   });
 
   it("should perform transfers", async function () {
@@ -171,6 +173,7 @@ describe("Private Token integration testing", async function () {
     // check token balance of the relayer
     // check that transfer event was emitted
     // check that nonce was correctly updated
+    // decrypt and check balance
   });
 
   it("should process pending transfers", async () => {
@@ -213,6 +216,7 @@ describe("Private Token integration testing", async function () {
 
     // check private token balance
     // check erc20 token balance of withdrawer and relayer
+    // decrypt and check remaining balance 
   });
 });
 
