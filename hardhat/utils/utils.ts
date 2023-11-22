@@ -1,7 +1,12 @@
 import { keccak256, encodeAbiParameters } from "viem";
 import { BJJ_PRIME } from "./constants.ts";
 import BabyJubJubUtils from "./babyJubJubUtils";
-import { BojAccount, EncryptedBalance } from "./types.ts";
+import {
+  BojAccount,
+  EncryptedAmount,
+  EncryptedBalance,
+  EncryptedBalanceArray,
+} from "./types.ts";
 const babyjub = new BabyJubJubUtils();
 
 export function getEncryptedValue(packedPublicKey: string, amount: number) {
@@ -39,6 +44,17 @@ export function formatEncryptedValueForToml(encryptedValue: any) {
 function uint8ArrayToBigInt(bytes: Uint8Array): bigint {
   let hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
   return BigInt("0x" + hex);
+}
+
+export function encryptedBalanceArrayToEncryptedBalance(
+  balance: EncryptedBalanceArray
+) {
+  return {
+    C1x: balance[0],
+    C1y: balance[1],
+    C2x: balance[2],
+    C2y: balance[3],
+  } as EncryptedBalance;
 }
 
 export function uint8ArrayToHexString(arr: Uint8Array) {
@@ -99,7 +115,7 @@ export function getC1PointFromEncryptedBalance(
   }
 }
 
-export function encryptedValueToEncryptedBalance(encValue: any) {
+export function encryptedValueToEncryptedBalance(encValue: EncryptedAmount) {
   return {
     C1x: encValue.C1.x,
     C1y: encValue.C1.y,

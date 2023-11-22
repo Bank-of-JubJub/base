@@ -1,3 +1,5 @@
+import { Address } from "viem";
+
 export const account2 = {
   packedPublicKey:
     "0x234d82bce79776db7039e5f91d4d48f658519b058f42c0a6fe42875d55d84f9d" as `0x${string}`,
@@ -12,13 +14,15 @@ export const account1 = {
     "0x0510bae26a9b59ebad67a4324c944b1910a778e8481d7f08ddba6bcd2b94b2c4",
 };
 export const processFeeRecipient =
-  "0xbEa2940f35737EDb9a9Ad2bB938A955F9b7892e3" as `0x${string}`;
+  "0xdead940f35737EDb9a9Ad2bB938A955F9b7892e3" as `0x${string}`;
+
+export const withdrawAddress =
+  "0xbead940f35737EDb9a9Ad2bB938A955F9b7892e4" as Address;
 
 export const depositAmount = BigInt(10 * 10 ** 18);
 export const depositProcessFee = 1;
 export const transferProcessFee = 1;
 export const transferRelayFee = 2;
-export const withdrawRelayFee = 1;
 export const transferAmount = 5;
 
 export const BJJ_PRIME =

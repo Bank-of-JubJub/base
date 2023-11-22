@@ -1,0 +1,56 @@
+private_key = "0x0510bae26a9b59ebad67a4324c944b1910a778e8481d7f08ddba6bcd2b94b2c4"
+randomness = "0x5fa49918e16a3c3f4d42071a137c8a818964701c63604244ac2746b95e00df"
+balance_old_clear = 992
+packed_public_key = [
+  220,
+  159,
+  159,
+  219,
+  116,
+  109,
+  15,
+  7,
+  176,
+  4,
+  204,
+  67,
+  22,
+  227,
+  73,
+  90,
+  88,
+  87,
+  11,
+  144,
+  102,
+  20,
+  153,
+  248,
+  166,
+  166,
+  105,
+  111,
+  244,
+  21,
+  107,
+  170
+]
+nonce = "0x2b7b1da7fc87ececf7c42600403cf809005733027c8d2b473d435839066710ec"
+value = 7
+relay_fee = 3
+
+[balance_old_encrypted_1]
+x = "0x34ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368"
+y = "0x967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f"
+
+[balance_old_encrypted_2]
+x = "0x2795109cf233e0d54d88f75d6c8b28b37ea224b6083e2f76efed55710e1fd425"
+y = "0x3006aa76f9499aeee9080237f3c24005be7ca83627f6600f7b278dff77a37df5"
+
+[balance_new_encrypted_1]
+x = "0x34ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368"
+y = "0x967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f"
+
+[balance_new_encrypted_2]
+x = "0x292c17a213cdfab494da6cf76f9485f188ee332b71f277ca8a1958b587f8e901"
+y = "0x15cf8d1b0af660832ff931d1099e0766d7b679a8d9bf2e7cd2e08ce050a39b87"
