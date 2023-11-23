@@ -7,6 +7,7 @@ import {
   EncryptedBalance,
   EncryptedBalanceArray,
 } from "./types.ts";
+import { spawn } from "child_process";
 const babyjub = new BabyJubJubUtils();
 
 export function getEncryptedValue(packedPublicKey: string, amount: number) {
@@ -22,17 +23,46 @@ export function getEncryptedValue(packedPublicKey: string, amount: number) {
   return babyjub.exp_elgamal_encrypt(publicKeyObject, amount);
 }
 
-// export function getDecryptedValue(
-//   account: BojAccount,
-//   value: EncryptedBalance
-// ) {
-//   const decrypted = babyjub.exp_elgamal_decrypt_embedded(
-//     account.privateKey,
-//     { x: value.C1x, y: value.C1y },
-//     { x: value.C2x, y: value.C2y }
-//   );
-//   console.log*
-// }
+export async function getDecryptedValue(
+  account: BojAccount,
+  value: EncryptedBalanceArray
+) {
+  const decryptedEmbedded = babyjub.exp_elgamal_decrypt_embedded(
+    account.privateKey,
+    { x: value[0], y: value[1] },
+    { x: value[2], y: value[3] }
+  );
+  const decryptedBalance = (await runRustScriptBabyGiant(
+    babyjub.intToLittleEndianHex(decryptedEmbedded.x),
+    babyjub.intToLittleEndianHex(decryptedEmbedded.y)
+  )) as BigInt;
+  return decryptedBalance;
+}
+
+async function runRustScriptBabyGiant(X: any, Y: any) {
+  // this is to compute the DLP during decryption of the balances with baby-step giant-step algo in circuits/exponential_elgamal/babygiant_native
+  //  inside the browser this should be replaced by the WASM version in circuits/exponential_elgamal/babygiant
+  return new Promise((resolve, reject) => {
+    const rustProcess = spawn(
+      "../circuits/exponential_elgamal/babygiant_native/target/release/babygiant",
+      [X, Y]
+    );
+    let output = "";
+    rustProcess.stdout.on("data", (data) => {
+      output += data.toString();
+    });
+    rustProcess.stderr.on("data", (data) => {
+      reject(new Error(`Rust Error: ${data}`));
+    });
+    rustProcess.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(`Child process exited with code ${code}`));
+      } else {
+        resolve(BigInt(output.slice(0, -1)));
+      }
+    });
+  });
+}
 
 export function formatEncryptedValueForToml(encryptedValue: any) {
   return {

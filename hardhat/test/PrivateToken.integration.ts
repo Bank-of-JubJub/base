@@ -5,7 +5,11 @@ import { spawn } from "child_process";
 import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
 // import * as proofUtils from "../../utils/proof_utils.js";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
-import { EncryptedBalanceArray, EncryptedBalance } from "../utils/types.ts";
+import {
+  EncryptedBalanceArray,
+  EncryptedBalance,
+  BojAccount,
+} from "../utils/types.ts";
 import { runNargoProve } from "../test/generateNargoProof";
 import {
   account1,
@@ -17,7 +21,6 @@ import {
   depositProcessFee,
   random,
   transferAmount,
-  withdrawRelayFee,
   withdrawAddress,
 } from "../utils/constants.ts";
 
@@ -34,6 +37,7 @@ import {
   encryptedValueToEncryptedBalance,
   formatEncryptedValueForToml,
   getC1PointFromEncryptedBalance,
+  getDecryptedValue,
   getEncryptedValue,
   getNonce,
   hexToUint8Array,
@@ -63,9 +67,7 @@ describe("Private Token integration testing", async function () {
 
   it("should add a deposit", async () => {
     await babyjub.init();
-
     const { privateToken } = await getContracts();
-
     await deposit();
 
     let pending = await privateToken.read.pendingDepositCounts([
@@ -128,21 +130,19 @@ describe("Private Token integration testing", async function () {
     expect(balance[2] == balanceAfterProcessDeposit.C2x);
     expect(balance[3] == balanceAfterProcessDeposit.C2y);
 
-    const decryptedEmbedded = babyjub.exp_elgamal_decrypt_embedded(
-      account1.privateKey,
-      { x: balance[0], y: balance[1] },
-      { x: balance[2], y: balance[3] }
-    );
-    const decryptedBalance = await runRustScriptBabyGiant(
-      babyjub.intToLittleEndianHex(decryptedEmbedded.x),
-      babyjub.intToLittleEndianHex(decryptedEmbedded.y)
-    );
-
+    const decryptedBalance = await getDecryptedValue(account1, balance);
     expect(decryptedBalance == BigInt(processAmount));
   });
 
   it("should perform transfers", async function () {
     const { privateToken } = await getContracts();
+
+    const preBalance = await privateToken.read.balances([
+      account1.packedPublicKey,
+    ]);
+    const preClearBalance = await getDecryptedValue(account1, preBalance);
+    const newClearBalance =
+      Number(preClearBalance) - transferAmount - transferRelayFee;
 
     const encryptedAmount = getEncryptedValue(
       account2.packedPublicKey,
@@ -151,19 +151,18 @@ describe("Private Token integration testing", async function () {
     const encAmountToSend = encryptedValueToEncryptedBalance(encryptedAmount);
     const unfmtEncNewBalance = getEncryptedValue(
       account1.packedPublicKey,
-      // 992
-      Number(convertedAmount) -
-        depositProcessFee -
-        transferAmount -
-        transferRelayFee
+      newClearBalance
     );
     const encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
 
     await transfer(
-      account2.packedPublicKey, // to
-      account1.packedPublicKey, // from
+      account2, // to
+      account1, // from
       encAmountToSend,
-      encNewBalance
+      encNewBalance,
+      Number(preClearBalance),
+      transferProcessFee,
+      transferRelayFee
     );
 
     let sender_balance = (await privateToken.read.balances([
@@ -189,7 +188,44 @@ describe("Private Token integration testing", async function () {
   });
 
   it("should process pending transfers", async () => {
-    // await processPendingTransfer();
+    const { privateToken } = await getContracts();
+
+    const preBalance = await privateToken.read.balances([
+      account1.packedPublicKey,
+    ]);
+    const preClearBalance = await getDecryptedValue(account1, preBalance);
+
+    const encryptedAmount = getEncryptedValue(
+      account2.packedPublicKey,
+      transferAmount
+    );
+    const encAmountToSend = encryptedValueToEncryptedBalance(encryptedAmount);
+
+    // Do a few transfers to stage them in pending
+    for (let i = 0; i < 2; i++) {
+      // TODO adjust the new balance for each loop
+      let newClearBalance =
+        Number(preClearBalance) -
+        (transferAmount + transferProcessFee + transferRelayFee) * (i + 1);
+
+      let unfmtEncNewBalance = getEncryptedValue(
+        account1.packedPublicKey,
+        newClearBalance
+      );
+      let encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
+      await transfer(
+        account2, // to
+        account1, // from
+        encAmountToSend,
+        encNewBalance,
+        Number(preClearBalance),
+        transferProcessFee,
+        transferRelayFee
+      );
+    }
+
+    // process them
+    await processPendingTransfer();
     console.log("TODO: implement test");
   });
 
@@ -204,31 +240,39 @@ describe("Private Token integration testing", async function () {
     ]);
     const encOldBalance =
       encryptedBalanceArrayToEncryptedBalance(unfmtEncOldBalance);
+
+    const clearOldBalance = await getDecryptedValue(
+      account1,
+      unfmtEncOldBalance
+    );
+    const newBalanceClear =
+      Number(clearOldBalance) - withdrawRelayFee - withdrawAmount;
+
     const unfmtEncNewBalance = getEncryptedValue(
       account1.packedPublicKey,
-      Number(convertedAmount) -
-        depositProcessFee -
-        transferAmount -
-        transferRelayFee -
-        withdrawAmount -
-        withdrawRelayFee
+      newBalanceClear
     );
     const encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
 
     await withdraw(
       withdrawAddress,
-      account1.packedPublicKey,
+      account1,
       withdrawAmount,
       withdrawRelayFee,
       withdrawRelayRecipient,
       encOldBalance,
-      encNewBalance
+      encNewBalance,
+      Number(clearOldBalance)
     );
     console.log("TODO: finish withdraw test");
 
-    // check private token balance
+    const postBalance = await privateToken.read.balances([
+      account1.packedPublicKey,
+    ]);
+    const decryptedBalance = await getDecryptedValue(account1, postBalance);
+    expect(Number(decryptedBalance) == newBalanceClear);
+
     // check erc20 token balance of withdrawer and relayer
-    // decrypt and check remaining balance
   });
 });
 
@@ -309,22 +353,39 @@ async function processPendingDeposit(
 }
 
 async function transfer(
-  to: `0x${string}`,
-  from: `0x${string}`,
+  to: BojAccount,
+  from: BojAccount,
   encryptedAmount: EncryptedBalance,
-  encNewBalance: EncryptedBalance
+  encNewBalance: EncryptedBalance,
+  clearOldBalance: number,
+  processFee: number,
+  relayFee: number
 ) {
   const { privateToken, token } = await getContracts();
   const [walletClient0, walletClient1] = await viem.getWalletClients();
 
   const encOldBalance = await privateToken.read.balances([
-    account1.packedPublicKey,
+    from.packedPublicKey,
   ]);
+
+  const recipientBalance = await privateToken.read.balances([
+    to.packedPublicKey,
+  ]);
+
+  // if recipient balance == 0, process fee should be 0, per the smart contract
+  if (
+    (recipientBalance[0] == 0n,
+    recipientBalance[1] == 0n,
+    recipientBalance[2] == 0n,
+    recipientBalance[3] == 0n)
+  ) {
+    processFee = 0;
+  }
 
   const proofInputs: Array<TomlKeyValue> = [
     {
       key: "balance_old_me_clear",
-      value: Number(convertedAmount) - depositProcessFee,
+      value: clearOldBalance,
     },
     {
       key: "private_key",
@@ -340,19 +401,19 @@ async function transfer(
     },
     {
       key: "sender_pub_key",
-      value: Array.from(hexToUint8Array(account1.packedPublicKey)),
+      value: Array.from(hexToUint8Array(from.packedPublicKey)),
     },
     {
       key: "recipient_pub_key",
-      value: Array.from(hexToUint8Array(account2.packedPublicKey)),
+      value: Array.from(hexToUint8Array(to.packedPublicKey)),
     },
     {
       key: "process_fee",
-      value: 0,
+      value: processFee,
     },
     {
       key: "relay_fee",
-      value: 2,
+      value: relayFee,
     },
     {
       key: "nonce",
@@ -392,15 +453,15 @@ async function transfer(
   const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
 
   try {
-    if (transferProof == undefined) {
-      createAndWriteToml("transfer", proofInputs);
-      await runNargoProve("transfer", "Test.toml");
-      transferProof = await getTransferProof();
-    }
+    // if (transferProof == undefined) {
+    createAndWriteToml("transfer", proofInputs);
+    await runNargoProve("transfer", "Test.toml");
+    transferProof = await getTransferProof();
+    // }
 
     await privateToken.write.transfer([
-      to,
-      from,
+      to.packedPublicKey,
+      from.packedPublicKey,
       transferProcessFee,
       transferRelayFee,
       relayFeeRecipient,
@@ -414,7 +475,6 @@ async function transfer(
 }
 
 async function processPendingTransfer() {
-  // need to do another transfer since the first transfer from an account doesnt need to be processed
   const { privateToken } = await getContracts();
 
   let oldBalance = await privateToken.read.balances([account2.packedPublicKey]);
@@ -425,6 +485,8 @@ async function processPendingTransfer() {
     account2.packedPublicKey,
     0n,
   ]);
+
+  console.log("pending transfer", pendingTransfer);
 
   //let processTransferInputs = getProcessTransferInputs(account2, oldBalance);
 
@@ -440,12 +502,13 @@ async function processPendingTransfer() {
 
 async function withdraw(
   to: Address,
-  from: `0x${string}`,
+  from: BojAccount,
   amount: number,
   relayFee: number,
   relayFeeRecipient: Address,
   encOldBalance: EncryptedBalance,
-  encNewBalance: EncryptedBalance
+  encNewBalance: EncryptedBalance,
+  clearOldBalance: number
 ) {
   const { privateToken, token } = await getContracts();
   const [walletClient0, walletClient1] = await viem.getWalletClients();
@@ -461,7 +524,7 @@ async function withdraw(
     },
     {
       key: "balance_old_clear",
-      value: 992,
+      value: Number(clearOldBalance),
     },
     {
       key: "packed_public_key",
@@ -516,7 +579,7 @@ async function withdraw(
     // }
 
     await privateToken.write.withdraw([
-      from,
+      from.packedPublicKey,
       to,
       amount,
       relayFee,
@@ -586,31 +649,6 @@ async function setup() {
     walletClient0,
     walletClient1,
   };
-}
-
-async function runRustScriptBabyGiant(X: any, Y: any) {
-  // this is to compute the DLP during decryption of the balances with baby-step giant-step algo in circuits/exponential_elgamal/babygiant_native
-  //  inside the browser this should be replaced by the WASM version in circuits/exponential_elgamal/babygiant
-  return new Promise((resolve, reject) => {
-    const rustProcess = spawn(
-      "../circuits/exponential_elgamal/babygiant_native/target/release/babygiant",
-      [X, Y]
-    );
-    let output = "";
-    rustProcess.stdout.on("data", (data) => {
-      output += data.toString();
-    });
-    rustProcess.stderr.on("data", (data) => {
-      reject(new Error(`Rust Error: ${data}`));
-    });
-    rustProcess.on("close", (code) => {
-      if (code !== 0) {
-        reject(new Error(`Child process exited with code ${code}`));
-      } else {
-        resolve(BigInt(output.slice(0, -1)));
-      }
-    });
-  });
 }
 
 // A deployment function to set up the initial state
