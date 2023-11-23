@@ -99,9 +99,11 @@ describe("Private Token integration testing", async function () {
     await deposit();
     const { privateToken } = await getContracts();
 
+    const processAmount = 999;
+
     const startingAmount = getEncryptedValue(account1.packedPublicKey, 0);
     encryptedZero = encryptedValueToEncryptedBalance(startingAmount);
-    const amount = getEncryptedValue(account1.packedPublicKey, 999);
+    const amount = getEncryptedValue(account1.packedPublicKey, processAmount);
     const C1 = babyjub.add_points(startingAmount.C1, amount.C1);
     const C2 = babyjub.add_points(startingAmount.C2, amount.C2);
     balanceAfterProcessDeposit = {
@@ -126,7 +128,17 @@ describe("Private Token integration testing", async function () {
     expect(balance[2] == balanceAfterProcessDeposit.C2x);
     expect(balance[3] == balanceAfterProcessDeposit.C2y);
 
-    // TODO: decrypt and check 
+    const decryptedEmbedded = babyjub.exp_elgamal_decrypt_embedded(
+      account1.privateKey,
+      { x: balance[0], y: balance[1] },
+      { x: balance[2], y: balance[3] }
+    );
+    const decryptedBalance = await runRustScriptBabyGiant(
+      babyjub.intToLittleEndianHex(decryptedEmbedded.x),
+      babyjub.intToLittleEndianHex(decryptedEmbedded.y)
+    );
+
+    expect(decryptedBalance == BigInt(processAmount));
   });
 
   it("should perform transfers", async function () {
@@ -216,7 +228,7 @@ describe("Private Token integration testing", async function () {
 
     // check private token balance
     // check erc20 token balance of withdrawer and relayer
-    // decrypt and check remaining balance 
+    // decrypt and check remaining balance
   });
 });
 
@@ -302,7 +314,6 @@ async function transfer(
   encryptedAmount: EncryptedBalance,
   encNewBalance: EncryptedBalance
 ) {
-  // await processPendingDeposit([0n], encryptedZero, balanceAfterProcessDeposit);
   const { privateToken, token } = await getContracts();
   const [walletClient0, walletClient1] = await viem.getWalletClients();
 
