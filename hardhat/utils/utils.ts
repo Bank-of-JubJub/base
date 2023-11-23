@@ -1,6 +1,6 @@
 import { keccak256, encodeAbiParameters } from "viem";
 import { BJJ_PRIME } from "./constants.ts";
-import BabyJubJubUtils from "./babyJubJubUtils";
+import BabyJubJubUtils, { PointObject } from "./babyJubJubUtils";
 import {
   BojAccount,
   EncryptedAmount,
@@ -85,6 +85,46 @@ export function encryptedBalanceArrayToEncryptedBalance(
     C2x: balance[2],
     C2y: balance[3],
   } as EncryptedBalance;
+}
+
+export function encryptedBalanceArrayToPointObjects(
+  balance: EncryptedBalanceArray
+) {
+  return {
+    C1: {
+      x: balance[0],
+      y: balance[1],
+    },
+    C2: {
+      x: balance[2],
+      y: balance[3],
+    },
+  };
+}
+
+export function encryptedBalanceToPointObjects(balance: EncryptedBalance) {
+  return {
+    C1: {
+      x: balance.C1x,
+      y: balance.C1y,
+    },
+    C2: {
+      x: balance.C2x,
+      y: balance.C2y,
+    },
+  };
+}
+
+export function pointObjectsToEncryptedBalance(pointobject: {
+  C1: PointObject;
+  C2: PointObject;
+}) {
+  return {
+    C1x: pointobject.C1.x,
+    C1y: pointobject.C1.y,
+    C2x: pointobject.C2.x,
+    C2y: pointobject.C2.y,
+  };
 }
 
 export function uint8ArrayToHexString(arr: Uint8Array) {

@@ -12,7 +12,7 @@ type Point = {
   y: string | bigint;
 };
 
-type TomlValue = string | number | Point | number[];
+type TomlValue = string | number | Point | number[] | Point[];
 
 export function createAndWriteToml(
   nargoPackage: string,
