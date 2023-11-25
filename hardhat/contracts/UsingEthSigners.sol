@@ -12,10 +12,11 @@ contract UsingEthSigners {
     }
 
     mapping(bytes32 packedPublicKey => address ethSigner) public ethSigner;
+    mapping(bytes32 packedPublicKey => address erc4337Controller)
+        public erc4337Controller;
     mapping(bytes32 packedPublicKey => MultisigParams signers)
         public multisigEthSigners;
-    mapping(bytes32 packedPublicKey => uint256 ethSignerNonce)
-        public ethSignerNonce;
+    mapping(bytes32 packedPublicKey => uint256 otherNonce) public otherNonce;
     uint256 BJJ_PRIME =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
     // Verifiers
@@ -23,6 +24,30 @@ contract UsingEthSigners {
     AddEthSignerVerifier public addEthSignerVerifier;
     ChangeEthSignerVerifier public changeEthSignerVerifier;
     ChangeMultisigEthSignerVerifier public changeMultisigEthSignerVerifier;
+
+    event AddController(bytes32 packedPublicKey, address controllerAddress);
+    event Change4337Controller(
+        bytes32 packedPublicKey,
+        address oldControllerAddress,
+        address newControllerAddress
+    );
+    event ChangeEthSigner(
+        bytes32 packedPublicKey,
+        address oldEthSignerAddress,
+        address newEthSignerAddress
+    );
+    event AddMultisigEthSigners(
+        bytes32 packedPublicKey,
+        address[] ethSignerAddresses,
+        uint256 threshold
+    );
+    event ChangeMultisigEthSigners(
+        bytes32 packedPublicKey,
+        address[] oldEthSignerAddresses,
+        address[] newEthSignerAddresses,
+        uint256 oldThreshold,
+        uint256 newThreshold
+    );
 
     constructor(
         address _addEthSignerVerifier,
@@ -38,9 +63,11 @@ contract UsingEthSigners {
         );
     }
 
-    function addEthSigner(
+    // this can be use to add an eth signer or an erc4337 controller
+    function addOtherController(
         bytes32 _packedPublicKey,
-        address _ethSignerAddress
+        address _ethAddress,
+        bytes memory _proof
     ) public {
         require(
             ethSigner[_packedPublicKey] == address(0x0),
@@ -54,13 +81,27 @@ contract UsingEthSigners {
             publicInputs[i] = bytes32(uint256(uint8(aByte)));
         }
         // The nonce ensures the proof cannot be reused
-        publicInputs[32] = bytes32(ethSignerNonce[_packedPublicKey]);
+        publicInputs[32] = bytes32(otherNonce[_packedPublicKey]);
 
         // The proof checks that the caller has the private key corresponding to the public key
-        // addEthSignerVerifier.verify(proof, publicInputs);
+        addEthSignerVerifier.verify(_proof, publicInputs);
 
-        ethSignerNonce[_packedPublicKey] += 1;
-        ethSigner[_packedPublicKey] = _ethSignerAddress;
+        otherNonce[_packedPublicKey] += 1;
+        ethSigner[_packedPublicKey] = _ethAddress;
+        emit AddController(_packedPublicKey, _ethAddress);
+    }
+
+    function change4337Controller(
+        bytes32 _packedPublicKey,
+        address _newAddress
+    ) public {
+        require(msg.sender == erc4337Controller[_packedPublicKey]);
+        erc4337Controller[_packedPublicKey] = _newAddress;
+        emit Change4337Controller(
+            _packedPublicKey,
+            msg.sender,
+            erc4337Controller[_packedPublicKey]
+        );
     }
 
     function changeEthSigner(
@@ -79,7 +120,7 @@ contract UsingEthSigners {
                 address(this),
                 _packedPublicKey,
                 _newEthSignerAddress,
-                ethSignerNonce[_packedPublicKey]
+                otherNonce[_packedPublicKey]
             )
         );
 
@@ -96,9 +137,10 @@ contract UsingEthSigners {
 
         // the circuit must check that the caller has the private key corresponding to the public key
         // and that the signature is a valid signature of the messageHash and comes from the current
-        // changeEthSignerVerifier.verify(_proof, publicInputs);
-        ethSignerNonce[_packedPublicKey] += 1;
+        changeEthSignerVerifier.verify(_proof, publicInputs);
+        otherNonce[_packedPublicKey] += 1;
         ethSigner[_packedPublicKey] = _newEthSignerAddress;
+        emit ChangeEthSigner(_packedPublicKey, signer, _newEthSignerAddress);
     }
 
     function addMultisigEthSigners(
@@ -130,13 +172,18 @@ contract UsingEthSigners {
             publicInputs[i] = bytes32(uint256(uint8(aByte)));
         }
         // this should be unique and not reusable
-        publicInputs[32] = bytes32(ethSignerNonce[_packedPublicKey]);
+        publicInputs[32] = bytes32(otherNonce[_packedPublicKey]);
 
         // the circuit must check that the caller has the private key corresponding to the public key
         // can use the same circuit as single addEthSigner
         addEthSignerVerifier.verify(_proof, publicInputs);
-        ethSignerNonce[_packedPublicKey] += 1;
+        otherNonce[_packedPublicKey] += 1;
         multisigEthSigners[_packedPublicKey].ethSigners = _ethSignerAddresses;
+        emit AddMultisigEthSigners(
+            _packedPublicKey,
+            _ethSignerAddresses,
+            _threshold
+        );
     }
 
     function changeMultisigEthSigners(
@@ -156,7 +203,7 @@ contract UsingEthSigners {
                 _packedPublicKey,
                 _newEthSignerAddresses,
                 _threshold,
-                ethSignerNonce[_packedPublicKey]
+                otherNonce[_packedPublicKey]
             )
         );
         // public inputs
@@ -177,10 +224,17 @@ contract UsingEthSigners {
 
         // the circuit must check that signatures (private inputs) are valid signatures of the messageHash
         // and come from the current list of signers and meet the signer threshold
-        // changeMultisigEthSignerVerifier.verify(proof, publicInputs);
+        changeMultisigEthSignerVerifier.verify(_proof, publicInputs);
 
-        ethSignerNonce[_packedPublicKey] += 1;
+        otherNonce[_packedPublicKey] += 1;
         multisigEthSigners[_packedPublicKey]
             .ethSigners = _newEthSignerAddresses;
+        emit ChangeMultisigEthSigners(
+            _packedPublicKey,
+            multisigEthSigners[_packedPublicKey].ethSigners,
+            _newEthSignerAddresses,
+            multisigEthSigners[_packedPublicKey].threshold,
+            _threshold
+        );
     }
 }

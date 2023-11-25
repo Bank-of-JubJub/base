@@ -56,7 +56,7 @@ contract PrivateToken is UsingEthSigners {
     //     uint256 X;
     //     uint256 Y;
     // } // The Public Key should be a point on Baby JubJub elliptic curve : checks must be done offchain before registering to ensure that X<p and Y<p and (X,Y) is on the curve
-    IERC165 public immutable ERC165;
+    // IERC165 public immutable ERC165;
     ProcessDepositVerifier public immutable PROCESS_DEPOSIT_VERIFIER;
     ProcessTransferVerifier public immutable PROCESS_TRANSFER_VERIFIER;
     TransferVerifier public immutable TRANSFER_VERIFIER;
@@ -155,7 +155,7 @@ contract PrivateToken is UsingEthSigners {
         address _transferVerifier,
         address _withdrawVerifier,
         address _lockVerifier,
-        address _erc165,
+        // address _erc165,
         address _token,
         uint256 _decimals,
         address _addEthSignerVerifier,
@@ -177,7 +177,7 @@ contract PrivateToken is UsingEthSigners {
         TRANSFER_VERIFIER = TransferVerifier(_transferVerifier);
         WITHDRAW_VERIFIER = WithdrawVerifier(_withdrawVerifier);
         LOCK_VERIFIER = LockVerifier(_lockVerifier);
-        ERC165 = IERC165(_erc165);
+        // ERC165 = IERC165(_erc165);
         token = IERC20(_token);
         uint256 sourceDecimals = _decimals;
         try token.decimals() returns (uint256 returnedDecimals) {

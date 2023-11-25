@@ -17,6 +17,9 @@ contract PrivateTokenFactory {
     address public transferVerifier;
     address public withdrawVerifier;
     address public lockVerifier;
+    address public addEthSignerVerifier;
+    address public changeEthSignerVerifier;
+    address public changeMultisigEthSignerVerifier;
 
     event Deployed(address indexed token);
 
@@ -25,13 +28,19 @@ contract PrivateTokenFactory {
         address _pendingTransferVerifier,
         address _transferVerifier,
         address _withdrawVerifier,
-        address _lockVerifier
+        address _lockVerifier,
+        address _addEthSignerVerifier,
+        address _changeEthSignerVerfier,
+        address _changeMultisigEthSignerVerifier
     ) {
         processDepositVerifier = _pendingDepositVerifier;
         processTransferVerifier = _pendingTransferVerifier;
         transferVerifier = _transferVerifier;
         withdrawVerifier = _withdrawVerifier;
         lockVerifier = _lockVerifier;
+        addEthSignerVerifier = _addEthSignerVerifier;
+        changeEthSignerVerifier = _changeEthSignerVerfier;
+        changeMultisigEthSignerVerifier = _changeMultisigEthSignerVerifier;
     }
 
     function deploy(address _token) public returns (address) {
@@ -41,9 +50,11 @@ contract PrivateTokenFactory {
             transferVerifier,
             withdrawVerifier,
             lockVerifier,
-            address(0x0), // erc165 address
             _token,
-            18
+            18,
+            addEthSignerVerifier,
+            changeEthSignerVerifier,
+            changeMultisigEthSignerVerifier
         );
         emit Deployed(address(newToken));
         return address(newToken);
