@@ -12,7 +12,8 @@ contract UsingEthSigners {
     mapping(bytes32 packedPublicKey => address ethSigner) public ethSigner;
     mapping(bytes32 packedPublicKey => MultisigParams signers)
         public multisigEthSigners;
-    mapping(bytes32 packedPublicKey => uint256 nonce) public nonce;
+    mapping(bytes32 packedPublicKey => uint256 ethSignerNonce)
+        public ethSignerNonce;
     uint256 BJJ_PRIME =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
     // Verifiers
@@ -48,12 +49,12 @@ contract UsingEthSigners {
             publicInputs[i] = bytes32(uint256(uint8(aByte)));
         }
         // The nonce ensures the proof cannot be reused
-        publicInputs[32] = bytes32(nonce[_packedPublicKey]);
+        publicInputs[32] = bytes32(ethSignerNonce[_packedPublicKey]);
 
         // The proof checks that the caller has the private key corresponding to the public key
         // addEthSignerVerifier.verify(proof, publicInputs);
 
-        nonce[_packedPublicKey] += 1;
+        ethSignerNonce[_packedPublicKey] += 1;
         ethSigner[_packedPublicKey] = _ethSignerAddress;
     }
 
@@ -73,7 +74,7 @@ contract UsingEthSigners {
                 address(this),
                 _packedPublicKey,
                 _newEthSignerAddress,
-                nonce[_packedPublicKey]
+                ethSignerNonce[_packedPublicKey]
             )
         );
 
@@ -91,7 +92,7 @@ contract UsingEthSigners {
         // the circuit must check that the caller has the private key corresponding to the public key
         // and that the signature is a valid signature of the messageHash and comes from the current
         // changeEthSignerVerifier.verify(_proof, publicInputs);
-        nonce[_packedPublicKey] += 1;
+        ethSignerNonce[_packedPublicKey] += 1;
         ethSigner[_packedPublicKey] = _newEthSignerAddress;
     }
 
@@ -124,12 +125,12 @@ contract UsingEthSigners {
             publicInputs[i] = bytes32(uint256(uint8(aByte)));
         }
         // this should be unique and not reusable
-        publicInputs[32] = bytes32(nonce[_packedPublicKey]);
+        publicInputs[32] = bytes32(ethSignerNonce[_packedPublicKey]);
 
         // the circuit must check that the caller has the private key corresponding to the public key
         // can use the same circuit as single addEthSigner
         // addEthSignerVerifier.verify(proof, publicInputs);
-        nonce[_packedPublicKey] += 1;
+        ethSignerNonce[_packedPublicKey] += 1;
         multisigEthSigners[_packedPublicKey].ethSigners = _ethSignerAddresses;
     }
 
@@ -150,7 +151,7 @@ contract UsingEthSigners {
                 _packedPublicKey,
                 _newEthSignerAddresses,
                 _threshold,
-                nonce[_packedPublicKey]
+                ethSignerNonce[_packedPublicKey]
             )
         );
         // public inputs
@@ -173,7 +174,7 @@ contract UsingEthSigners {
         // and come from the current list of signers and meet the signer threshold
         // changeMultisigEthSignerVerifier.verify(proof, publicInputs);
 
-        nonce[_packedPublicKey] += 1;
+        ethSignerNonce[_packedPublicKey] += 1;
         multisigEthSigners[_packedPublicKey]
             .ethSigners = _newEthSignerAddresses;
     }
