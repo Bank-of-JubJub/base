@@ -9,6 +9,7 @@ import {UltraVerifier as LockVerifier} from "./lock/plonk_vk.sol";
 import {IERC20} from "./IERC20.sol";
 import {IERC165} from "./IERC165.sol";
 import {ERC165Checker} from "./ERC165Checker.sol";
+import {UsingEthSigners} from "./UsingEthSigners.sol";
 
 /**
  * @dev Implementation of PrivateToken.
@@ -16,7 +17,7 @@ import {ERC165Checker} from "./ERC165Checker.sol";
  * Balances are encrypted to each owner's public key, according to the registered keys inside the PublicKeyInfrastructure.
  * Because we use Exponential ElGamal encryption, each EncryptedAmount is a pair of points on Baby Jubjub (C1,C2) = ((C1x,C1y),(C2x,C2y)).
  */
-contract PrivateToken {
+contract PrivateToken is UsingEthSigners {
     using ERC165Checker for address;
 
     struct EncryptedAmount {
@@ -55,8 +56,6 @@ contract PrivateToken {
     //     uint256 X;
     //     uint256 Y;
     // } // The Public Key should be a point on Baby JubJub elliptic curve : checks must be done offchain before registering to ensure that X<p and Y<p and (X,Y) is on the curve
-    uint256 BJJ_PRIME =
-        21888242871839275222246405745257275088548364400416034343698204186575808495617;
     IERC165 public immutable ERC165;
     ProcessDepositVerifier public immutable PROCESS_DEPOSIT_VERIFIER;
     ProcessTransferVerifier public immutable PROCESS_TRANSFER_VERIFIER;
@@ -158,8 +157,17 @@ contract PrivateToken {
         address _lockVerifier,
         address _erc165,
         address _token,
-        uint256 _decimals
-    ) {
+        uint256 _decimals,
+        address _addEthSignerVerifier,
+        address _changeEthSignerVerfier,
+        address _changeMultisigEthSignerVerifier
+    )
+        UsingEthSigners(
+            _addEthSignerVerifier,
+            _changeEthSignerVerfier,
+            _changeMultisigEthSignerVerifier
+        )
+    {
         PROCESS_DEPOSIT_VERIFIER = ProcessDepositVerifier(
             _processDepositVerifier
         );
