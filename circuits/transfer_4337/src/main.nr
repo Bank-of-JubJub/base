@@ -34,7 +34,7 @@ fn main(private_key: Field,
         encrypted_amount_2: pub Gaffine,
         new_balance_encrypted_1: pub Gaffine, 
         new_balance_encrypted_2: pub Gaffine,
-        
+        erc4337_address: pub Field, // passed from contract storage 
     )
 {
     let computed_public_key = bjj::priv_to_pub_key(private_key);
