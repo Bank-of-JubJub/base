@@ -5,57 +5,6 @@ import { EncryptedBalance, EncryptedBalanceArray } from "./types";
 
 const babyjub = new BabyJubJubUtils();
 
-export function getProcessDepositInputs(
-  account: string,
-  previousBalance: number,
-  value: number
-) {
-  const oldUnformatted = getEncryptedValue(account, previousBalance);
-  const oldBalance = {
-    C1x: oldUnformatted.C1.x,
-    C1y: oldUnformatted.C1.y,
-    C2x: oldUnformatted.C2.x,
-    C2y: oldUnformatted.C2.y,
-  } as EncryptedBalance;
-  const amount = getEncryptedValue(account, value);
-  const C1 = babyjub.add_points(oldUnformatted.C1, amount.C1);
-  const C2 = babyjub.add_points(oldUnformatted.C2, amount.C2);
-  const newBalance = {
-    C1x: C1.x,
-    C1y: C1.y,
-    C2x: C2.x,
-    C2y: C2.y,
-  } as EncryptedBalance;
-  return { oldBalance, newBalance };
-}
-
-export function getTransferInputs(
-  to: string,
-  from: string,
-  amount: number,
-  newBalance: number
-) {
-  const unformattedEncryptedAmount = getEncryptedValue(to, amount);
-  const encryptedAmount = {
-    C1x: unformattedEncryptedAmount.C1.x,
-    C1y: unformattedEncryptedAmount.C1.y,
-    C2x: unformattedEncryptedAmount.C2.x,
-    C2y: unformattedEncryptedAmount.C2.y,
-  } as EncryptedBalance;
-  const unformattedNewBalance = getEncryptedValue(from, newBalance);
-  const encryptedNewBalance = {
-    C1x: unformattedNewBalance.C1.x,
-    C1y: unformattedNewBalance.C1.y,
-    C2x: unformattedNewBalance.C2.x,
-    C2y: unformattedNewBalance.C2.y,
-  } as EncryptedBalance;
-
-  return {
-    encryptedAmount,
-    encryptedNewBalance,
-  };
-}
-
 export function getProcessTransferInputs(
   to: string,
   oldEncBalance: EncryptedBalanceArray,

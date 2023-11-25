@@ -41,7 +41,6 @@ contract PrivateTokenFactory {
             transferVerifier,
             withdrawVerifier,
             lockVerifier,
-            address(0x0), // erc165 address
             _token,
             18
         );
