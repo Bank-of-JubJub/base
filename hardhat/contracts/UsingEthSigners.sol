@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-// import {UltraVerifier as } from "./withdraw/plonk_vk.sol";
+import {UltraVerifier as AddEthSignerVerifier} from "./add_eth_signers/plonk_vk.sol";
+import {UltraVerifier as ChangeEthSignerVerifier} from "./change_eth_signer/plonk_vk.sol";
+import {UltraVerifier as ChangeMultisigEthSignerVerifier} from "./add_eth_signers/plonk_vk.sol";
 
 contract UsingEthSigners {
     struct MultisigParams {
@@ -18,19 +20,22 @@ contract UsingEthSigners {
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
     // Verifiers
     // change can be used to revoke, just set to address(0)
-    address public addEthSignerVerifier;
-    address public changeEthSignerVerifier;
-    address public addMultisigEthSignerVerifier;
-    address public changeMultisigEthSignerVerifier;
+    AddEthSignerVerifier public addEthSignerVerifier;
+    ChangeEthSignerVerifier public changeEthSignerVerifier;
+    ChangeMultisigEthSignerVerifier public changeMultisigEthSignerVerifier;
 
     constructor(
         address _addEthSignerVerifier,
         address _changeEthSignerVerfier,
         address _changeMultisigEthSignerVerifier
     ) {
-        addEthSignerVerifier = _addEthSignerVerifier;
-        changeEthSignerVerifier = _changeEthSignerVerfier;
-        changeMultisigEthSignerVerifier = _changeMultisigEthSignerVerifier;
+        addEthSignerVerifier = AddEthSignerVerifier(_addEthSignerVerifier);
+        changeEthSignerVerifier = ChangeEthSignerVerifier(
+            _changeEthSignerVerfier
+        );
+        changeMultisigEthSignerVerifier = ChangeMultisigEthSignerVerifier(
+            _changeMultisigEthSignerVerifier
+        );
     }
 
     function addEthSigner(
@@ -129,7 +134,7 @@ contract UsingEthSigners {
 
         // the circuit must check that the caller has the private key corresponding to the public key
         // can use the same circuit as single addEthSigner
-        // addEthSignerVerifier.verify(proof, publicInputs);
+        addEthSignerVerifier.verify(_proof, publicInputs);
         ethSignerNonce[_packedPublicKey] += 1;
         multisigEthSigners[_packedPublicKey].ethSigners = _ethSignerAddresses;
     }
