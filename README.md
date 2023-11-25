@@ -49,30 +49,18 @@ The Baby Jubjub private key, which corresponds to the public key, should be safe
 
 # To run the tests :
 
-Clone the repo, install the requirements, and then just run :
+Run:
 
-```
-just test
-```
-
-# To deploy the front-end locally :
-
-Clone the repo, install the requirements, and then create 2 `.env` files in the `hardhat/` and `frontend` directories. Fill them with the same keys as in the corresponding `.env.example`files placed in the corresponding directories. `CHAINNAME`should be set to `sepolia`in `hardhat/.env`and a valid Sepolia RPC URL given for `SEPOLIA_RPC_URL`. Then run the following commands in this order :
-
-```
-just wp
+```bash
+cargo build --release --manifest-path circuits/exponential_elgamal/babygiant_native/Cargo.toml
 ```
 
-```
-just ds
-```
+to build the native library for the babygiant decryption algorithm.
 
-```
-just release
+Then run:
+
+```bash
+cd hardhat && yarn test
 ```
 
 ![gate count](gate_count.png)
-
-# Warning
-
-Do not use in production

@@ -381,9 +381,9 @@ async function transfer(
   // if recipient balance == 0, process fee should be 0, per the smart contract
   if (
     (recipientBalance[0] == 0n,
-    recipientBalance[1] == 0n,
-    recipientBalance[2] == 0n,
-    recipientBalance[3] == 0n)
+      recipientBalance[1] == 0n,
+      recipientBalance[2] == 0n,
+      recipientBalance[3] == 0n)
   ) {
     processFee = 0;
   }
@@ -674,6 +674,18 @@ async function setup() {
     "contracts/lock/plonk_vk.sol:UltraVerifier",
     []
   );
+  const { contract: addEthSigners } = await deploy(
+    "contracts/add_eth_signers/plonk_vk.sol:UltraVerifier",
+    []
+  );
+  const { contract: changeEthSigner } = await deploy(
+    "contracts/change_eth_signer/plonk_vk.sol:UltraVerifier",
+    []
+  );
+  const { contract: changeMultiEthSigners } = await deploy(
+    "contracts/change_multi_eth_signers/plonk_vk.sol:UltraVerifier",
+    []
+  );
   const { contract: privateTokenFactory } = await deploy(
     "PrivateTokenFactory",
     [
@@ -682,6 +694,9 @@ async function setup() {
       transferVerifier.address,
       withdrawVerifier.address,
       lockVerifier.address,
+      addEthSigners.address,
+      changeEthSigner.address,
+      changeMultiEthSigners.address
     ]
   );
   await privateTokenFactory.write.deploy([token.address]);

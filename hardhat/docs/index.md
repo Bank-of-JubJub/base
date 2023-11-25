@@ -2,11 +2,11 @@
 
 ## ERC165Checker
 
-_Library used to query support of an interface declared via {IERC165}.
+\_Library used to query support of an interface declared via {IERC165}.
 
 Note that these functions return the actual result of the query: they do not
 `revert` if an interface is not supported. It is up to the caller to decide
-what to do in these cases._
+what to do in these cases.\_
 
 ### supportsERC165
 
@@ -22,10 +22,10 @@ _Returns true if `account` supports the {IERC165} interface._
 function supportsInterface(address account, bytes4 interfaceId) internal view returns (bool)
 ```
 
-_Returns true if `account` supports the interface defined by
+\_Returns true if `account` supports the interface defined by
 `interfaceId`. Support for {IERC165} itself is queried automatically.
 
-See {IERC165-supportsInterface}._
+See {IERC165-supportsInterface}.\_
 
 ### getSupportedInterfaces
 
@@ -33,12 +33,12 @@ See {IERC165-supportsInterface}._
 function getSupportedInterfaces(address account, bytes4[] interfaceIds) internal view returns (bool[])
 ```
 
-_Returns a boolean array where each value corresponds to the
+\_Returns a boolean array where each value corresponds to the
 interfaces passed in and whether they're supported or not. This allows
 you to batch check interfaces for a contract where your expectation
 is that some interfaces may not be supported.
 
-See {IERC165-supportsInterface}._
+See {IERC165-supportsInterface}.\_
 
 ### supportsAllInterfaces
 
@@ -46,13 +46,13 @@ See {IERC165-supportsInterface}._
 function supportsAllInterfaces(address account, bytes4[] interfaceIds) internal view returns (bool)
 ```
 
-_Returns true if `account` supports all the interfaces defined in
+\_Returns true if `account` supports all the interfaces defined in
 `interfaceIds`. Support for {IERC165} itself is queried automatically.
 
 Batch-querying can lead to gas savings by skipping repeated checks for
 {IERC165} support.
 
-See {IERC165-supportsInterface}._
+See {IERC165-supportsInterface}.\_
 
 ### supportsERC165InterfaceUnchecked
 
@@ -62,37 +62,37 @@ function supportsERC165InterfaceUnchecked(address account, bytes4 interfaceId) i
 
 Query if a contract implements an interface, does not check ERC165 support
 
-_Assumes that account contains a contract that supports ERC165, otherwise
+\_Assumes that account contains a contract that supports ERC165, otherwise
 the behavior of this method is undefined. This precondition can be checked
 with {supportsERC165}.
 
 Some precompiled contracts will falsely indicate support for a given interface, so caution
 should be exercised when using this function.
 
-Interface identification is specified in ERC-165._
+Interface identification is specified in ERC-165.\_
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| account | address | The address of the contract to query for support of an interface |
-| interfaceId | bytes4 | The interface identifier, as specified in ERC-165 |
+| Name        | Type    | Description                                                      |
+| ----------- | ------- | ---------------------------------------------------------------- |
+| account     | address | The address of the contract to query for support of an interface |
+| interfaceId | bytes4  | The interface identifier, as specified in ERC-165                |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | true if the contract at account indicates support of the interface with identifier interfaceId, false otherwise |
+| Name | Type | Description                                                                                                     |
+| ---- | ---- | --------------------------------------------------------------------------------------------------------------- |
+| [0]  | bool | true if the contract at account indicates support of the interface with identifier interfaceId, false otherwise |
 
 ## IERC165
 
-_Interface of the ERC165 standard, as defined in the
+\_Interface of the ERC165 standard, as defined in the
 https://eips.ethereum.org/EIPS/eip-165[EIP].
 
 Implementers can declare support of contract interfaces, which can then be
 queried by others ({ERC165Checker}).
 
-For an implementation, see {ERC165}._
+For an implementation, see {ERC165}.\_
 
 ### supportsInterface
 
@@ -100,12 +100,12 @@ For an implementation, see {ERC165}._
 function supportsInterface(bytes4 interfaceId) external view returns (bool)
 ```
 
-_Returns true if this contract implements the interface defined by
+\_Returns true if this contract implements the interface defined by
 `interfaceId`. See the corresponding
 https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
 to learn more about how these ids are created.
 
-This function call must use less than 30 000 gas._
+This function call must use less than 30 000 gas.\_
 
 ## IERC20
 
@@ -117,10 +117,10 @@ _Interface of the ERC20 standard as defined in the EIP._
 event Transfer(address from, address to, uint256 value)
 ```
 
-_Emitted when `value` tokens are moved from one account (`from`) to
+\_Emitted when `value` tokens are moved from one account (`from`) to
 another (`to`).
 
-Note that `value` may be zero._
+Note that `value` may be zero.\_
 
 ### Approval
 
@@ -153,11 +153,11 @@ _Returns the value of tokens owned by `account`._
 function transfer(address to, uint256 value) external returns (bool)
 ```
 
-_Moves a `value` amount of tokens from the caller's account to `to`.
+\_Moves a `value` amount of tokens from the caller's account to `to`.
 
 Returns a boolean value indicating whether the operation succeeded.
 
-Emits a {Transfer} event._
+Emits a {Transfer} event.\_
 
 ### allowance
 
@@ -165,11 +165,11 @@ Emits a {Transfer} event._
 function allowance(address owner, address spender) external view returns (uint256)
 ```
 
-_Returns the remaining number of tokens that `spender` will be
+\_Returns the remaining number of tokens that `spender` will be
 allowed to spend on behalf of `owner` through {transferFrom}. This is
 zero by default.
 
-This value changes when {approve} or {transferFrom} are called._
+This value changes when {approve} or {transferFrom} are called.\_
 
 ### approve
 
@@ -177,7 +177,7 @@ This value changes when {approve} or {transferFrom} are called._
 function approve(address spender, uint256 value) external returns (bool)
 ```
 
-_Sets a `value` amount of tokens as the allowance of `spender` over the
+\_Sets a `value` amount of tokens as the allowance of `spender` over the
 caller's tokens.
 
 Returns a boolean value indicating whether the operation succeeded.
@@ -189,7 +189,7 @@ condition is to first reduce the spender's allowance to 0 and set the
 desired value afterwards:
 https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
 
-Emits an {Approval} event._
+Emits an {Approval} event.\_
 
 ### transferFrom
 
@@ -197,13 +197,13 @@ Emits an {Approval} event._
 function transferFrom(address from, address to, uint256 value) external returns (bool)
 ```
 
-_Moves a `value` amount of tokens from `from` to `to` using the
+\_Moves a `value` amount of tokens from `from` to `to` using the
 allowance mechanism. `value` is then deducted from the caller's
 allowance.
 
 Returns a boolean value indicating whether the operation succeeded.
 
-Emits a {Transfer} event._
+Emits a {Transfer} event.\_
 
 ### decimals
 
@@ -397,18 +397,18 @@ Constructor - setup up verifiers and link to token
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _processDepositVerifier | address | address of the processDepositVerifier contract |
-| _processTransferVerifier | address | address of the processTransferVerifier contract |
-| _transferVerifier | address | address of the transferVerifier contract |
-| _withdrawVerifier | address | address of the withdrawVerifier contract |
-| _lockVerifier | address | address of the lockVerifier contract |
-| _token | address | - ERC20 token address |
-| _decimals | uint256 |  |
-| _addEthSignerVerifier | address |  |
-| _changeEthSignerVerfier | address |  |
-| _changeMultisigEthSignerVerifier | address |  |
+| Name                              | Type    | Description                                     |
+| --------------------------------- | ------- | ----------------------------------------------- |
+| \_processDepositVerifier          | address | address of the processDepositVerifier contract  |
+| \_processTransferVerifier         | address | address of the processTransferVerifier contract |
+| \_transferVerifier                | address | address of the transferVerifier contract        |
+| \_withdrawVerifier                | address | address of the withdrawVerifier contract        |
+| \_lockVerifier                    | address | address of the lockVerifier contract            |
+| \_token                           | address | - ERC20 token address                           |
+| \_decimals                        | uint256 |                                                 |
+| \_addEthSignerVerifier            | address |                                                 |
+| \_changeEthSignerVerfier          | address |                                                 |
+| \_changeMultisigEthSignerVerifier | address |                                                 |
 
 ### deposit
 
@@ -417,31 +417,31 @@ function deposit(address _from, uint256 _amount, bytes32 _to, uint40 _processFee
 ```
 
 Deposits the assocated token into the contract to be used privately.
- The deposited amount is pushed to the recepients PendingDeposits queue. The fee
- is the amount that will be paid to the processor of the tx (when processPendingDeposits
- is called)
- This function converts the token to 2 decimal places, the remainder is lost.
+The deposited amount is pushed to the recepients PendingDeposits queue. The fee
+is the amount that will be paid to the processor of the tx (when processPendingDeposits
+is called)
+This function converts the token to 2 decimal places, the remainder is lost.
 @dev
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _from | address | - sender of the tokens, an ETH address |
-| _amount | uint256 | - amount to deposit |
-| _to | bytes32 | - the packed public key of the recipient in the system |
-| _processFee | uint40 | - (optional, can be 0) amount to pay the processor of the tx (when processPendingDeposits is called) |
+| Name         | Type    | Description                                                                                          |
+| ------------ | ------- | ---------------------------------------------------------------------------------------------------- |
+| \_from       | address | - sender of the tokens, an ETH address                                                               |
+| \_amount     | uint256 | - amount to deposit                                                                                  |
+| \_to         | bytes32 | - the packed public key of the recipient in the system                                               |
+| \_processFee | uint40  | - (optional, can be 0) amount to pay the processor of the tx (when processPendingDeposits is called) |
 
-### tranferLocals
+### transferLocals
 
-This functions transfers an encrypted amount of tokens to the recipient (_to).
- If the sender is sending to an account with a 0 balance, they can omit the fee, as the funds
- will be directly added to their account. Otherwise a fee can be specified to incentivize
- processing of the tx by an unknown third party (see processPendingTranfer). This is required
- two account cannot simultaneously update the encrypted balance of the recipient. Having a pending
- transfer queue allows the sender to always succeed in debiting their account, and the recipient
- receiving the funds.
- The account must not be locked to a contract to call this function.
+This functions transfers an encrypted amount of tokens to the recipient (\_to).
+If the sender is sending to an account with a 0 balance, they can omit the fee, as the funds
+will be directly added to their account. Otherwise a fee can be specified to incentivize
+processing of the tx by an unknown third party (see processPendingTranfer). This is required
+two account cannot simultaneously update the encrypted balance of the recipient. Having a pending
+transfer queue allows the sender to always succeed in debiting their account, and the recipient
+receiving the funds.
+The account must not be locked to a contract to call this function.
 @dev
 
 #### Parameters
@@ -450,7 +450,7 @@ This functions transfers an encrypted amount of tokens to the recipient (_to).
 | ---- | ---- | ----------- |
 
 ```solidity
-struct tranferLocals {
+struct transferLocals {
   uint256 txNonce;
   address lockedByAddress;
   struct PrivateToken.EncryptedAmount oldBalance;
@@ -473,27 +473,27 @@ function transfer(bytes32 _to, bytes32 _from, uint40 _processFee, uint40 _relayF
 function withdraw(bytes32 _from, address _to, uint40 _amount, uint40 _relayFee, address _relayFeeRecipient, bytes _withdraw_proof, struct PrivateToken.EncryptedAmount _newEncryptedAmount) public
 ```
 
-withdraws the amount of tokens from the contract to the recipient (_to). the account must
- not be locked to a contract to call this function.
+withdraws the amount of tokens from the contract to the recipient (\_to). the account must
+not be locked to a contract to call this function.
 @dev
- @param _from - the packed public key of the sender in the system
- @param _to - the ETH address of the recipient
- @param _amount - amount to withdraw
- @param _relayFee - (optional, can be 0) amount to pay the relayer of the tx, if the sender of
-  the ETH tx is not the creator of the proof. sharing of the proof can happen in off-chain channels
-  the relayer can check that they will get the fee by verifing the proof off-chain before submitting the tx
+@param \_from - the packed public key of the sender in the system
+@param \_to - the ETH address of the recipient
+@param \_amount - amount to withdraw
+@param \_relayFee - (optional, can be 0) amount to pay the relayer of the tx, if the sender of
+the ETH tx is not the creator of the proof. sharing of the proof can happen in off-chain channels
+the relayer can check that they will get the fee by verifing the proof off-chain before submitting the tx
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _from | bytes32 |  |
-| _to | address |  |
-| _amount | uint40 |  |
-| _relayFee | uint40 |  |
-| _relayFeeRecipient | address | - the recipient of the relay fee  @param _withdraw_proof - proof  @param _newEncryptedAmount - the new encrypted balance of the sender after the withdraw and fee |
-| _withdraw_proof | bytes |  |
-| _newEncryptedAmount | struct PrivateToken.EncryptedAmount |  |
+| Name                 | Type                                | Description                                                                                                                                                       |
+| -------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| \_from               | bytes32                             |                                                                                                                                                                   |
+| \_to                 | address                             |                                                                                                                                                                   |
+| \_amount             | uint40                              |                                                                                                                                                                   |
+| \_relayFee           | uint40                              |                                                                                                                                                                   |
+| \_relayFeeRecipient  | address                             | - the recipient of the relay fee @param \_withdraw_proof - proof @param \_newEncryptedAmount - the new encrypted balance of the sender after the withdraw and fee |
+| \_withdraw_proof     | bytes                               |                                                                                                                                                                   |
+| \_newEncryptedAmount | struct PrivateToken.EncryptedAmount |                                                                                                                                                                   |
 
 ### processPendingDeposit
 
@@ -502,22 +502,22 @@ function processPendingDeposit(bytes _proof, uint256[] _txsToProcess, address _f
 ```
 
 the circuit processing this takes in a fixes number of pending transactions.
- It will take up to 4 at a time (TODO: research how big this num should this be?).
- The circuit checks that the publicKey and recipient match. it encrypts the totalAmount
- and adds it to the recipients encrypted balance. It checks that the provided encrypted
- balance and the calculated encrypted balances match.
+It will take up to 4 at a time (TODO: research how big this num should this be?).
+The circuit checks that the publicKey and recipient match. it encrypts the totalAmount
+and adds it to the recipients encrypted balance. It checks that the provided encrypted
+balance and the calculated encrypted balances match.
 @dev
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _proof | bytes | - proof to verify with the ProcessPendingTransfers circuit |
-| _txsToProcess | uint256[] | - an array of keys of PendingDeposits to process from allPendingDepositsMapping      max length 4 |
-| _feeRecipient | address | - the recipient of the fees (typically the processor of these txs) |
-| _recipient | bytes32 | - the packed public key of the recipient in the system |
-| _zeroBalance | struct PrivateToken.EncryptedAmount |  |
-| _newBalance | struct PrivateToken.EncryptedAmount | - the new balance of the recipient after processing the pending transfers |
+| Name           | Type                                | Description                                                                                  |
+| -------------- | ----------------------------------- | -------------------------------------------------------------------------------------------- |
+| \_proof        | bytes                               | - proof to verify with the ProcessPendingTransfers circuit                                   |
+| \_txsToProcess | uint256[]                           | - an array of keys of PendingDeposits to process from allPendingDepositsMapping max length 4 |
+| \_feeRecipient | address                             | - the recipient of the fees (typically the processor of these txs)                           |
+| \_recipient    | bytes32                             | - the packed public key of the recipient in the system                                       |
+| \_zeroBalance  | struct PrivateToken.EncryptedAmount |                                                                                              |
+| \_newBalance   | struct PrivateToken.EncryptedAmount | - the new balance of the recipient after processing the pending transfers                    |
 
 ### processPendingTransfer
 
@@ -526,20 +526,20 @@ function processPendingTransfer(bytes _proof, uint8[] _txsToProcess, address _fe
 ```
 
 the circuit processing this takes in a fixes number of pending transactions.
- It will take up to 4 at a time (TODO: research how big this num should this be?). The circuit adds all of the encrypted amounts sent
- and then checks that the _newBalance is the sum of the old balance and the sum of the
- amounts to add. All of the fees are summed and sent to the _feeRecipient
+It will take up to 4 at a time (TODO: research how big this num should this be?). The circuit adds all of the encrypted amounts sent
+and then checks that the \_newBalance is the sum of the old balance and the sum of the
+amounts to add. All of the fees are summed and sent to the \_feeRecipient
 @dev
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _proof | bytes | - proof to verify with the ProcessPendingTransfers circuit |
-| _txsToProcess | uint8[] | - the indexs of the userPendingTransfersArray to process; max length 4 |
-| _feeRecipient | address | - the recipient of the fees (typically the processor of these txs) |
-| _recipient | bytes32 | - the recipient of the pending transfers within the system |
-| _newBalance | struct PrivateToken.EncryptedAmount | - the new balance of the recipient after processing the pending transfers |
+| Name           | Type                                | Description                                                               |
+| -------------- | ----------------------------------- | ------------------------------------------------------------------------- |
+| \_proof        | bytes                               | - proof to verify with the ProcessPendingTransfers circuit                |
+| \_txsToProcess | uint8[]                             | - the indexs of the userPendingTransfersArray to process; max length 4    |
+| \_feeRecipient | address                             | - the recipient of the fees (typically the processor of these txs)        |
+| \_recipient    | bytes32                             | - the recipient of the pending transfers within the system                |
+| \_newBalance   | struct PrivateToken.EncryptedAmount | - the new balance of the recipient after processing the pending transfers |
 
 ### lock
 
@@ -548,19 +548,19 @@ function lock(bytes32 _from, address _lockToContract, uint40 _relayFee, address 
 ```
 
 the contract this is locked to must call unlock to give control back to this contract
- locked contracts cannot transfer or withdraw funds.
- @param _from - the public key of the account to lock
+locked contracts cannot transfer or withdraw funds.
+@param \_from - the public key of the account to lock
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _from | bytes32 |  |
-| _lockToContract | address | - the contract to lock the account to |
-| _relayFee | uint40 | - (optional, can be 0) amount to pay the relayer of the tx, if the sender of   the ETH tx is not the creator of the proof. sharing of the proof can happen in off-chain channels   the relayer can check that they will get the fee by verifing the proof off-chain before submitting the tx |
-| _relayFeeRecipient | address | - the recipient of the relay fee |
-| _proof | bytes | - proof to verify with the ProcessPendingTransfers circuit |
-| _newEncryptedAmount | struct PrivateToken.EncryptedAmount | - the new encrypted balance of the sender after the fee |
+| Name                 | Type                                | Description                                                                                                                                                                                                                                                                              |
+| -------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| \_from               | bytes32                             |                                                                                                                                                                                                                                                                                          |
+| \_lockToContract     | address                             | - the contract to lock the account to                                                                                                                                                                                                                                                    |
+| \_relayFee           | uint40                              | - (optional, can be 0) amount to pay the relayer of the tx, if the sender of the ETH tx is not the creator of the proof. sharing of the proof can happen in off-chain channels the relayer can check that they will get the fee by verifing the proof off-chain before submitting the tx |
+| \_relayFeeRecipient  | address                             | - the recipient of the relay fee                                                                                                                                                                                                                                                         |
+| \_proof              | bytes                               | - proof to verify with the ProcessPendingTransfers circuit                                                                                                                                                                                                                               |
+| \_newEncryptedAmount | struct PrivateToken.EncryptedAmount | - the new encrypted balance of the sender after the fee                                                                                                                                                                                                                                  |
 
 ### unlock
 
@@ -575,14 +575,20 @@ has a function that calls this function, or their funds will be locked forever.
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
+| Name      | Type    | Description                                      |
+| --------- | ------- | ------------------------------------------------ |
 | publicKey | bytes32 | - the packed public key of the account to unlock |
 
 ### checkAndUpdateNonce
 
 ```solidity
 function checkAndUpdateNonce(bytes32 _from, struct PrivateToken.EncryptedAmount _encryptedAmount) internal returns (uint256)
+```
+
+### \_transfer
+
+```solidity
+function _transfer(bytes32 _to, bytes32 _from, uint40 _processFee, uint40 _relayFee, address _relayFeeRecipient, struct PrivateToken.EncryptedAmount _amountToSend, struct PrivateToken.EncryptedAmount _senderNewBalance, bytes _proof_transfer) internal returns (struct PrivateToken.transferLocals)
 ```
 
 ## PrivateTokenFactory
@@ -2276,16 +2282,16 @@ Verify a Ultra Plonk proof
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _proof | bytes | - The serialized proof |
-| _publicInputs | bytes32[] | - An array of the public inputs |
+| Name           | Type      | Description                     |
+| -------------- | --------- | ------------------------------- |
+| \_proof        | bytes     | - The serialized proof          |
+| \_publicInputs | bytes32[] | - An array of the public inputs |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | True if proof is valid, reverts otherwise |
+| Name | Type | Description                               |
+| ---- | ---- | ----------------------------------------- |
+| [0]  | bool | True if proof is valid, reverts otherwise |
 
 ## UltraVerifier
 
@@ -3793,16 +3799,16 @@ Verify a Ultra Plonk proof
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _proof | bytes | - The serialized proof |
-| _publicInputs | bytes32[] | - An array of the public inputs |
+| Name           | Type      | Description                     |
+| -------------- | --------- | ------------------------------- |
+| \_proof        | bytes     | - The serialized proof          |
+| \_publicInputs | bytes32[] | - An array of the public inputs |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | True if proof is valid, reverts otherwise |
+| Name | Type | Description                               |
+| ---- | ---- | ----------------------------------------- |
+| [0]  | bool | True if proof is valid, reverts otherwise |
 
 ## UltraVerifier
 
@@ -5310,16 +5316,16 @@ Verify a Ultra Plonk proof
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _proof | bytes | - The serialized proof |
-| _publicInputs | bytes32[] | - An array of the public inputs |
+| Name           | Type      | Description                     |
+| -------------- | --------- | ------------------------------- |
+| \_proof        | bytes     | - The serialized proof          |
+| \_publicInputs | bytes32[] | - An array of the public inputs |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | True if proof is valid, reverts otherwise |
+| Name | Type | Description                               |
+| ---- | ---- | ----------------------------------------- |
+| [0]  | bool | True if proof is valid, reverts otherwise |
 
 ## UltraVerifier
 
@@ -6827,16 +6833,16 @@ Verify a Ultra Plonk proof
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _proof | bytes | - The serialized proof |
-| _publicInputs | bytes32[] | - An array of the public inputs |
+| Name           | Type      | Description                     |
+| -------------- | --------- | ------------------------------- |
+| \_proof        | bytes     | - The serialized proof          |
+| \_publicInputs | bytes32[] | - An array of the public inputs |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | True if proof is valid, reverts otherwise |
+| Name | Type | Description                               |
+| ---- | ---- | ----------------------------------------- |
+| [0]  | bool | True if proof is valid, reverts otherwise |
 
 ## UltraVerifier
 
@@ -8344,16 +8350,16 @@ Verify a Ultra Plonk proof
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _proof | bytes | - The serialized proof |
-| _publicInputs | bytes32[] | - An array of the public inputs |
+| Name           | Type      | Description                     |
+| -------------- | --------- | ------------------------------- |
+| \_proof        | bytes     | - The serialized proof          |
+| \_publicInputs | bytes32[] | - An array of the public inputs |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | True if proof is valid, reverts otherwise |
+| Name | Type | Description                               |
+| ---- | ---- | ----------------------------------------- |
+| [0]  | bool | True if proof is valid, reverts otherwise |
 
 ## UltraVerifier
 
@@ -9861,16 +9867,16 @@ Verify a Ultra Plonk proof
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _proof | bytes | - The serialized proof |
-| _publicInputs | bytes32[] | - An array of the public inputs |
+| Name           | Type      | Description                     |
+| -------------- | --------- | ------------------------------- |
+| \_proof        | bytes     | - The serialized proof          |
+| \_publicInputs | bytes32[] | - An array of the public inputs |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | True if proof is valid, reverts otherwise |
+| Name | Type | Description                               |
+| ---- | ---- | ----------------------------------------- |
+| [0]  | bool | True if proof is valid, reverts otherwise |
 
 ## UltraVerifier
 
@@ -11378,16 +11384,16 @@ Verify a Ultra Plonk proof
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _proof | bytes | - The serialized proof |
-| _publicInputs | bytes32[] | - An array of the public inputs |
+| Name           | Type      | Description                     |
+| -------------- | --------- | ------------------------------- |
+| \_proof        | bytes     | - The serialized proof          |
+| \_publicInputs | bytes32[] | - An array of the public inputs |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | True if proof is valid, reverts otherwise |
+| Name | Type | Description                               |
+| ---- | ---- | ----------------------------------------- |
+| [0]  | bool | True if proof is valid, reverts otherwise |
 
 ## UltraVerifier
 
@@ -12895,42 +12901,13 @@ Verify a Ultra Plonk proof
 
 #### Parameters
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| _proof | bytes | - The serialized proof |
-| _publicInputs | bytes32[] | - An array of the public inputs |
+| Name           | Type      | Description                     |
+| -------------- | --------- | ------------------------------- |
+| \_proof        | bytes     | - The serialized proof          |
+| \_publicInputs | bytes32[] | - An array of the public inputs |
 
 #### Return Values
 
-| Name | Type | Description |
-| ---- | ---- | ----------- |
-| [0] | bool | True if proof is valid, reverts otherwise |
-
-## UltraVerifier
-
-### getVerificationKeyHash
-
-```solidity
-function getVerificationKeyHash() public pure returns (bytes32)
-```
-
-### loadVerificationKey
-
-```solidity
-function loadVerificationKey(uint256 vk, uint256 _omegaInverseLoc) internal pure virtual
-```
-
-## FunToken
-
-### initialSupply
-
-```solidity
-uint256 initialSupply
-```
-
-### constructor
-
-```solidity
-constructor() public
-```
-
+| Name | Type | Description                               |
+| ---- | ---- | ----------------------------------------- |
+| [0]  | bool | True if proof is valid, reverts otherwise |
