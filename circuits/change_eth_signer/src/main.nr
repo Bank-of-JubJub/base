@@ -1,14 +1,15 @@
 use dep::std;
 use dep::bjj;
-
-fn main(eth_pub_key_x: [u8;32],
-        eth_pub_key_y: [u8;32],
-        signature: Field,
+use dep::ecrecover;
+fn main(pub_key_x: [u8;32],
+        pub_key_y: [u8;32],
+        signature: [u8; 64],
         // public inputs
         eth_signer: pub Field,
-        message_hash: pub [u8;32]) {
-  // ecrecover w/ pub key points, signature and message hash
-  // assert it matches eth_signer
+        hashed_message: pub [u8;32]) 
+{
+    let address = ecrecover::ecrecover(pub_key_x, pub_key_y, signature, hashed_message);
+    assert(address == eth_signer);
 }
 
 #[test]
