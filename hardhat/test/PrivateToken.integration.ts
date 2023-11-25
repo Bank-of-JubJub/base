@@ -495,7 +495,11 @@ async function processPendingTransfer() {
   let balanceAfterProcessTransfer = oldEncryptedBalance;
   let encryptedValues = [];
 
-  for (let i = 0; i <= pendingTransferCount; i++) {
+  console.log(pendingTransferCount);
+
+  // TODO: update the starting point to be dynamic
+  for (let i = 1; i <= pendingTransferCount; i++) {
+    console.log("in loop, count: ", i);
     let pendingTransfer = await privateToken.read.allPendingTransfersMapping([
       account2.packedPublicKey,
       BigInt(i),
@@ -503,6 +507,7 @@ async function processPendingTransfer() {
     const amount = encryptedBalanceToPointObjects(pendingTransfer[0]);
     encryptedValues.push(formatEncryptedValueForToml(amount.C1));
     encryptedValues.push(formatEncryptedValueForToml(amount.C2));
+    console.log(encryptedValues);
     const C1 = babyjub.add_points(balanceAfterProcessTransfer.C1, amount.C1);
     const C2 = babyjub.add_points(balanceAfterProcessTransfer.C2, amount.C2);
     balanceAfterProcessTransfer = { C1, C2 };
