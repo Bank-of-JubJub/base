@@ -5,8 +5,8 @@ use dep::ecrecover;
 fn main(pub_key_x: [[u8;32];10],
         pub_key_y: [[u8;32];10],
         signatures: [[u8; 64];10],
-        threshold: u8,
         // public inputs
+        threshold: pub u8,
         eth_signers: pub [Field;10],
         hashed_message: pub [u8;32])
 {
