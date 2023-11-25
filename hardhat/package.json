@@ -36,6 +36,7 @@
   "postinstall": "yarn typechain",
   "dependencies": {
     "-": "^0.0.1",
+    "@iarna/toml": "^2.2.5",
     "@nomicfoundation/hardhat-toolbox-viem": "^1.0.0",
     "@nomicfoundation/hardhat-viem": "1.0.0",
     "abitype": "0.10.1",

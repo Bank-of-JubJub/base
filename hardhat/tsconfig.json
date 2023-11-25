@@ -6,9 +6,10 @@
     "esModuleInterop": true,
     "outDir": "dist",
     "moduleResolution": "node",
-    "resolveJsonModule": true
-    // "allowImportingTsExtensions": true
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true
   },
-  "include": ["./scripts", "./test", "./artifacts", "../utils"],
+  "include": ["./scripts", "./test", "./artifacts", "../utils", "../circuits/"],
   "files": ["./hardhat.config.ts"]
 }

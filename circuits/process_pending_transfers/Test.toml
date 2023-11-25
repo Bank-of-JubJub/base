@@ -1,0 +1,39 @@
+[balance_old_to_encrypted_1]
+x = "0x34ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368"
+y = "0x967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f"
+
+[balance_old_to_encrypted_2]
+x = "0x19a0c239f909a597282bd7efe0bcc941a2c4ba103e514c1257fbcb59eda32004"
+y = "0x13c8da14602c8132b6abdd4760849e5d9f862c6cd142ac63b4e5ab99df108337"
+
+[balance_new_to_encrypted_1]
+x = "0x0"
+y = "0x0"
+
+[balance_new_to_encrypted_2]
+x = "0x0"
+y = "0x0"
+
+[[encrypted_values]]
+x = "0x34ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368"
+y = "0x967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f"
+
+[[encrypted_values]]
+x = "0x19a0c239f909a597282bd7efe0bcc941a2c4ba103e514c1257fbcb59eda32004"
+y = "0x13c8da14602c8132b6abdd4760849e5d9f862c6cd142ac63b4e5ab99df108337"
+
+[[encrypted_values]]
+x = "0x34ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368"
+y = "0x967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f"
+
+[[encrypted_values]]
+x = "0x19a0c239f909a597282bd7efe0bcc941a2c4ba103e514c1257fbcb59eda32004"
+y = "0x13c8da14602c8132b6abdd4760849e5d9f862c6cd142ac63b4e5ab99df108337"
+
+[[encrypted_values]]
+x = "0x0"
+y = "0x0"
+
+[[encrypted_values]]
+x = "0x0"
+y = "0x0"

@@ -3,17 +3,23 @@ import { Point } from "circomlibjs";
 // 21888242871839275222246405745257275088548364400416034343698204186575808495617 // Prime field order
 
 async function main() {
-  // const { privateKey, publicKey } = babyjubjubUtils.generatePrivateAndPublicKey();
+  const { privateKey, publicKey } =
+    babyjubjubUtils.generatePrivateAndPublicKey();
 
-  const priv_key =
-    "0x0510bae26a9b59ebad67a4324c944b1910a778e8481d7f08ddba6bcd2b94b2c4";
-  const publicKey = babyjubjubUtils.privateToPublicKey(priv_key);
-  const packed = babyjubjubUtils.packPublicKey([
+  // const privateKey =
+  //   "0x02f79176627945a5022ba5f53d6c6d04eb126ef716c2c8281bece57dd7dbe0b7";
+  // const publicKey = babyjubjubUtils.privateToPublicKey(privateKey);
+  console.log(privateKey.toString(16));
+
+  const pub_key_array: Point = [
     bigintToUint8Array(publicKey.x),
     bigintToUint8Array(publicKey.y),
-  ]);
+  ];
+  let packed = babyjubjubUtils.packPublicKey(pub_key_array);
 
-  console.log(uint8ArrayToBigInt(packed) % babyjubjubUtils.getP());
+  console.log(uint8ArrayToHex(packed));
+
+  console.log(babyjubjubUtils.unpackPoint(packed));
 }
 
 function bigintToUint8Array(bigint: bigint) {
