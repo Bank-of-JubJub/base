@@ -1,5 +1,5 @@
 [package]
-name = "transfer_eth_signer"
+name = "transfer_multisig"
 type = "bin"
 authors = [""]
 compiler_version = ">=0.19.2"

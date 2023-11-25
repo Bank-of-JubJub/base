@@ -20,7 +20,9 @@ module.exports = {
     sources: "./contracts",
     tests: "./test",
   },
-  docgen: {}, // if necessary to customize config
+  docgen: {
+    include: ["./contracts/PrivateToken.sol", "./contracts/UsingEthSigners.sol"]
+  }, // if necessary to customize config
   gasReporter: {
     enabled: process.env.REPORT_GAS ? true : false,
   },

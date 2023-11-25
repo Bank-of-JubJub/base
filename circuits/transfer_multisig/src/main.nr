@@ -19,10 +19,6 @@ fn main(private_key: Field,
         this is computed offchain by solving the DLP with babygiant algorithm, 
         after calling bjj_exp_elgamal_decrypt with his private key */
         balance_old_me_clear: u40,
-        pub_key_x: [u8;32],
-        pub_key_y: [u8;32],
-        signature: [u8; 64],
-        hashed_message: pub [u8;32]
 
         // Public inputs
 
@@ -38,8 +34,7 @@ fn main(private_key: Field,
         encrypted_amount_2: pub Gaffine,
         new_balance_encrypted_1: pub Gaffine, 
         new_balance_encrypted_2: pub Gaffine,
-        eth_signer: pub Field, // eth Address of the signer
-        hashed_message_modulus: pub Field // hash of the message to be signed
+        
     )
 {
     let computed_public_key = bjj::priv_to_pub_key(private_key);
@@ -76,10 +71,6 @@ fn main(private_key: Field,
     */
     assert(value >= 1);
 
-    assert(hashed_message_modulus == bjj::from_rpr_le(hashed_message));
-    let address = ecrecover::ecrecover(pub_key_x, pub_key_y, signature, hashed_message);
-    assert(address == eth_signer);
-
     let bjj_affine = bjj::get_affine_curve();
     let base_pt = bjj::get_base_point();
     let embedded_balance_old_me_clear = bjj_affine.mul(balance_old_me_clear as Field, base_pt);
@@ -97,6 +88,8 @@ fn main(private_key: Field,
     // // check that the amount being transferred is correctly encrypted
     let encrypted_amount_computed = bjj::exp_elgamal_encrypt(unpacked_recipient_pub_key, value, randomness);
     assert((encrypted_amount_computed.0.x == encrypted_amount_1.x) & (encrypted_amount_computed.0.y == encrypted_amount_1.y) & (encrypted_amount_computed.1.x == encrypted_amount_2.x) & (encrypted_amount_computed.1.y == encrypted_amount_2.y));
+
+    assert(nonce == nonce);
 }
 
 // Because of a bug in Noir 10.3, this test will cause a stack overflow error, but you can check that it passes via `nargo prove` instead of `nargo test`: the values inside Prover.toml are strictly equivalent to this test

@@ -13,7 +13,7 @@ fn main(pub_key_x: [[u8;32];10],
     let mut count = 0 as u8;
     for i in 0..10 {
         let address = ecrecover::ecrecover(pub_key_x[i], pub_key_y[i], signatures[i], hashed_message);
-        if(eth_signers[i] != 0) {
+        if (eth_signers[i] != 0) {
             assert(address == eth_signers[i]);
             count += 1;
         }

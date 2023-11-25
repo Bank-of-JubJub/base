@@ -259,6 +259,7 @@ async function setup() {
     abi: privateTokenFactory.abi,
     eventName: "Deployed",
   });
+  // @ts-ignore
   let privateTokenAddress = logs[0].args.token;
   const privateToken = await viem.getContractAt(
     "PrivateToken",
