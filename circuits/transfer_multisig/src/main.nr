@@ -19,7 +19,10 @@ fn main(private_key: Field,
         this is computed offchain by solving the DLP with babygiant algorithm, 
         after calling bjj_exp_elgamal_decrypt with his private key */
         balance_old_me_clear: u40,
-
+        pub_key_x: [[u8;32];10],
+        pub_key_y: [[u8;32];10],
+        signatures: [[u8;32];10],
+        hashed_message: [u8; 32],
         // Public inputs
 
         sender_pub_key: pub [Field; 32], 
@@ -34,7 +37,9 @@ fn main(private_key: Field,
         encrypted_amount_2: pub Gaffine,
         new_balance_encrypted_1: pub Gaffine, 
         new_balance_encrypted_2: pub Gaffine,
-        
+        eth_signers: pub [Field; 10],
+        threshold: pub Field,
+        hashed_message_modulus: [u8;32],
     )
 {
     let computed_public_key = bjj::priv_to_pub_key(private_key);
@@ -70,6 +75,8 @@ fn main(private_key: Field,
     https://files.sri.inf.ethz.ch/website/papers/sp22-zeestar.pdf
     */
     assert(value >= 1);
+
+    // TODO: loop over signatures, recover addresses, check threshold
 
     let bjj_affine = bjj::get_affine_curve();
     let base_pt = bjj::get_base_point();
