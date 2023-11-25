@@ -222,48 +222,9 @@ contract PrivateToken is UsingEthSigners {
         EncryptedAmount calldata _senderNewBalance,
         bytes memory _proof_transfer
     ) public {
-        transferLocals memory local = _transfer(
-            _to, _from, _processFee, _relayFee, _relayFeeRecipient, _amountToSend, _senderNewBalance, _proof_transfer
-        );
-        // tranferLocals memory local;
-        // local.txNonce = checkAndUpdateNonce(_from, _senderNewBalance);
-        // local.lockedByAddress = lockedTo[_from];
-        // require(
-        //     local.lockedByAddress == address(0) || local.lockedByAddress == msg.sender,
-        //     "account is locked to another account"
-        // );
-        // local.oldBalance = balances[_from];
-        // local.receiverBalance = balances[_to];
-        // local.zeroBalance = (
-        //     local.receiverBalance.C1x == 0 && local.receiverBalance.C2x == 0 && local.receiverBalance.C1y == 0
-        //         && local.receiverBalance.C2y == 0
-        // );
-        // if (local.zeroBalance) {
-        //     // no fee required if a new account
-        //     _processFee = 0;
-        //     balances[_to] = _amountToSend;
-        // } else {
-        //     local.transferCount = pendingTransferCounts[_to];
-        //     allPendingTransfersMapping[_to][local.transferCount] =
-        //         PendingTransfer(_amountToSend, _processFee, block.timestamp);
-        //     pendingTransferCounts[_to] += 1;
-        // }
-        // balances[_from] = _senderNewBalance;
-        // emit Transfer(_from, _to, _amountToSend);
-        // if (_relayFee != 0) {
-        //     token.transfer(_relayFeeRecipient, _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals));
-        // }
-
-        // if (ethSigner[_from] != address(0)) {
-        //     // use the transfer_eth_signer circuit
-        //     _transferEthSigner();
-        // } else if (erc4337Controller[_from] != address(0)) {
-        //     // use the transfer_erc4337 circuit
-        // } else if (multisigEthSigners[_from].threshold != 0) {
-        //     // use the multisig transfer circuit
-        // } else {
-        //     // use the regular transfer circuit
-        // }
+        // TODO: update process fee logic in here
+        transferLocals memory local =
+            _coreTransferLogic(_to, _from, _processFee, _relayFee, _relayFeeRecipient, _amountToSend, _senderNewBalance);
 
         local.publicInputs = new bytes32[](79);
         for (uint8 i = 0; i < 32; i++) {
@@ -292,11 +253,6 @@ contract PrivateToken is UsingEthSigners {
         local.publicInputs[77] = bytes32(_senderNewBalance.C2x);
         local.publicInputs[78] = bytes32(_senderNewBalance.C2y);
         require(TRANSFER_VERIFIER.verify(_proof_transfer, local.publicInputs), "Transfer proof is invalid");
-        // balances[_from] = _senderNewBalance;
-        // emit Transfer(_from, _to, _amountToSend);
-        // if (_relayFee != 0) {
-        //     token.transfer(_relayFeeRecipient, _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals));
-        // }
     }
 
     /**
@@ -562,15 +518,14 @@ contract PrivateToken is UsingEthSigners {
         return txNonce;
     }
 
-    function _transfer(
+    function _coreTransferLogic(
         bytes32 _to,
         bytes32 _from,
         uint40 _processFee,
         uint40 _relayFee,
         address _relayFeeRecipient,
         EncryptedAmount calldata _amountToSend,
-        EncryptedAmount calldata _senderNewBalance,
-        bytes memory _proof_transfer
+        EncryptedAmount calldata _senderNewBalance
     ) internal returns (transferLocals memory) {
         transferLocals memory local;
         local.txNonce = checkAndUpdateNonce(_from, _senderNewBalance);
