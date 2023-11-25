@@ -1,6 +1,7 @@
 import "hardhat-gas-reporter";
 import "hardhat-deploy";
 import "@nomicfoundation/hardhat-viem";
+import "solidity-docgen";
 require("dotenv").config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -19,6 +20,7 @@ module.exports = {
     sources: "./contracts",
     tests: "./test",
   },
+  docgen: {}, // if necessary to customize config
   gasReporter: {
     enabled: process.env.REPORT_GAS ? true : false,
   },
