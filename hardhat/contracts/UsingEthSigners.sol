@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 // import {UltraVerifier as } from "./withdraw/plonk_vk.sol";
 
-contract UsingEthSingers {
+contract UsingEthSigners {
     struct MultisigParams {
         address[] ethSigners;
         uint256 threshold;
