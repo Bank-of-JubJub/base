@@ -88,8 +88,6 @@ fn main(private_key: Field,
     // // check that the amount being transferred is correctly encrypted
     let encrypted_amount_computed = bjj::exp_elgamal_encrypt(unpacked_recipient_pub_key, value, randomness);
     assert((encrypted_amount_computed.0.x == encrypted_amount_1.x) & (encrypted_amount_computed.0.y == encrypted_amount_1.y) & (encrypted_amount_computed.1.x == encrypted_amount_2.x) & (encrypted_amount_computed.1.y == encrypted_amount_2.y));
-
-    assert(nonce == nonce);
 }
 
 // Because of a bug in Noir 10.3, this test will cause a stack overflow error, but you can check that it passes via `nargo prove` instead of `nargo test`: the values inside Prover.toml are strictly equivalent to this test
@@ -144,11 +142,12 @@ fn test_transfer() {
         ), Gaffine::new(
             0x2795109cf233e0d54d88f75d6c8b28b37ea224b6083e2f76efed55710e1fd425, 0x3006aa76f9499aeee9080237f3c24005be7ca83627f6600f7b278dff77a37df5
         ));
+    let address = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 as Field;
 
     //bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, randomness);
     // let old_encrypted_balance : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, randomness);
     // let new_balance_encrypted : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(sender_pub_key, old_balance - process_fee - relay_fee - value, randomness);
     main(
-        private_key, randomness, value, old_balance, packed_sender_pub_key, packed_recipient_pub_key, process_fee, relay_fee, nonce, old_encrypted_balance.0, old_encrypted_balance.1, encrypted_amount.0, encrypted_amount.1, new_balance_encrypted.0, new_balance_encrypted.1
+        private_key, randomness, value, old_balance, packed_sender_pub_key, packed_recipient_pub_key, process_fee, relay_fee, nonce, old_encrypted_balance.0, old_encrypted_balance.1, encrypted_amount.0, encrypted_amount.1, new_balance_encrypted.0, new_balance_encrypted.1, address
     );
 }
