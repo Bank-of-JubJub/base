@@ -77,7 +77,6 @@ fn main(private_key: Field,
     assert(value >= 1);
 
     // TODO: loop over signatures, recover addresses, check threshold
-
     let bjj_affine = bjj::get_affine_curve();
     let base_pt = bjj::get_base_point();
     let embedded_balance_old_me_clear = bjj_affine.mul(balance_old_me_clear as Field, base_pt);

@@ -27,7 +27,7 @@ fn main(pub_key_x: [[u8;32];10],
 
 #[test]
 fn test_main() {
-        let hashed_message = [74, 92, 93, 69, 71, 33, 187, 187, 37, 84, 12, 51, 23, 82, 30, 113, 195, 115, 174, 54, 69,
+    let hashed_message = [74, 92, 93, 69, 71, 33, 187, 187, 37, 84, 12, 51, 23, 82, 30, 113, 195, 115, 174, 54, 69,
         143, 150, 13, 42, 212, 110, 240, 136, 17, 14, 149];
     let signature = [247, 85, 217, 167, 45, 91, 115, 134, 118, 94, 127, 14, 131, 58, 246, 135, 149, 183, 57, 162,
         103, 18, 45, 174, 147, 63, 65, 183, 129, 181, 174, 208, 98, 108, 227, 38, 51, 8, 235, 212,
@@ -41,12 +41,11 @@ fn test_main() {
     let threshold = 6 as u8;
     let address = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 as Field;
 
+    let mut pub_key_xs = [[0 as u8; 32]; 10];
+    let mut pub_key_ys = [[0 as u8; 32]; 10];
+    let mut signatures = [[0 as u8; 64]; 10];
 
-    let mut pub_key_xs = [[0 as u8;32];10];
-    let mut pub_key_ys = [[0 as u8;32];10];
-    let mut signatures = [[0 as u8;64];10];
-
-    let mut addresses = [0 as Field;10];
+    let mut addresses = [0 as Field; 10];
     for i in 0..10 {
         addresses[i] = address;
         pub_key_xs[i] = pub_key_x;
@@ -54,5 +53,5 @@ fn test_main() {
         signatures[i] = signature;
     }
 
-    main(pub_key_xs, pub_key_ys, signatures,hashed_message, threshold,  addresses, modulus);
+    main(pub_key_xs, pub_key_ys, signatures, hashed_message, threshold, addresses, modulus);
 }
