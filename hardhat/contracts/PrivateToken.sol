@@ -235,7 +235,11 @@ contract PrivateToken is UsingAccountControllers {
      *  two account cannot simultaneously update the encrypted balance of the recipient. Having a pending
      *  transfer queue allows the sender to always succeed in debiting their account, and the recipient
      *  receiving the funds.
+     *
      *  The account must not be locked to a contract to call this function.
+     *
+     * This function will check if the account is controlled by a 4337 account, another eth signer, or multiple
+     * eth signers, and call the appropriate verifier.
      * @dev
      * @param _to - the packed public key of the recipient in the system
      * @param _from - the packed public key of the sender in the system
