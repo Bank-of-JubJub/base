@@ -20,7 +20,9 @@ module.exports = {
     sources: "./contracts",
     tests: "./test",
   },
-
+  // docgen: {
+  //   exclude: ["./contracts/BaseUltraVerifier"],
+  // },
   gasReporter: {
     enabled: process.env.REPORT_GAS ? true : false,
   },

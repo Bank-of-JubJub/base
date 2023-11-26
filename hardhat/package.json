@@ -29,11 +29,11 @@
   },
   "scripts": {
     "test": "hardhat test",
-    "compile": "hardhat compile"
+    "compile": "hardhat compile",
+    "scratch": "ts-node ./test/scratchpad.ts"
   },
   "author": "",
   "license": "ISC",
-  "postinstall": "yarn typechain",
   "dependencies": {
     "-": "^0.0.1",
     "@iarna/toml": "^2.2.5",

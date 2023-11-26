@@ -1,61 +1,47 @@
-import { runNargoProve } from "./generateNargoProof";
-import { TomlKeyValue, createAndWriteToml } from "../../createToml";
+import { ethers } from "ethers";
+import { toBytes } from "viem";
 
 async function main() {
-  const proofInputs: Array<TomlKeyValue> = [
-    {
-      key: "randomness",
-      value:
-        "168986485046885582825082387270879151100288537211746581237924789162159767775",
-    },
-    {
-      key: "amount_sum",
-      value: 999,
-    },
-    {
-      key: "packed_public_key",
-      value: [
-        220, 159, 159, 219, 116, 109, 15, 7, 176, 4, 204, 67, 22, 227, 73, 90,
-        88, 87, 11, 144, 102, 20, 153, 248, 166, 166, 105, 111, 244, 21, 107,
-        170,
-      ],
-    },
-    {
-      key: "old_enc_balance_1",
-      value: {
-        x: "0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368",
-        y: "0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f",
-      },
-    },
-    {
-      key: "old_enc_balance_2",
-      value: {
-        x: "0x26e2d952913cecf5261ce7caea0ded4a9c46a3a10dda292c565868d5f98aa5db",
-        y: "0x1e8449b223a9d7b6215d5976bd0bec814de2115961f71590878e389a1cff5d09",
-      },
-    },
-    {
-      key: "new_enc_balance_1",
-      value: {
-        x: "0x0b958e9d5d179fd5cb5ff51738a09adffb9ce39554074dcc8332a2e9775ffcc0",
-        y: "0x2afe00f5544394d2ffdefbb9be1e255374c5c9f9c3f89df5e373cfb9148d63a2",
-      },
-    },
-    {
-      key: "new_enc_balance_2",
-      value: {
-        x: "0x06deb02e81b49cc0e215e0453b6135d52827629df1a12914da953199d39f333b",
-        y: "0x211de3374abedea3113aa1f312173764eb804dab7ead931971a4dbba832baf00",
-      },
-    },
-  ];
-  createAndWriteToml(
-    "../../circuits/process_pending_deposits/Test.toml",
-    proofInputs
+  // hardhat wallet 0
+  const sender = new ethers.Wallet(
+    "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
   );
-  await runNargoProve("process_pending_deposits", "Test.toml");
 
-  console;
+  const message = "test";
+
+  console.log("\x1b[34m%s\x1b[0m", "signing message 🖋: ", message);
+
+  const signature = await sender.signMessage(message); // get the signature of the message, this will be 130 bytes (concatenated r, s, and v)
+
+  console.log("signature 📝: ", toBytes(signature));
+
+  const digest = getMessageHash(message);
+
+  console.log("hashed message ", toBytes(digest));
+
+  let pubKey_uncompressed = ethers.utils.recoverPublicKey(digest, signature);
+  console.log("uncompressed pubkey: ", pubKey_uncompressed);
+
+  // recoverPublicKey returns `0x{hex"4"}{pubKeyXCoord}{pubKeyYCoord}` - so slice 0x04 to expose just the concatenated x and y
+  //    see https://github.com/indutny/elliptic/issues/86 for a non-explanation explanation 😂
+  let pubKey = pubKey_uncompressed.slice(4);
+
+  let pub_key_x = pubKey.substring(0, 64);
+  console.log("public key x coordinate 📊: ", toBytes("0x" + pub_key_x));
+
+  let pub_key_y = pubKey.substring(64);
+  console.log("public key y coordinate 📊: ", toBytes("0x" + pub_key_y));
 }
 
 main();
+
+function getMessageHash(message: string) {
+  // Ethereum message prefix
+  const prefix = `\x19Ethereum Signed Message:\n${message.length}`;
+  // Concatenate the prefix with the message
+  const prefixedMessage = `${prefix}${message}`;
+  // Hash the message
+  // Note: ethers.utils.id computes the keccak256 hash of the message
+  const messageHash = ethers.utils.id(prefixedMessage);
+  return messageHash;
+}

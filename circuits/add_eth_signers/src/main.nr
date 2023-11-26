@@ -10,9 +10,7 @@ fn main(private_key: Field,
     let computed_packed = bjj::pack_point(computed_public_key);
 
     // let computed_packed_int = from_rpr_le(computed_packed);
-
     assert(bjj::from_rpr_le(computed_packed) == packed_public_key_modulus);
-
 }
 
 #[test]
