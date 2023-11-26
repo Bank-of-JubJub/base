@@ -8,6 +8,7 @@ use dep::std::ec::tecurve::affine::Point as Gaffine;
 use dep::std::collections::vec::Vec;
 use dep::std;
 use dep::bjj;
+use dep::ecrecover;
 
 /* Code of the circuit used at each transfer of the token to prove the validity of transfer (sender 
 has enough balance) and correctness of encrypted new balances of sender.
@@ -22,7 +23,7 @@ fn main(private_key: Field,
         pub_key_x: [u8;32],
         pub_key_y: [u8;32],
         signature: [u8; 64],
-        hashed_message: pub [u8;32]
+        hashed_message: pub [u8;32],
 
         // Public inputs
 
@@ -152,10 +153,23 @@ fn test_transfer() {
             0x2795109cf233e0d54d88f75d6c8b28b37ea224b6083e2f76efed55710e1fd425, 0x3006aa76f9499aeee9080237f3c24005be7ca83627f6600f7b278dff77a37df5
         ));
 
+    let hashed_message = [74, 92, 93, 69, 71, 33, 187, 187, 37, 84, 12, 51, 23, 82, 30, 113, 195, 115, 174, 54, 69,
+        143, 150, 13, 42, 212, 110, 240, 136, 17, 14, 149];
+    let signature = [247, 85, 217, 167, 45, 91, 115, 134, 118, 94, 127, 14, 131, 58, 246, 135, 149, 183, 57, 162,
+        103, 18, 45, 174, 147, 63, 65, 183, 129, 181, 174, 208, 98, 108, 227, 38, 51, 8, 235, 212,
+        195, 123, 237, 132, 49, 155, 102, 218, 39, 148, 54, 135, 113, 4, 104, 37, 189, 137, 185,
+        139, 166, 140, 78, 135];
+    let pub_key_x = [131, 24, 83, 91, 84, 16, 93, 74, 122, 174, 96, 192, 143, 196, 95, 150, 135, 24, 27, 79, 223,
+        198, 37, 189, 26, 117, 63, 167, 57, 127, 237, 117];
+    let pub_key_y = [53, 71, 241, 28, 168, 105, 102, 70, 242, 243, 172, 176, 142, 49, 1, 106, 250, 194, 62, 99,
+        12, 93, 17, 245, 159, 97, 254, 245, 123, 13, 42, 165];
+    let modulus = bjj::from_rpr_le(hashed_message);
+    let address = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 as Field;
+
     //bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, randomness);
     // let old_encrypted_balance : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(sender_pub_key, old_balance, randomness);
     // let new_balance_encrypted : (Gaffine,Gaffine) = bjj::exp_elgamal_encrypt(sender_pub_key, old_balance - process_fee - relay_fee - value, randomness);
     main(
-        private_key, randomness, value, old_balance, packed_sender_pub_key, packed_recipient_pub_key, process_fee, relay_fee, nonce, old_encrypted_balance.0, old_encrypted_balance.1, encrypted_amount.0, encrypted_amount.1, new_balance_encrypted.0, new_balance_encrypted.1
+        private_key, randomness, value, old_balance, pub_key_x, pub_key_y, signature, hashed_message, packed_sender_pub_key, packed_recipient_pub_key, process_fee, relay_fee, nonce, old_encrypted_balance.0, old_encrypted_balance.1, encrypted_amount.0, encrypted_amount.1, new_balance_encrypted.0, new_balance_encrypted.1, address, modulus
     );
 }
