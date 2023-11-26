@@ -37,15 +37,13 @@ import {
   encryptedBalanceArrayToPointObjects,
   encryptedBalanceToPointObjects,
   encryptedValueToEncryptedBalance,
-  formatEncryptedValueForToml,
   getC1PointFromEncryptedBalance,
   getDecryptedValue,
   getEncryptedValue,
   getNonce,
-  hexToUint8Array,
   pointObjectsToEncryptedBalance,
 } from "../utils/utils.ts";
-import { Address, encodePacked, zeroAddress } from "viem";
+import { Address, toBytes, toHex } from "viem";
 
 const viem = hre.viem;
 
@@ -322,7 +320,7 @@ async function processPendingDeposit(
     },
     {
       key: "packed_public_key",
-      value: Array.from(hexToUint8Array(account1.packedPublicKey)),
+      value: Array.from(toBytes(account1.packedPublicKey)),
     },
     {
       key: "old_enc_balance_1",
@@ -407,11 +405,11 @@ async function transfer(
     },
     {
       key: "sender_pub_key",
-      value: Array.from(hexToUint8Array(from.packedPublicKey)),
+      value: Array.from(toBytes(from.packedPublicKey)),
     },
     {
       key: "recipient_pub_key",
-      value: Array.from(hexToUint8Array(to.packedPublicKey)),
+      value: Array.from(toBytes(to.packedPublicKey)),
     },
     {
       key: "process_fee",
@@ -423,20 +421,20 @@ async function transfer(
     },
     {
       key: "nonce",
-      value: "0x" + getNonce(encNewBalance).toString(16),
+      value: toHex(getNonce(encNewBalance)),
     },
     {
       key: "old_balance_encrypted_1",
       value: {
-        x: "0x" + encOldBalance[0].toString(16),
-        y: "0x" + encOldBalance[1].toString(16),
+        x: toHex(encOldBalance[0]),
+        y: toHex(encOldBalance[1]),
       },
     },
     {
       key: "old_balance_encrypted_2",
       value: {
-        x: "0x" + encOldBalance[2].toString(16),
-        y: "0x" + encOldBalance[3].toString(16),
+        x: toHex(encOldBalance[2]),
+        y: toHex(encOldBalance[3]),
       },
     },
     {
@@ -505,8 +503,12 @@ async function processPendingTransfer() {
       BigInt(i),
     ]);
     const amount = encryptedBalanceToPointObjects(pendingTransfer[0]);
-    encryptedValues.push(formatEncryptedValueForToml(amount.C1));
-    encryptedValues.push(formatEncryptedValueForToml(amount.C2));
+    // encryptedValues.push(formatEncryptedValueForToml(amount.C1));
+    // encryptedValues.push(formatEncryptedValueForToml(amount.C2));
+
+    encryptedValues.push({ x: toHex(amount.C1.x), y: toHex(amount.C1.y) });
+    encryptedValues.push({ x: toHex(amount.C2.x), y: toHex(amount.C2.y) });
+
     console.log(encryptedValues);
     const C1 = babyjub.add_points(balanceAfterProcessTransfer.C1, amount.C1);
     const C2 = babyjub.add_points(balanceAfterProcessTransfer.C2, amount.C2);
@@ -519,29 +521,29 @@ async function processPendingTransfer() {
     {
       key: "balance_old_to_encrypted_1",
       value: {
-        x: "0x" + oldBalanceArray[0].toString(16),
-        y: "0x" + oldBalanceArray[1].toString(16),
+        x: toHex(oldBalanceArray[0]),
+        y: toHex(oldBalanceArray[1]),
       },
     },
     {
       key: "balance_old_to_encrypted_2",
       value: {
-        x: "0x" + oldBalanceArray[2].toString(16),
-        y: "0x" + oldBalanceArray[3].toString(16),
+        x: toHex(oldBalanceArray[2]),
+        y: toHex(oldBalanceArray[3]),
       },
     },
     {
       key: "balance_new_to_encrypted_1",
       value: {
-        x: "0x" + newBalance.C1x.toString(16),
-        y: "0x" + newBalance.C1y.toString(16),
+        x: toHex(newBalance.C1x),
+        y: toHex(newBalance.C1y),
       },
     },
     {
       key: "balance_new_to_encrypted_2",
       value: {
-        x: "0x" + newBalance.C2x.toString(16),
-        y: "0x" + newBalance.C2x.toString(16),
+        x: toHex(newBalance.C2x),
+        y: toHex(newBalance.C2x),
       },
     },
     {
@@ -591,11 +593,11 @@ async function withdraw(
     },
     {
       key: "packed_public_key",
-      value: Array.from(hexToUint8Array(account1.packedPublicKey)),
+      value: Array.from(toBytes(account1.packedPublicKey)),
     },
     {
       key: "nonce",
-      value: "0x" + getNonce(encNewBalance).toString(16),
+      value: toHex(getNonce(encNewBalance)),
     },
     {
       key: "value",
@@ -608,29 +610,29 @@ async function withdraw(
     {
       key: "balance_old_encrypted_1",
       value: {
-        x: "0x" + encOldBalance.C1x.toString(16),
-        y: "0x" + encOldBalance.C1y.toString(16),
+        x: toHex(encOldBalance.C1x),
+        y: toHex(encOldBalance.C1y),
       },
     },
     {
       key: "balance_old_encrypted_2",
       value: {
-        x: "0x" + encOldBalance.C2x.toString(16),
-        y: "0x" + encOldBalance.C2y.toString(16),
+        x: toHex(encOldBalance.C2x),
+        y: toHex(encOldBalance.C2y),
       },
     },
     {
       key: "balance_new_encrypted_1",
       value: {
-        x: "0x" + encNewBalance.C1x.toString(16),
-        y: "0x" + encNewBalance.C1y.toString(16),
+        x: toHex(encNewBalance.C1x),
+        y: toHex(encNewBalance.C1y),
       },
     },
     {
       key: "balance_new_encrypted_2",
       value: {
-        x: "0x" + encNewBalance.C2x.toString(16),
-        y: "0x" + encNewBalance.C2y.toString(16),
+        x: toHex(encNewBalance.C2x),
+        y: toHex(encNewBalance.C2y),
       },
     },
   ];
@@ -695,6 +697,7 @@ async function setup() {
     abi: privateTokenFactory.abi,
     eventName: "Deployed",
   });
+  // @ts-ignore
   let privateTokenAddress = logs[0].args.token;
   const privateToken = await viem.getContractAt(
     "PrivateToken",
