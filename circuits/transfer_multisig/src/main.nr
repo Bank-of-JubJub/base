@@ -77,6 +77,7 @@ fn main(private_key: Field,
     */
     assert(value >= 1);
 
+    // check that the signatures are valid and the threshold is reached
     assert(hashed_message_modulus == bjj::from_rpr_le(hashed_message));
     let mut count = 0 as u8;
     for i in 0..10 {
