@@ -1,4 +1,4 @@
-import { keccak256, encodeAbiParameters } from "viem";
+import { keccak256, encodeAbiParameters, toBytes, bytesToBigInt } from "viem";
 import { BJJ_PRIME } from "./constants.ts";
 import BabyJubJubUtils, { PointObject } from "./babyJubJubUtils";
 import {
@@ -11,13 +11,11 @@ import { spawn } from "child_process";
 const babyjub = new BabyJubJubUtils();
 
 export function getEncryptedValue(packedPublicKey: string, amount: number) {
-  const publicKey = babyjub.unpackPoint(
-    hexToUint8Array(packedPublicKey.slice(2))
-  );
+  const publicKey = babyjub.unpackPoint(toBytes(packedPublicKey));
 
   const publicKeyObject = {
-    x: uint8ArrayToBigInt(publicKey[0]),
-    y: uint8ArrayToBigInt(publicKey[1]),
+    x: bytesToBigInt(publicKey[0]),
+    y: bytesToBigInt(publicKey[1]),
   };
 
   return babyjub.exp_elgamal_encrypt(publicKeyObject, amount);
@@ -64,17 +62,10 @@ async function runRustScriptBabyGiant(X: any, Y: any) {
   });
 }
 
-export function formatEncryptedValueForToml(encryptedValue: any) {
-  return {
-    x: "0x" + encryptedValue.x.toString(16),
-    y: "0x" + encryptedValue.y.toString(16),
-  };
-}
-
-function uint8ArrayToBigInt(bytes: Uint8Array): bigint {
-  let hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
-  return BigInt("0x" + hex);
-}
+// function uint8ArrayToBigInt(bytes: Uint8Array): bigint {
+//   let hex = [...bytes].map((b) => b.toString(16).padStart(2, "0")).join("");
+//   return BigInt("0x" + hex);
+// }
 
 export function encryptedBalanceArrayToEncryptedBalance(
   balance: EncryptedBalanceArray
@@ -125,47 +116,6 @@ export function pointObjectsToEncryptedBalance(pointobject: {
     C2x: pointobject.C2.x,
     C2y: pointobject.C2.y,
   };
-}
-
-export function uint8ArrayToHexString(arr: Uint8Array) {
-  return (
-    "0x" +
-    Array.from(arr)
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("")
-  );
-}
-
-export function bigIntToHexString(bigIntValue: bigint) {
-  let hexString = bigIntValue.toString(16);
-  // Ensure it's 64 characters long (32 bytes), padding with leading zeros if necessary
-  while (hexString.length < 64) {
-    hexString = "0" + hexString;
-  }
-  return "0x" + hexString;
-}
-
-export function hexToUint8Array(hexString: string): Uint8Array {
-  // Ensure the input string length is even
-  if (hexString.length % 2 !== 0) {
-    throw new Error("Hex string must have an even number of characters");
-  }
-
-  if (hexString.startsWith("0x")) {
-    hexString = hexString.slice(2);
-  }
-
-  const arrayBuffer = new Uint8Array(hexString.length / 2);
-
-  for (let i = 0; i < arrayBuffer.length; i++) {
-    const byteValue = parseInt(hexString.substr(i * 2, 2), 16);
-    if (Number.isNaN(byteValue)) {
-      throw new Error("Invalid hex string");
-    }
-    arrayBuffer[i] = byteValue;
-  }
-
-  return arrayBuffer;
 }
 
 export function getC1PointFromEncryptedBalance(
