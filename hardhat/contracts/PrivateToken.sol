@@ -10,7 +10,7 @@ import {UltraVerifier as LockVerifier} from "./lock/plonk_vk.sol";
 import {IERC20} from "./IERC20.sol";
 import {IERC165} from "./IERC165.sol";
 import {ERC165Checker} from "./ERC165Checker.sol";
-import {UsingEthSigners} from "./UsingEthSigners.sol";
+import {UsingAccountControllers} from "./UsingAccountControllers.sol";
 
 /**
  * @dev Implementation of PrivateToken.
@@ -18,7 +18,7 @@ import {UsingEthSigners} from "./UsingEthSigners.sol";
  * Balances are encrypted to each owner's public key, according to the registered keys inside the PublicKeyInfrastructure.
  * Because we use Exponential ElGamal encryption, each EncryptedAmount is a pair of points on Baby Jubjub (C1,C2) = ((C1x,C1y),(C2x,C2y)).
  */
-contract PrivateToken is UsingEthSigners {
+contract PrivateToken is UsingAccountControllers {
     using ERC165Checker for address;
 
     struct EncryptedAmount {
@@ -161,7 +161,7 @@ contract PrivateToken is UsingEthSigners {
         address _changeEthSignerVerfier,
         address _changeMultisigEthSignerVerifier
     )
-        UsingEthSigners(
+        UsingAccountControllers(
             _addEthSignerVerifier,
             _changeEthSignerVerfier,
             _changeMultisigEthSignerVerifier
@@ -306,46 +306,116 @@ contract PrivateToken is UsingEthSigners {
             );
         }
 
-        // if (ethSigner[_from] != address(0)) {
-        //     // use the transfer_eth_signer circuit
-        //     _transferEthSigner();
-        // } else if (erc4337Controller[_from] != address(0)) {
-        //     // use the transfer_erc4337 circuit
-        // } else if (multisigEthSigners[_from].threshold != 0) {
-        //     // use the multisig transfer circuit
-        // } else {
-        //     // use the regular transfer circuit
-        // }
-        local.publicInputs = new bytes32[](79);
-        for (uint8 i = 0; i < 32; i++) {
-            // Noir takes an array of 32 bytes32 as public inputs
-            bytes1 aByte = bytes1((_from << (i * 8)));
-            local.publicInputs[i] = bytes32(uint256(uint8(aByte)));
-        }
-        for (uint8 i = 0; i < 32; i++) {
-            bytes1 aByte = bytes1((_to << (i * 8)));
-            local.publicInputs[i + 32] = bytes32(uint256(uint8(aByte)));
-        }
-        local.publicInputs[64] = bytes32(uint256(_processFee));
-        local.publicInputs[65] = bytes32(uint256(_relayFee));
-        // this nonce should be unique because it uses the randomness calculated in the encrypted balance
-        local.publicInputs[66] = bytes32(local.txNonce);
-        local.publicInputs[67] = bytes32(local.oldBalance.C1x);
-        local.publicInputs[68] = bytes32(local.oldBalance.C1y);
-        local.publicInputs[69] = bytes32(local.oldBalance.C2x);
-        local.publicInputs[70] = bytes32(local.oldBalance.C2y);
-        local.publicInputs[71] = bytes32(_amountToSend.C1x);
-        local.publicInputs[72] = bytes32(_amountToSend.C1y);
-        local.publicInputs[73] = bytes32(_amountToSend.C2x);
-        local.publicInputs[74] = bytes32(_amountToSend.C2y);
-        local.publicInputs[75] = bytes32(_senderNewBalance.C1x);
-        local.publicInputs[76] = bytes32(_senderNewBalance.C1y);
-        local.publicInputs[77] = bytes32(_senderNewBalance.C2x);
-        local.publicInputs[78] = bytes32(_senderNewBalance.C2y);
-        require(
-            TRANSFER_VERIFIER.verify(_proof_transfer, local.publicInputs),
-            "Transfer proof is invalid"
+        // this makes sure the signature cannot be reused
+        bytes32 messageHash = keccak256(
+            abi.encodePacked(address(this), _from, _to, local.txNonce)
         );
+        uint256 messageHashModulus = uint256(messageHash) % BJJ_PRIME;
+
+        if (ethSigner[_from] != address(0)) {
+            // use the transfer_eth_signer circuit
+            local.publicInputs = new bytes32[](81);
+            local = _stageCommonTransferInputs(
+                local,
+                _from,
+                _to,
+                _processFee,
+                _relayFee,
+                _amountToSend,
+                _senderNewBalance
+            );
+            local.publicInputs[79] = bytes32(
+                uint256(uint160(ethSigner[_from]))
+            );
+            local.publicInputs[80] = bytes32(messageHashModulus);
+
+            // TODO: import transfer eth signer verifier
+
+            // require(
+            //     TRANSFER_ETH_SIGNER_VERIFIER.verify(
+            //         _proof_transfer,
+            //         local.publicInputs
+            //     ),
+            //     "Eth signer transfer proof is invalid"
+            // );
+        } else if (erc4337Controller[_from] != address(0)) {
+            local.publicInputs = new bytes32[](80);
+            local = _stageCommonTransferInputs(
+                local,
+                _from,
+                _to,
+                _processFee,
+                _relayFee,
+                _amountToSend,
+                _senderNewBalance
+            );
+            // msg.sender should be 4337 account address
+            local.publicInputs[79] = bytes32(uint256(uint160(msg.sender)));
+
+            // TODO: import transfer 4337 verifier
+
+            // require(
+            //     TRANSFER_4337_VERIFIER.verify(
+            //         _proof_transfer,
+            //         local.publicInputs
+            //     ),
+            //     "4337 Transfer proof is invalid"
+            // );
+        } else if (multisigEthSigners[_from].threshold != 0) {
+            local.publicInputs = new bytes32[](81);
+            local = _stageCommonTransferInputs(
+                local,
+                _from,
+                _to,
+                _processFee,
+                _relayFee,
+                _amountToSend,
+                _senderNewBalance
+            );
+            address[] memory signers = multisigEthSigners[_from].ethSigners;
+            for (uint8 i = 0; i < signers.length; i++) {
+                local.publicInputs[79 + i] = bytes32(
+                    uint256(uint160(signers[i]))
+                );
+            }
+            local.publicInputs[79 + signers.length] = bytes32(
+                uint256(multisigEthSigners[_from].threshold)
+            );
+            local.publicInputs[79 + signers.length + 1] = bytes32(
+                messageHashModulus
+            );
+        } else {
+            local.publicInputs = new bytes32[](79);
+            for (uint8 i = 0; i < 32; i++) {
+                // Noir takes an array of 32 bytes32 as public inputs
+                bytes1 aByte = bytes1((_from << (i * 8)));
+                local.publicInputs[i] = bytes32(uint256(uint8(aByte)));
+            }
+            for (uint8 i = 0; i < 32; i++) {
+                bytes1 aByte = bytes1((_to << (i * 8)));
+                local.publicInputs[i + 32] = bytes32(uint256(uint8(aByte)));
+            }
+            local.publicInputs[64] = bytes32(uint256(_processFee));
+            local.publicInputs[65] = bytes32(uint256(_relayFee));
+            // this nonce should be unique because it uses the randomness calculated in the encrypted balance
+            local.publicInputs[66] = bytes32(local.txNonce);
+            local.publicInputs[67] = bytes32(local.oldBalance.C1x);
+            local.publicInputs[68] = bytes32(local.oldBalance.C1y);
+            local.publicInputs[69] = bytes32(local.oldBalance.C2x);
+            local.publicInputs[70] = bytes32(local.oldBalance.C2y);
+            local.publicInputs[71] = bytes32(_amountToSend.C1x);
+            local.publicInputs[72] = bytes32(_amountToSend.C1y);
+            local.publicInputs[73] = bytes32(_amountToSend.C2x);
+            local.publicInputs[74] = bytes32(_amountToSend.C2y);
+            local.publicInputs[75] = bytes32(_senderNewBalance.C1x);
+            local.publicInputs[76] = bytes32(_senderNewBalance.C1y);
+            local.publicInputs[77] = bytes32(_senderNewBalance.C2x);
+            local.publicInputs[78] = bytes32(_senderNewBalance.C2y);
+            require(
+                TRANSFER_VERIFIER.verify(_proof_transfer, local.publicInputs),
+                "Transfer proof is invalid"
+            );
+        }
     }
 
     /**
@@ -665,6 +735,10 @@ contract PrivateToken is UsingEthSigners {
         lockedTo[publicKey] = address(0);
     }
 
+    ///////////////////////
+    // Utility functions //
+    ///////////////////////
+
     function checkAndUpdateNonce(
         bytes32 _from,
         EncryptedAmount memory _encryptedAmount
@@ -676,48 +750,40 @@ contract PrivateToken is UsingEthSigners {
         return txNonce;
     }
 
-    function _transferEthSigner(
-        bytes32 _to,
+    function _stageCommonTransferInputs(
+        transferLocals memory local,
         bytes32 _from,
+        bytes32 _to,
         uint40 _processFee,
         uint40 _relayFee,
-        address _relayFeeRecipient,
-        EncryptedAmount calldata _amountToSend,
-        EncryptedAmount calldata _senderNewBalance
-    ) internal returns (transferLocals memory) {
-        transferLocals memory local;
-        local.txNonce = checkAndUpdateNonce(_from, _senderNewBalance);
-        local.lockedByAddress = lockedTo[_from];
-        require(
-            local.lockedByAddress == address(0) ||
-                local.lockedByAddress == msg.sender,
-            "account is locked to another account"
-        );
-        local.oldBalance = balances[_from];
-        local.receiverBalance = balances[_to];
-        local.zeroBalance = (local.receiverBalance.C1x == 0 &&
-            local.receiverBalance.C2x == 0 &&
-            local.receiverBalance.C1y == 0 &&
-            local.receiverBalance.C2y == 0);
-        if (local.zeroBalance) {
-            // no fee required if a new account
-            _processFee = 0;
-            balances[_to] = _amountToSend;
-        } else {
-            local.transferCount = pendingTransferCounts[_to];
-            allPendingTransfersMapping[_to][
-                local.transferCount
-            ] = PendingTransfer(_amountToSend, _processFee, block.timestamp);
-            pendingTransferCounts[_to] += 1;
+        EncryptedAmount memory _amountToSend,
+        EncryptedAmount memory _senderNewBalance
+    ) internal pure returns (transferLocals memory) {
+        for (uint8 i = 0; i < 32; i++) {
+            // Noir takes an array of 32 bytes32 as public inputs
+            bytes1 aByte = bytes1((_from << (i * 8)));
+            local.publicInputs[i] = bytes32(uint256(uint8(aByte)));
         }
-        balances[_from] = _senderNewBalance;
-        emit Transfer(_from, _to, _amountToSend);
-        if (_relayFee != 0) {
-            token.transfer(
-                _relayFeeRecipient,
-                _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)
-            );
+        for (uint8 i = 0; i < 32; i++) {
+            bytes1 aByte = bytes1((_to << (i * 8)));
+            local.publicInputs[i + 32] = bytes32(uint256(uint8(aByte)));
         }
+        local.publicInputs[64] = bytes32(uint256(_processFee));
+        local.publicInputs[65] = bytes32(uint256(_relayFee));
+        // this nonce should be unique because it uses the randomness calculated in the encrypted balance
+        local.publicInputs[66] = bytes32(local.txNonce);
+        local.publicInputs[67] = bytes32(local.oldBalance.C1x);
+        local.publicInputs[68] = bytes32(local.oldBalance.C1y);
+        local.publicInputs[69] = bytes32(local.oldBalance.C2x);
+        local.publicInputs[70] = bytes32(local.oldBalance.C2y);
+        local.publicInputs[71] = bytes32(_amountToSend.C1x);
+        local.publicInputs[72] = bytes32(_amountToSend.C1y);
+        local.publicInputs[73] = bytes32(_amountToSend.C2x);
+        local.publicInputs[74] = bytes32(_amountToSend.C2y);
+        local.publicInputs[75] = bytes32(_senderNewBalance.C1x);
+        local.publicInputs[76] = bytes32(_senderNewBalance.C1y);
+        local.publicInputs[77] = bytes32(_senderNewBalance.C2x);
+        local.publicInputs[78] = bytes32(_senderNewBalance.C2y);
         return local;
     }
 }
