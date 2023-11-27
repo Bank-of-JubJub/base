@@ -98,6 +98,8 @@ fn test_withdraw() {
     let new_encrypted_amount = bjj::exp_elgamal_encrypt(public_key, balance - value - relay_fee, randomness);
     let nonce = 2;
 
+    // TODO: update test to use multisig
+
     // compute in Solidity, keccak(encryped amt) % p
     main(
         private_key, randomness, balance, packed_public_key_Field, nonce, value, relay_fee, old_encrypted_amount.0, old_encrypted_amount.1, new_encrypted_amount.0, new_encrypted_amount.1

@@ -437,6 +437,8 @@ contract PrivateToken is UsingAccountControllers {
      *  @param _newEncryptedAmount - the new encrypted balance of the sender after the withdraw and fee
      */
 
+    // TODO: update withdraw function to have validational conditional on the type of accounts, 4337, eth signer, multisig
+
     function withdraw(
         bytes32 _from,
         address _to,
