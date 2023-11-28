@@ -9,7 +9,7 @@ use dep::std::collections::vec::Vec;
 use dep::std;
 use dep::bjj;
 use dep::ecrecover;
-
+use dep::utils;
 /* Code of the circuit used at each transfer of the token to prove the validity of transfer (sender 
 has enough balance) and correctness of encrypted new balances of sender.
 */
@@ -43,20 +43,9 @@ fn main(private_key: Field,
         hashed_message_modulus: pub Field,
     )
 {
-    let computed_public_key = bjj::priv_to_pub_key(private_key);
-    let mut sender_pub_key_u8: [u8;32] = [0; 32];
-
-    // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
-    for i in 0..32 {
-        sender_pub_key_u8[i] = sender_pub_key[i] as u8;
-    }
-
-    let unpacked_sender_pub_key = bjj::unpack_point(sender_pub_key_u8);
-    assert(computed_public_key.x == unpacked_sender_pub_key.x);
-    assert(computed_public_key.y == unpacked_sender_pub_key.y);
+    let unpacked_sender_pub_key = utils::assert_private_key_matches_packed(private_key, sender_pub_key);
 
     let mut recipient_pub_key_u8: [u8;32] = [0; 32];
-
     // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
     for i in 0..32 {
         recipient_pub_key_u8[i] = recipient_pub_key[i] as u8;
@@ -78,26 +67,12 @@ fn main(private_key: Field,
     assert(value >= 1);
 
     // check that the signatures are valid and the threshold is reached
-    assert(hashed_message_modulus == bjj::from_rpr_le(hashed_message));
-    let mut count = 0 as u8;
-    for i in 0..10 {
-        let address = ecrecover::ecrecover(pub_key_x[i], pub_key_y[i], signatures[i], hashed_message);
-        if (eth_signers[i] != 0) {
-            assert(address == eth_signers[i]);
-            count += 1;
-        }
-    }
-    assert(count >= threshold);
+    utils::assert_valid_multisig(pub_key_x, pub_key_y, signatures, hashed_message, threshold, eth_signers, hashed_message_modulus);
 
+    utils::assert_correct_clear_balance(private_key, balance_old_me_clear,old_balance_encrypted_1, old_balance_encrypted_2 );
 
-    let bjj_affine = bjj::get_affine_curve();
-    let base_pt = bjj::get_base_point();
-    let embedded_balance_old_me_clear = bjj_affine.mul(balance_old_me_clear as Field, base_pt);
-
-    let decoded_value = bjj::exp_elgamal_decrypt(private_key, (old_balance_encrypted_1, old_balance_encrypted_2));
-
-    // check that unencrypted balance of sender really corresponds to his encrypted balance
-    assert((decoded_value.x == embedded_balance_old_me_clear.x) & (decoded_value.y == embedded_balance_old_me_clear.y));
+    // // check that unencrypted balance of sender really corresponds to his encrypted balance
+    // assert((decoded_value.x == embedded_balance_old_me_clear.x) & (decoded_value.y == embedded_balance_old_me_clear.y));
 
     let balance_new_me_encrypted_computed = bjj::exp_elgamal_encrypt(unpacked_sender_pub_key, balance_old_me_clear - value - process_fee - relay_fee, randomness);
 

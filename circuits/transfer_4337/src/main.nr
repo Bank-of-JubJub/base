@@ -37,17 +37,7 @@ fn main(private_key: Field,
         erc4337_address: pub Field, // passed from contract storage 
     )
 {
-    let computed_public_key = bjj::priv_to_pub_key(private_key);
-    let mut sender_pub_key_u8: [u8;32] = [0; 32];
-
-    // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
-    for i in 0..32 {
-        sender_pub_key_u8[i] = sender_pub_key[i] as u8;
-    }
-
-    let unpacked_sender_pub_key = bjj::unpack_point(sender_pub_key_u8);
-    assert(computed_public_key.x == unpacked_sender_pub_key.x);
-    assert(computed_public_key.y == unpacked_sender_pub_key.y);
+    let unpacked_sender_pub_key = utils::assert_private_key_matches_packed(private_key, sender_pub_key);
 
     let mut recipient_pub_key_u8: [u8;32] = [0; 32];
 
