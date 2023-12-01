@@ -8,6 +8,7 @@ use dep::std::ec::tecurve::affine::Point as Gaffine;
 use dep::std::collections::vec::Vec;
 use dep::std;
 use dep::bjj;
+use dep::utils;
 
 /* Code of the circuit used at each transfer of the token to prove the validity of transfer (sender 
 has enough balance) and correctness of encrypted new balances of sender.
@@ -39,14 +40,6 @@ fn main(private_key: Field,
 {
     let unpacked_sender_pub_key = utils::assert_private_key_matches_packed(private_key, sender_pub_key);
 
-    let mut recipient_pub_key_u8: [u8;32] = [0; 32];
-
-    // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
-    for i in 0..32 {
-        recipient_pub_key_u8[i] = recipient_pub_key[i] as u8;
-    }
-    let unpacked_recipient_pub_key = bjj::unpack_point(recipient_pub_key_u8);
-
     // the sender must have sufficient balance
     assert(value <= balance_old_me_clear);
 
@@ -61,23 +54,14 @@ fn main(private_key: Field,
     */
     assert(value >= 1);
 
-    let bjj_affine = bjj::get_affine_curve();
-    let base_pt = bjj::get_base_point();
-    let embedded_balance_old_me_clear = bjj_affine.mul(balance_old_me_clear as Field, base_pt);
-
-    let decoded_value = bjj::exp_elgamal_decrypt(private_key, (old_balance_encrypted_1, old_balance_encrypted_2));
-
     // check that unencrypted balance of sender really corresponds to his encrypted balance
-    assert((decoded_value.x == embedded_balance_old_me_clear.x) & (decoded_value.y == embedded_balance_old_me_clear.y));
+    utils::assert_correct_clear_balance(private_key, balance_old_me_clear, old_balance_encrypted_1, old_balance_encrypted_2);
+    
+    // checks that the new encrypted balance of sender is correct
+    utils::assert_correct_new_balance_transfer(unpacked_sender_pub_key, balance_old_me_clear, new_balance_encrypted_1, new_balance_encrypted_2, value, relay_fee, process_fee,  randomness);
 
-    let balance_new_me_encrypted_computed = bjj::exp_elgamal_encrypt(unpacked_sender_pub_key, balance_old_me_clear - value - process_fee - relay_fee, randomness);
-
-    // // checks that the new encrypted balance of sender is correct
-    assert((balance_new_me_encrypted_computed.0.x == new_balance_encrypted_1.x) & (balance_new_me_encrypted_computed.0.y == new_balance_encrypted_1.y) & (balance_new_me_encrypted_computed.1.x == new_balance_encrypted_2.x) & (balance_new_me_encrypted_computed.1.y == new_balance_encrypted_2.y));
-
-    // // check that the amount being transferred is correctly encrypted
-    let encrypted_amount_computed = bjj::exp_elgamal_encrypt(unpacked_recipient_pub_key, value, randomness);
-    assert((encrypted_amount_computed.0.x == encrypted_amount_1.x) & (encrypted_amount_computed.0.y == encrypted_amount_1.y) & (encrypted_amount_computed.1.x == encrypted_amount_2.x) & (encrypted_amount_computed.1.y == encrypted_amount_2.y));
+    // check that the amount being transferred is correctly encrypted
+    utils::assert_correct_recipient_balance(recipient_pub_key, value, randomness, encrypted_amount_1, encrypted_amount_2);
 }
 
 // Because of a bug in Noir 10.3, this test will cause a stack overflow error, but you can check that it passes via `nargo prove` instead of `nargo test`: the values inside Prover.toml are strictly equivalent to this test
