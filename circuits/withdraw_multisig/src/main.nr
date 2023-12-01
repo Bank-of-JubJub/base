@@ -8,6 +8,8 @@ use dep::std::ec::tecurve::affine::Point as Gaffine;
 use dep::std::collections::vec::Vec;
 use dep::std;
 use dep::bjj;
+use dep::utils;
+use dep::ecrecover;
 
 // Code of the circuit used once at construction of the token to prove the correctness of encryption of the minted total supply.
 // In this particular case, we are using a zkSNARK only for its succintness property, not the zk property, because total supply is publicly known.
@@ -36,10 +38,9 @@ fn main(private_key: Field,
         hashed_message_modulus: pub Field,
         )
 {
-    let bjj_affine = bjj::get_affine_curve();
-    let base_pt = bjj::get_base_point();
-    let embedded_balance_old_me_clear = bjj_affine.mul(balance_old_clear as Field, base_pt);
-    let decoded_value = bjj::exp_elgamal_decrypt(private_key, (balance_old_encrypted_1, balance_old_encrypted_2));
+    let public_key = utils::assert_private_key_matches_packed(private_key, packed_public_key);
+    utils::assert_correct_clear_balance(private_key, balance_old_clear,balance_old_encrypted_1, balance_old_encrypted_2 );
+    utils::assert_correct_new_balance_withdraw(public_key, balance_old_clear, balance_new_encrypted_1, balance_new_encrypted_2, value, relay_fee, randomness);
 
     // check that the signatures are valid and the threshold is reached
     assert(hashed_message_modulus == bjj::from_rpr_le(hashed_message));
@@ -52,20 +53,6 @@ fn main(private_key: Field,
         }
     }
     assert(count >= threshold);
-
-    // check that unencrypted balance of withdrawer really corresponds to his encrypted balance
-    assert((decoded_value.x == embedded_balance_old_me_clear.x) & (decoded_value.y == embedded_balance_old_me_clear.y));
-    let mut packed_public_key_u8: [u8;32] = [0; 32];
-
-    // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
-    for i in 0..32 {
-        packed_public_key_u8[i] = packed_public_key[i] as u8;
-    }
-    let public_key = bjj::unpack_point(packed_public_key_u8);
-
-    // we encrypt the minted value with the minter's public key
-    let new_balance_encrypted_computed = bjj::exp_elgamal_encrypt(public_key, balance_old_clear - value - relay_fee, randomness);
-    assert((new_balance_encrypted_computed.0.x == balance_new_encrypted_1.x) & (new_balance_encrypted_computed.0.y == balance_new_encrypted_1.y) & (new_balance_encrypted_computed.1.x == balance_new_encrypted_2.x) & (new_balance_encrypted_computed.1.y == balance_new_encrypted_2.y));
 
     assert(nonce == nonce); // for clarity and to remove the unused variable warning
 }
@@ -98,9 +85,35 @@ fn test_withdraw() {
     let new_encrypted_amount = bjj::exp_elgamal_encrypt(public_key, balance - value - relay_fee, randomness);
     let nonce = 2;
 
+    let hashed_message = [74, 92, 93, 69, 71, 33, 187, 187, 37, 84, 12, 51, 23, 82, 30, 113, 195, 115, 174, 54, 69,
+        143, 150, 13, 42, 212, 110, 240, 136, 17, 14, 149];
+    let signature = [247, 85, 217, 167, 45, 91, 115, 134, 118, 94, 127, 14, 131, 58, 246, 135, 149, 183, 57, 162,
+        103, 18, 45, 174, 147, 63, 65, 183, 129, 181, 174, 208, 98, 108, 227, 38, 51, 8, 235, 212,
+        195, 123, 237, 132, 49, 155, 102, 218, 39, 148, 54, 135, 113, 4, 104, 37, 189, 137, 185,
+        139, 166, 140, 78, 135];
+    let pub_key_x = [131, 24, 83, 91, 84, 16, 93, 74, 122, 174, 96, 192, 143, 196, 95, 150, 135, 24, 27, 79, 223,
+        198, 37, 189, 26, 117, 63, 167, 57, 127, 237, 117];
+    let pub_key_y = [53, 71, 241, 28, 168, 105, 102, 70, 242, 243, 172, 176, 142, 49, 1, 106, 250, 194, 62, 99,
+        12, 93, 17, 245, 159, 97, 254, 245, 123, 13, 42, 165];
+    let modulus = bjj::from_rpr_le(hashed_message);
+    let address = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266 as Field;
+    let threshold = 6 as u8;
+
+    let mut pub_key_xs = [[0 as u8; 32]; 10];
+    let mut pub_key_ys = [[0 as u8; 32]; 10];
+    let mut signatures = [[0 as u8; 64]; 10];
+
+    let mut addresses = [0 as Field; 10];
+    for i in 0..10 {
+        addresses[i] = address;
+        pub_key_xs[i] = pub_key_x;
+        pub_key_ys[i] = pub_key_y;
+        signatures[i] = signature;
+    }
+
     // TODO: update test to use multisig
     // compute in Solidity, keccak(encryped amt) % p
     main(
-        private_key, randomness, balance, packed_public_key_Field, nonce, value, relay_fee, old_encrypted_amount.0, old_encrypted_amount.1, new_encrypted_amount.0, new_encrypted_amount.1
+        private_key, randomness, balance, pub_key_xs, pub_key_ys, signatures, hashed_message, packed_public_key_Field, nonce, value, relay_fee, old_encrypted_amount.0, old_encrypted_amount.1, new_encrypted_amount.0, new_encrypted_amount.1, addresses, threshold, modulus
     );
 }
