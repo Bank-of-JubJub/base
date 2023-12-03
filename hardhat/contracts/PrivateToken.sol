@@ -5,7 +5,13 @@ import "hardhat/console.sol";
 import {UltraVerifier as ProcessDepositVerifier} from "./process_pending_deposits/plonk_vk.sol";
 import {UltraVerifier as ProcessTransferVerifier} from "./process_pending_transfers/plonk_vk.sol";
 import {UltraVerifier as TransferVerifier} from "./transfer/plonk_vk.sol";
+import {UltraVerifier as Transfer4337Verifier} from "./transfer/plonk_vk.sol";
+import {UltraVerifier as TransferEthSignerVerifier} from "./transfer/plonk_vk.sol";
+import {UltraVerifier as TransferMultisigVerifier} from "./transfer/plonk_vk.sol";
 import {UltraVerifier as WithdrawVerifier} from "./withdraw/plonk_vk.sol";
+import {UltraVerifier as Withdraw4337Verifier} from "./withdraw/plonk_vk.sol";
+import {UltraVerifier as WithdrawEthSignerVerifier} from "./withdraw/plonk_vk.sol";
+import {UltraVerifier as WithdrawMultisigVerifier} from "./withdraw/plonk_vk.sol";
 import {UltraVerifier as LockVerifier} from "./lock/plonk_vk.sol";
 import {IERC20} from "./IERC20.sol";
 import {IERC165} from "./IERC165.sol";
@@ -57,11 +63,17 @@ contract PrivateToken is UsingAccountControllers {
     //     uint256 X;
     //     uint256 Y;
     // } // The Public Key should be a point on Baby JubJub elliptic curve : checks must be done offchain before registering to ensure that X<p and Y<p and (X,Y) is on the curve
-    ProcessDepositVerifier public immutable PROCESS_DEPOSIT_VERIFIER;
-    ProcessTransferVerifier public immutable PROCESS_TRANSFER_VERIFIER;
-    TransferVerifier public immutable TRANSFER_VERIFIER;
-    WithdrawVerifier public immutable WITHDRAW_VERIFIER;
-    LockVerifier public immutable LOCK_VERIFIER;
+    ProcessDepositVerifier public PROCESS_DEPOSIT_VERIFIER;
+    ProcessTransferVerifier public PROCESS_TRANSFER_VERIFIER;
+    TransferVerifier public TRANSFER_VERIFIER;
+    Transfer4337Verifier public TRANSFER_4337_VERIFIER;
+    TransferEthSignerVerifier public TRANSFER_ETH_SIGNER_VERIFIER;
+    TransferMultisigVerifier public TRANSFER_MULTISIG_VERIFIER;
+    WithdrawVerifier public WITHDRAW_VERIFIER;
+    Withdraw4337Verifier public WITHDRAW_4337_VERIFIER;
+    WithdrawEthSignerVerifier public WITHDRAW_ETH_SIGNER_VERIFIER;
+    WithdrawMultisigVerifier public WITHDRAW_MULTISIG_VERIFIER;
+    LockVerifier public LOCK_VERIFIER;
 
     uint40 public totalSupply;
 
@@ -153,7 +165,13 @@ contract PrivateToken is UsingAccountControllers {
         address _processDepositVerifier,
         address _processTransferVerifier,
         address _transferVerifier,
+        // address _transfer4337Verifier,
+        // address _transferEthSignerVerifier,
+        // address _transferMultisigVerifier,
         address _withdrawVerifier,
+        // address _withdraw4337Verifier,
+        // address _withdrawEthSignerVerifier,
+        // address _withdrawMultisigVerifier,
         address _lockVerifier,
         address _token,
         uint256 _decimals,
@@ -174,7 +192,21 @@ contract PrivateToken is UsingAccountControllers {
             _processTransferVerifier
         );
         TRANSFER_VERIFIER = TransferVerifier(_transferVerifier);
+        // TRANSFER_4337_VERIFIER = Transfer4337Verifier(_transfer4337Verifier);
+        // TRANSFER_ETH_SIGNER_VERIFIER = TransferEthSignerVerifier(
+        //     _transferEthSignerVerifier
+        // );
+        // TRANSFER_MULTISIG_VERIFIER = TransferMultisigVerifier(
+        //     _transferMultisigVerifier
+        // );
         WITHDRAW_VERIFIER = WithdrawVerifier(_withdrawVerifier);
+        // WITHDRAW_4337_VERIFIER = Withdraw4337Verifier(_withdraw4337Verifier);
+        // WITHDRAW_ETH_SIGNER_VERIFIER = WithdrawEthSignerVerifier(
+        //     _withdrawEthSignerVerifier
+        // );
+        // WITHDRAW_MULTISIG_VERIFIER = WithdrawMultisigVerifier(
+        //     _withdrawMultisigVerifier
+        // );
         LOCK_VERIFIER = LockVerifier(_lockVerifier);
         token = IERC20(_token);
         uint256 sourceDecimals = _decimals;
@@ -184,6 +216,30 @@ contract PrivateToken is UsingAccountControllers {
             // do nothing
         }
         SOURCE_TOKEN_DECIMALS = sourceDecimals;
+    }
+
+    function initOtherVerifiers(
+        address _transfer4337Verifier,
+        address _transferEthSignerVerifier,
+        address _transferMultisigVerifier,
+        address _withdraw4337Verifier,
+        address _withdrawEthSignerVerifier,
+        address _withdrawMultisigVerifier
+    ) public {
+        TRANSFER_4337_VERIFIER = Transfer4337Verifier(_transfer4337Verifier);
+        TRANSFER_ETH_SIGNER_VERIFIER = TransferEthSignerVerifier(
+            _transferEthSignerVerifier
+        );
+        TRANSFER_MULTISIG_VERIFIER = TransferMultisigVerifier(
+            _transferMultisigVerifier
+        );
+        WITHDRAW_4337_VERIFIER = Withdraw4337Verifier(_withdraw4337Verifier);
+        WITHDRAW_ETH_SIGNER_VERIFIER = WithdrawEthSignerVerifier(
+            _withdrawEthSignerVerifier
+        );
+        WITHDRAW_MULTISIG_VERIFIER = WithdrawMultisigVerifier(
+            _withdrawMultisigVerifier
+        );
     }
 
     // potentially mitigate DDoS attacks against relayers with RLNs
@@ -333,15 +389,13 @@ contract PrivateToken is UsingAccountControllers {
             );
             local.publicInputs[80] = bytes32(messageHashModulus);
 
-            // TODO: import transfer eth signer verifier
-
-            // require(
-            //     TRANSFER_ETH_SIGNER_VERIFIER.verify(
-            //         _proof_transfer,
-            //         local.publicInputs
-            //     ),
-            //     "Eth signer transfer proof is invalid"
-            // );
+            require(
+                TRANSFER_ETH_SIGNER_VERIFIER.verify(
+                    _proof_transfer,
+                    local.publicInputs
+                ),
+                "Eth signer transfer proof is invalid"
+            );
         } else if (erc4337Controller[_from] != address(0)) {
             local.publicInputs = new bytes32[](80);
             local = _stageCommonTransferInputs(
@@ -356,15 +410,13 @@ contract PrivateToken is UsingAccountControllers {
             // msg.sender should be 4337 account address
             local.publicInputs[79] = bytes32(uint256(uint160(msg.sender)));
 
-            // TODO: import transfer 4337 verifier
-
-            // require(
-            //     TRANSFER_4337_VERIFIER.verify(
-            //         _proof_transfer,
-            //         local.publicInputs
-            //     ),
-            //     "4337 Transfer proof is invalid"
-            // );
+            require(
+                TRANSFER_4337_VERIFIER.verify(
+                    _proof_transfer,
+                    local.publicInputs
+                ),
+                "4337 Transfer proof is invalid"
+            );
         } else if (multisigEthSigners[_from].threshold != 0) {
             local.publicInputs = new bytes32[](81);
             local = _stageCommonTransferInputs(
@@ -387,6 +439,14 @@ contract PrivateToken is UsingAccountControllers {
             );
             local.publicInputs[79 + signers.length + 1] = bytes32(
                 messageHashModulus
+            );
+
+            require(
+                TRANSFER_MULTISIG_VERIFIER.verify(
+                    _proof_transfer,
+                    local.publicInputs
+                ),
+                "Multisig Transfer proof is invalid"
             );
         } else {
             local.publicInputs = new bytes32[](79);
@@ -456,6 +516,26 @@ contract PrivateToken is UsingAccountControllers {
         );
         // TODO: fee
         EncryptedAmount memory oldEncryptedAmount = balances[_from];
+        // calculate the new total encrypted supply offchain, replace existing value (not an increment)
+        balances[_from] = _newEncryptedAmount;
+        totalSupply -= _amount;
+        if (_relayFee != 0) {
+            token.transfer(
+                _relayFeeRecipient,
+                uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
+            );
+        }
+        uint256 convertedAmount = _amount *
+            10 ** (SOURCE_TOKEN_DECIMALS - decimals);
+        token.transfer(_to, convertedAmount);
+        emit Withdraw(
+            _from,
+            _to,
+            convertedAmount,
+            _relayFeeRecipient,
+            _relayFee
+        );
+
         bytes32[] memory publicInputs = new bytes32[](43);
         for (uint8 i = 0; i < 32; i++) {
             // Noir takes an array of 32 bytes32 as public inputs
@@ -477,25 +557,6 @@ contract PrivateToken is UsingAccountControllers {
         require(
             WITHDRAW_VERIFIER.verify(_withdraw_proof, publicInputs),
             "Withdraw proof is invalid"
-        );
-        // calculate the new total encrypted supply offchain, replace existing value (not an increment)
-        balances[_from] = _newEncryptedAmount;
-        totalSupply -= _amount;
-        if (_relayFee != 0) {
-            token.transfer(
-                _relayFeeRecipient,
-                uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
-            );
-        }
-        uint256 convertedAmount = _amount *
-            10 ** (SOURCE_TOKEN_DECIMALS - decimals);
-        token.transfer(_to, convertedAmount);
-        emit Withdraw(
-            _from,
-            _to,
-            convertedAmount,
-            _relayFeeRecipient,
-            _relayFee
         );
     }
 
