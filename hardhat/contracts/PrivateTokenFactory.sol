@@ -33,13 +33,13 @@ contract PrivateTokenFactory {
         address _pendingDepositVerifier,
         address _pendingTransferVerifier,
         address _transferVerifier,
-        address _transfer4337Verifier,
-        address _transferEthSignerVerifier,
-        address _transferMultisigVerifier,
+        // address _transfer4337Verifier,
+        // address _transferEthSignerVerifier,
+        // address _transferMultisigVerifier,
         address _withdrawVerifier,
-        address _withdraw4337Verifier,
-        address _withdrawEthSignerVerifier,
-        address _withdrawMultisigVerifier,
+        // address _withdraw4337Verifier,
+        // address _withdrawEthSignerVerifier,
+        // address _withdrawMultisigVerifier,
         address _lockVerifier,
         address _addEthSignerVerifier,
         address _changeEthSignerVerfier,
@@ -48,13 +48,13 @@ contract PrivateTokenFactory {
         processDepositVerifier = _pendingDepositVerifier;
         processTransferVerifier = _pendingTransferVerifier;
         transferVerifier = _transferVerifier;
-        transfer4337Verifier = _transfer4337Verifier;
-        transferEthSignerVerifier = _transferEthSignerVerifier;
-        transferMultisigVerifier = _transferMultisigVerifier;
+        // transfer4337Verifier = _transfer4337Verifier;
+        // transferEthSignerVerifier = _transferEthSignerVerifier;
+        // transferMultisigVerifier = _transferMultisigVerifier;
         withdrawVerifier = _withdrawVerifier;
-        withdraw4337Verifier = _withdraw4337Verifier;
-        withdrawEthSignerVerifier = _withdrawEthSignerVerifier;
-        withdrawMultisigVerifier = _withdrawMultisigVerifier;
+        // withdraw4337Verifier = _withdraw4337Verifier;
+        // withdrawEthSignerVerifier = _withdrawEthSignerVerifier;
+        // withdrawMultisigVerifier = _withdrawMultisigVerifier;
         lockVerifier = _lockVerifier;
         addEthSignerVerifier = _addEthSignerVerifier;
         changeEthSignerVerifier = _changeEthSignerVerfier;
@@ -81,6 +81,14 @@ contract PrivateTokenFactory {
             changeMultisigEthSignerVerifier
         );
         emit Deployed(address(newToken));
+        // newToken.initOtherVerifiers(
+        //     transfer4337Verifier,
+        //     transferEthSignerVerifier,
+        //     transferMultisigVerifier,
+        //     withdraw4337Verifier,
+        //     withdrawEthSignerVerifier,
+        //     withdrawMultisigVerifier
+        // );
         // return address(newToken);
     }
 }

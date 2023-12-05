@@ -745,47 +745,47 @@ contract PrivateToken is UsingAccountControllers {
      * @param _proof - proof to verify with the ProcessPendingTransfers circuit
      * @param _newEncryptedAmount - the new encrypted balance of the sender after the fee
      */
-    function lock(
-        bytes32 _from,
-        address _lockToContract,
-        uint40 _relayFee,
-        address _relayFeeRecipient,
-        bytes memory _proof,
-        EncryptedAmount memory _newEncryptedAmount
-    ) public {
-        uint256 txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
-        require(lockedTo[_from] == address(0), "account is already locked");
-        // figure out actual function signature, this is just a placeholder
-        require(
-            _lockToContract.supportsInterface(0x80ac58cd),
-            "contract does not implement unlock"
-        );
-        lockedTo[_from] = _lockToContract;
-        EncryptedAmount memory oldEncryptedAmount = balances[_from];
+    // function lock(
+    //     bytes32 _from,
+    //     address _lockToContract,
+    //     uint40 _relayFee,
+    //     address _relayFeeRecipient,
+    //     bytes memory _proof,
+    //     EncryptedAmount memory _newEncryptedAmount
+    // ) public {
+    //     uint256 txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
+    //     require(lockedTo[_from] == address(0), "account is already locked");
+    //     // figure out actual function signature, this is just a placeholder
+    //     require(
+    //         _lockToContract.supportsInterface(0x80ac58cd),
+    //         "contract does not implement unlock"
+    //     );
+    //     lockedTo[_from] = _lockToContract;
+    //     EncryptedAmount memory oldEncryptedAmount = balances[_from];
 
-        bytes32[] memory publicInputs = new bytes32[](12);
-        // this nonce should be unique because it uses the randomness calculated in the encrypted balance
-        publicInputs[0] = bytes32(txNonce);
-        publicInputs[1] = bytes32(_from);
-        publicInputs[2] = bytes32(uint256(uint160(_lockToContract)));
-        publicInputs[3] = bytes32(uint256(_relayFee));
-        publicInputs[4] = bytes32(oldEncryptedAmount.C1x);
-        publicInputs[5] = bytes32(oldEncryptedAmount.C1y);
-        publicInputs[6] = bytes32(oldEncryptedAmount.C2x);
-        publicInputs[7] = bytes32(oldEncryptedAmount.C2y);
-        publicInputs[8] = bytes32(_newEncryptedAmount.C1x);
-        publicInputs[9] = bytes32(_newEncryptedAmount.C1y);
-        publicInputs[10] = bytes32(_newEncryptedAmount.C2x);
-        publicInputs[11] = bytes32(_newEncryptedAmount.C2y);
-        LOCK_VERIFIER.verify(_proof, publicInputs);
-        if (_relayFee != 0) {
-            token.transfer(
-                _relayFeeRecipient,
-                uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
-            );
-        }
-        emit Lock(_from, _lockToContract, _relayFee, _relayFeeRecipient);
-    }
+    //     bytes32[] memory publicInputs = new bytes32[](12);
+    //     // this nonce should be unique because it uses the randomness calculated in the encrypted balance
+    //     publicInputs[0] = bytes32(txNonce);
+    //     publicInputs[1] = bytes32(_from);
+    //     publicInputs[2] = bytes32(uint256(uint160(_lockToContract)));
+    //     publicInputs[3] = bytes32(uint256(_relayFee));
+    //     publicInputs[4] = bytes32(oldEncryptedAmount.C1x);
+    //     publicInputs[5] = bytes32(oldEncryptedAmount.C1y);
+    //     publicInputs[6] = bytes32(oldEncryptedAmount.C2x);
+    //     publicInputs[7] = bytes32(oldEncryptedAmount.C2y);
+    //     publicInputs[8] = bytes32(_newEncryptedAmount.C1x);
+    //     publicInputs[9] = bytes32(_newEncryptedAmount.C1y);
+    //     publicInputs[10] = bytes32(_newEncryptedAmount.C2x);
+    //     publicInputs[11] = bytes32(_newEncryptedAmount.C2y);
+    //     LOCK_VERIFIER.verify(_proof, publicInputs);
+    //     if (_relayFee != 0) {
+    //         token.transfer(
+    //             _relayFeeRecipient,
+    //             uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
+    //         );
+    //     }
+    //     emit Lock(_from, _lockToContract, _relayFee, _relayFeeRecipient);
+    // }
 
     /**
      * @notice unlocks an account locked by a contract. This function must be called by the
@@ -795,12 +795,12 @@ contract PrivateToken is UsingAccountControllers {
      * @param publicKey - the packed public key of the account to unlock
      */
 
-    function unlock(bytes32 publicKey) public {
-        address unlockedFrom = lockedTo[publicKey];
-        require(msg.sender == unlockedFrom, "wrong sender");
-        emit Unlock(publicKey, unlockedFrom);
-        lockedTo[publicKey] = address(0);
-    }
+    // function unlock(bytes32 publicKey) public {
+    //     address unlockedFrom = lockedTo[publicKey];
+    //     require(msg.sender == unlockedFrom, "wrong sender");
+    //     emit Unlock(publicKey, unlockedFrom);
+    //     lockedTo[publicKey] = address(0);
+    // }
 
     ///////////////////////
     // Utility functions //

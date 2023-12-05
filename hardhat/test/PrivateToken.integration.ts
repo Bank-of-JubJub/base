@@ -379,9 +379,9 @@ async function transfer(
   // if recipient balance == 0, process fee should be 0, per the smart contract
   if (
     (recipientBalance[0] == 0n,
-      recipientBalance[1] == 0n,
-      recipientBalance[2] == 0n,
-      recipientBalance[3] == 0n)
+    recipientBalance[1] == 0n,
+    recipientBalance[2] == 0n,
+    recipientBalance[3] == 0n)
   ) {
     processFee = 0;
   }
@@ -703,7 +703,7 @@ async function setup() {
       lockVerifier.address,
       addEthSigners.address,
       changeEthSigner.address,
-      changeMultiEthSigners.address
+      changeMultiEthSigners.address,
     ]
   );
   await privateTokenFactory.write.deploy([token.address]);
