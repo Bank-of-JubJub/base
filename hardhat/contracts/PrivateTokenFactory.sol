@@ -26,20 +26,14 @@ contract PrivateTokenFactory {
     address public addEthSignerVerifier;
     address public changeEthSignerVerifier;
     address public changeMultisigEthSignerVerifier;
-
+    PrivateToken public newToken;
     event Deployed(address indexed token);
 
     constructor(
         address _pendingDepositVerifier,
         address _pendingTransferVerifier,
         address _transferVerifier,
-        // address _transfer4337Verifier,
-        // address _transferEthSignerVerifier,
-        // address _transferMultisigVerifier,
         address _withdrawVerifier,
-        // address _withdraw4337Verifier,
-        // address _withdrawEthSignerVerifier,
-        // address _withdrawMultisigVerifier,
         address _lockVerifier,
         address _addEthSignerVerifier,
         address _changeEthSignerVerfier,
@@ -48,13 +42,7 @@ contract PrivateTokenFactory {
         processDepositVerifier = _pendingDepositVerifier;
         processTransferVerifier = _pendingTransferVerifier;
         transferVerifier = _transferVerifier;
-        // transfer4337Verifier = _transfer4337Verifier;
-        // transferEthSignerVerifier = _transferEthSignerVerifier;
-        // transferMultisigVerifier = _transferMultisigVerifier;
         withdrawVerifier = _withdrawVerifier;
-        // withdraw4337Verifier = _withdraw4337Verifier;
-        // withdrawEthSignerVerifier = _withdrawEthSignerVerifier;
-        // withdrawMultisigVerifier = _withdrawMultisigVerifier;
         lockVerifier = _lockVerifier;
         addEthSignerVerifier = _addEthSignerVerifier;
         changeEthSignerVerifier = _changeEthSignerVerfier;
@@ -62,17 +50,11 @@ contract PrivateTokenFactory {
     }
 
     function deploy(address _token) public {
-        PrivateToken newToken = new PrivateToken(
+        newToken = new PrivateToken(
             processDepositVerifier,
             processTransferVerifier,
             transferVerifier,
-            // transfer4337Verifier,
-            // transferEthSignerVerifier,
-            // transferMultisigVerifier,
             withdrawVerifier,
-            // withdraw4337Verifier,
-            // withdrawEthSignerVerifier,
-            // withdrawMultisigVerifier,
             lockVerifier,
             _token,
             18,
@@ -81,14 +63,6 @@ contract PrivateTokenFactory {
             changeMultisigEthSignerVerifier
         );
         emit Deployed(address(newToken));
-        // newToken.initOtherVerifiers(
-        //     transfer4337Verifier,
-        //     transferEthSignerVerifier,
-        //     transferMultisigVerifier,
-        //     withdraw4337Verifier,
-        //     withdrawEthSignerVerifier,
-        //     withdrawMultisigVerifier
-        // );
-        // return address(newToken);
+        //return address(newToken);
     }
 }

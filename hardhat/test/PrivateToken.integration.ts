@@ -673,8 +673,32 @@ async function setup() {
     "contracts/transfer/plonk_vk.sol:UltraVerifier",
     []
   );
+  const { contract: transfer4337Verifier } = await deploy(
+    "contracts/transfer_4337/plonk_vk.sol:UltraVerifier",
+    []
+  );
+  const { contract: transferEthSignerVerifier } = await deploy(
+    "contracts/transfer_eth_signer/plonk_vk.sol:UltraVerifier",
+    []
+  );
+  const { contract: transferMultisigVerifier } = await deploy(
+    "contracts/transfer_multisig/plonk_vk.sol:UltraVerifier",
+    []
+  );
   const { contract: withdrawVerifier } = await deploy(
     "contracts/withdraw/plonk_vk.sol:UltraVerifier",
+    []
+  );
+  const { contract: withdraw4337Verifier } = await deploy(
+    "contracts/withdraw_4337/plonk_vk.sol:UltraVerifier",
+    []
+  );
+  const { contract: withdrawEthSignerVerifier } = await deploy(
+    "contracts/withdraw_eth_signer/plonk_vk.sol:UltraVerifier",
+    []
+  );
+  const { contract: withdrawMultisigVerifier } = await deploy(
+    "contracts/withdraw_multisig/plonk_vk.sol:UltraVerifier",
     []
   );
   const { contract: lockVerifier } = await deploy(
@@ -718,6 +742,14 @@ async function setup() {
     "PrivateToken",
     privateTokenAddress
   );
+  privateToken.write.initOtherVerifiers([
+    transfer4337Verifier.address,
+    transferEthSignerVerifier.address,
+    transferMultisigVerifier.address,
+    withdraw4337Verifier.address,
+    withdrawEthSignerVerifier.address,
+    withdrawMultisigVerifier.address,
+  ]);
   return {
     publicClient,
     pendingDepositVerifier,

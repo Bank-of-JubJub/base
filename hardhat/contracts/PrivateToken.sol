@@ -218,6 +218,8 @@ contract PrivateToken is UsingAccountControllers {
         SOURCE_TOKEN_DECIMALS = sourceDecimals;
     }
 
+    // TODO: protect this so it can only be called once
+    // needed to break this out of the constructor because the constructor got too big
     function initOtherVerifiers(
         address _transfer4337Verifier,
         address _transferEthSignerVerifier,
