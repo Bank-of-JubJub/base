@@ -15,9 +15,18 @@ contract PrivateTokenFactory {
     address public processDepositVerifier;
     address public processTransferVerifier;
     address public transferVerifier;
+    address public transfer4337Verifier;
+    address public transferEthSignerVerifier;
+    address public transferMultisigVerifier;
     address public withdrawVerifier;
+    address public withdraw4337Verifier;
+    address public withdrawEthSignerVerifier;
+    address public withdrawMultisigVerifier;
     address public lockVerifier;
-
+    address public addEthSignerVerifier;
+    address public changeEthSignerVerifier;
+    address public changeMultisigEthSignerVerifier;
+    PrivateToken public newToken;
     event Deployed(address indexed token);
 
     constructor(
@@ -25,27 +34,35 @@ contract PrivateTokenFactory {
         address _pendingTransferVerifier,
         address _transferVerifier,
         address _withdrawVerifier,
-        address _lockVerifier
+        address _lockVerifier,
+        address _addEthSignerVerifier,
+        address _changeEthSignerVerfier,
+        address _changeMultisigEthSignerVerifier
     ) {
         processDepositVerifier = _pendingDepositVerifier;
         processTransferVerifier = _pendingTransferVerifier;
         transferVerifier = _transferVerifier;
         withdrawVerifier = _withdrawVerifier;
         lockVerifier = _lockVerifier;
+        addEthSignerVerifier = _addEthSignerVerifier;
+        changeEthSignerVerifier = _changeEthSignerVerfier;
+        changeMultisigEthSignerVerifier = _changeMultisigEthSignerVerifier;
     }
 
-    function deploy(address _token) public returns (address) {
-        PrivateToken newToken = new PrivateToken(
-            address(processDepositVerifier),
+    function deploy(address _token) public {
+        newToken = new PrivateToken(
+            processDepositVerifier,
             processTransferVerifier,
             transferVerifier,
             withdrawVerifier,
             lockVerifier,
-            address(0x0), // erc165 address
             _token,
-            18
+            18,
+            addEthSignerVerifier,
+            changeEthSignerVerifier,
+            changeMultisigEthSignerVerifier
         );
         emit Deployed(address(newToken));
-        return address(newToken);
+        //return address(newToken);
     }
 }

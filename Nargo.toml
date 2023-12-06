@@ -1,10 +1,20 @@
 [workspace]
 members = [
     "circuits/transfer",
+    "circuits/transfer_4337",
+    "circuits/transfer_eth_signer",
+    "circuits/transfer_multisig",
     "circuits/lock",
     "circuits/withdraw",
+    "circuits/withdraw_4337",
+    "circuits/withdraw_eth_signer",
+    "circuits/withdraw_multisig",
     "circuits/process_pending_deposits",
     "circuits/process_pending_transfers",
+    "circuits/add_eth_signers",
+    "circuits/change_eth_signer",
+    "circuits/change_multi_eth_signers",
+
 ]
 default-member = "circuits/transfer"
 
