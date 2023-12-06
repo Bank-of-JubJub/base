@@ -10,6 +10,12 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["./scripts", "./test", "./artifacts", "../utils", "../circuits/"],
+  "include": [
+    "./scripts",
+    "./test/*",
+    "./artifacts",
+    "../utils",
+    "../circuits/"
+  ],
   "files": ["./hardhat.config.ts"]
 }

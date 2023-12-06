@@ -21,61 +21,73 @@ fn main(// All Public inputs, this can be executed by anyone
         balance_new_to_encrypted_1: pub Gaffine, 
         balance_new_to_encrypted_2: pub Gaffine,
         encrypted_values: pub [Gaffine; 8],
-    ) { 
-
+    )
+{
     // check that new balance = the balance_old_me_clear - fee
     let bjj_affine = bjj::get_affine_curve();
-    
+
     let mut encrypted_value_sum = (encrypted_values[0], encrypted_values[1]);
 
     for i in 1..4 {
-        let mut s = i*2;
-        if(encrypted_values[s].x as Field != 0){
+        let mut s = i * 2;
+        if (encrypted_values[s].x as Field != 0) {
             encrypted_value_sum = (bjj_affine.add(encrypted_value_sum.0, encrypted_values[s]),bjj_affine.add(encrypted_value_sum.1, encrypted_values[s+1]));
         }
     }
 
     // addition of the points on Baby Jubjub : this operation is additevely homomorphic for Exponential ElGamal
-    let balance_new_to_encrypted_computed = 
-        (bjj_affine.add(balance_old_to_encrypted_1, encrypted_value_sum.0),bjj_affine.add(balance_old_to_encrypted_2, encrypted_value_sum.1)); 
+    let balance_new_to_encrypted_computed = (
+        bjj_affine.add(balance_old_to_encrypted_1, encrypted_value_sum.0), bjj_affine.add(balance_old_to_encrypted_2, encrypted_value_sum.1)
+    );
+
     // checks that the new encrypted balance of receiver is correct
-    assert((balance_new_to_encrypted_computed.0.x==balance_new_to_encrypted_1.x) & 
-            (balance_new_to_encrypted_computed.0.y==balance_new_to_encrypted_1.y) & 
-            (balance_new_to_encrypted_computed.1.x==balance_new_to_encrypted_2.x) & 
-            (balance_new_to_encrypted_computed.1.y==balance_new_to_encrypted_2.y)); 
+    assert((balance_new_to_encrypted_computed.0.x == balance_new_to_encrypted_1.x) & (balance_new_to_encrypted_computed.0.y == balance_new_to_encrypted_1.y) & (balance_new_to_encrypted_computed.1.x == balance_new_to_encrypted_2.x) & (balance_new_to_encrypted_computed.1.y == balance_new_to_encrypted_2.y));
 }
 
 // Because of a bug in Noir 10.3, this test will cause a stack overflow error, but you can check that it passes via `nargo prove` instead of `nargo test`: the values inside Prover.toml are strictly equivalent to this test
 #[test]
 fn test_main() {
-    let private_key: Field = 2291123624948246627368989940774052753470489062495018070576418670157516550852; // see debug notebook for an example on how to compute those
-    let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775; // see debug notebook for an example on how to compute those
+    let private_key: Field = 2291123624948246627368989940774052753470489062495018070576418670157516550852;
+
+    // see debug notebook for an example on how to compute those
+    let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775;
+
+    // see debug notebook for an example on how to compute those
     let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
     let balance: u40 = 1000;
     let old_encrypted_amount = bjj::exp_elgamal_encrypt(public_key, balance, randomness);
     let bjj_affine = bjj::get_affine_curve();
 
-
     // public values
     let old_balance = bjj::exp_elgamal_encrypt(public_key, balance, randomness);
     let encryped_value = bjj::exp_elgamal_encrypt(public_key, 100, randomness);
-    let encrypted_values = [encryped_value.0, encryped_value.1, encryped_value.0, encryped_value.1, encryped_value.0, encryped_value.1, encryped_value.0, encryped_value.1];
+    let encrypted_values = [encryped_value.0,
+        encryped_value.1,
+        encryped_value.0,
+        encryped_value.1,
+        encryped_value.0,
+        encryped_value.1,
+        encryped_value.0,
+        encryped_value.1];
     let mut encrypted_value_sum = (encrypted_values[0], encrypted_values[1]);
     for i in 1..4 {
-        let mut s = i*2;
-        if(encrypted_values[s].x as Field != 0){
+        let mut s = i * 2;
+        if (encrypted_values[s].x as Field != 0) {
             encrypted_value_sum = (bjj_affine.add(encrypted_value_sum.0, encrypted_values[s]),bjj_affine.add(encrypted_value_sum.1, encrypted_values[s+1]));
         }
     }
 
-    let new_balance_encrypted = 
-        (bjj_affine.add(old_balance.0, encrypted_value_sum.0),bjj_affine.add(old_balance.1, encrypted_value_sum.1));
-    
+    let new_balance_encrypted = (
+        bjj_affine.add(old_balance.0, encrypted_value_sum.0), bjj_affine.add(old_balance.1, encrypted_value_sum.1)
+    );
+
     let base_pt = bjj::get_base_point();
     let embedded_balance = bjj_affine.mul(1400, base_pt);
     let decoded_value = bjj::exp_elgamal_decrypt(private_key, new_balance_encrypted);
-    assert(decoded_value.x==embedded_balance.x);
-    assert(decoded_value.y==embedded_balance.y);
+    assert(decoded_value.x == embedded_balance.x);
+    assert(decoded_value.y == embedded_balance.y);
 
-    main(old_encrypted_amount.0, old_encrypted_amount.1, new_balance_encrypted.0, new_balance_encrypted.1, encrypted_values);
+    main(
+        old_encrypted_amount.0, old_encrypted_amount.1, new_balance_encrypted.0, new_balance_encrypted.1, encrypted_values
+    );
 }

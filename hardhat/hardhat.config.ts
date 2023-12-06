@@ -1,6 +1,7 @@
 import "hardhat-gas-reporter";
 import "hardhat-deploy";
 import "@nomicfoundation/hardhat-viem";
+import "solidity-docgen";
 require("dotenv").config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -9,6 +10,7 @@ module.exports = {
   solidity: {
     version: "0.8.20",
     settings: {
+      //viaIR: true,
       optimizer: {
         enabled: true,
         runs: 50000,
@@ -19,6 +21,9 @@ module.exports = {
     sources: "./contracts",
     tests: "./test",
   },
+  // docgen: {
+  //   exclude: ["./contracts/BaseUltraVerifier"],
+  // },
   gasReporter: {
     enabled: process.env.REPORT_GAS ? true : false,
   },
