@@ -4,7 +4,7 @@ use dep::ecrecover;
 fn main(pub_key_x: [u8;32],
         pub_key_y: [u8;32],
         signature: [u8; 64],
-        hashed_message: pub [u8;32],
+        hashed_message: [u8;32],
         // public inputs
         eth_signer: pub Field,
         hashed_message_modulus: pub Field,
