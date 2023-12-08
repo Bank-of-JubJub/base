@@ -49,7 +49,7 @@ fn main(
         randomness
     );
 
-    assert(nonce == nonce); // for clarity and to remove the unused variable warning
+    assert(nonce_priv == nonce); // for clarity and to remove the unused variable warning
 }
 
 #[test]
