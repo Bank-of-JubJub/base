@@ -72,6 +72,7 @@ recipient_pub_key = [
 ]
 process_fee = 0
 relay_fee = 2
+nonce_private = "0x61fc08028ad9ccb3bcd0716dcce36a433215f972fc435d957a3a228666f5c25"
 nonce = "0x61fc08028ad9ccb3bcd0716dcce36a433215f972fc435d957a3a228666f5c25"
 
 [old_balance_encrypted_1]

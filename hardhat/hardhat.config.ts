@@ -17,6 +17,9 @@ module.exports = {
       },
     },
   },
+  mocha: {
+    timeout: 400000000,
+  },
   paths: {
     sources: "./contracts",
     tests: "./test",

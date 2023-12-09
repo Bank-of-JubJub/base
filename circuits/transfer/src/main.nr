@@ -41,7 +41,7 @@ fn main(
     let unpacked_sender_pub_key = utils::assert_private_key_matches_packed(private_key, sender_pub_key);
 
     // the sender must have sufficient balance
-    assert(value <= balance_old_me_clear);
+    assert(value + relay_fee + process_fee <= balance_old_me_clear);
 
     /* this is to deter potential front-running issue: ref https://crypto.stanford.edu/~buenz/papers/zether.pdf §3.1. 
     Here we adopt a simpler approach than the multistep approach proposed in the Zether paper, for a better UX: 
@@ -107,7 +107,7 @@ fn test_transfer() {
         0x49, 0x04
     ];
 
-    let process_fee: u40 = 0;
+    let process_fee: u40 = 1;
     let relay_fee: u40 = 2;
 
     // let encrypted_amount = bjj::exp_elgamal_encrypt(recipient_pub_key, value - relay_fee - process_fee, randomness);

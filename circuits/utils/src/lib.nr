@@ -28,7 +28,7 @@ pub fn assert_valid_multisig<N>(pub_key_x: [[u8;32];N],
 
 pub fn assert_correct_clear_balance(private_key: Field, balance_old_me_clear: u40, old_balance_encrypted_1: Gaffine, old_balance_encrypted_2: Gaffine )
 {
-        let bjj_affine = bjj::get_affine_curve();
+    let bjj_affine = bjj::get_affine_curve();
     let base_pt = bjj::get_base_point();
     let embedded_balance_old_me_clear = bjj_affine.mul(balance_old_me_clear as Field, base_pt);
     let decoded_value = bjj::exp_elgamal_decrypt(private_key, (old_balance_encrypted_1, old_balance_encrypted_2));

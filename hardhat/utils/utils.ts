@@ -9,6 +9,7 @@ import {
 } from "./types.ts";
 import { spawn } from "child_process";
 const babyjub = new BabyJubJubUtils();
+babyjub.init();
 
 export function getEncryptedValue(packedPublicKey: string, amount: number) {
   const publicKey = babyjub.unpackPoint(toBytes(packedPublicKey));

@@ -42,6 +42,8 @@ fn main(
     hashed_message_modulus: pub Field // hash of the message to be signed
 ) {
     let public_key = utils::assert_private_key_matches_packed(private_key, packed_public_key);
+    assert(value + relay_fee <= balance_old_clear);
+
     utils::assert_correct_clear_balance(
         private_key,
         balance_old_clear,

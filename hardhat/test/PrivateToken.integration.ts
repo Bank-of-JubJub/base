@@ -22,6 +22,7 @@ import {
   random,
   transferAmount,
   withdrawAddress,
+  MAX_TXS_TO_PROCESS,
 } from "../utils/constants.ts";
 
 import {
@@ -64,10 +65,10 @@ describe("Private Token integration testing", async function () {
     const { privateToken, token } = await setup();
     privateTokenAddress = privateToken.address;
     tokenAddress = token.address;
+    await babyjub.init();
   });
 
   it("should add a deposit", async () => {
-    await babyjub.init();
     const { privateToken } = await getContracts();
     await deposit();
 
@@ -138,15 +139,25 @@ describe("Private Token integration testing", async function () {
   it("should perform transfers", async function () {
     const { privateToken } = await getContracts();
 
+    let processFee = transferProcessFee;
     const preBalance = await privateToken.read.balances([
       account1.packedPublicKey,
     ]);
+    const preBalanceRecipient = await privateToken.read.balances([
+      account2.packedPublicKey,
+    ]);
+
+    // zero out process fee if sending to new account
+    if (
+      preBalanceRecipient[0] == BigInt(0) &&
+      preBalanceRecipient[1] == BigInt(0)
+    ) {
+      processFee = 0;
+    }
+
     const preClearBalance = await getDecryptedValue(account1, preBalance);
     const newClearBalance =
-      Number(preClearBalance) -
-      transferAmount -
-      transferRelayFee -
-      transferProcessFee;
+      Number(preClearBalance) - transferAmount - transferRelayFee - processFee;
 
     const encryptedAmount = getEncryptedValue(
       account2.packedPublicKey,
@@ -165,16 +176,16 @@ describe("Private Token integration testing", async function () {
       encAmountToSend,
       encNewBalance,
       Number(preClearBalance),
-      transferProcessFee,
+      processFee,
       transferRelayFee
     );
 
-    let sender_balance = (await privateToken.read.balances([
+    let sender_balance = await privateToken.read.balances([
       account1.packedPublicKey,
-    ])) as EncryptedBalanceArray;
-    let recipient_balance = (await privateToken.read.balances([
+    ]);
+    let recipient_balance = await privateToken.read.balances([
       account2.packedPublicKey,
-    ])) as EncryptedBalanceArray;
+    ]);
 
     expect(recipient_balance[0] == encAmountToSend.C1x);
     expect(recipient_balance[1] == encAmountToSend.C1y);
@@ -188,7 +199,15 @@ describe("Private Token integration testing", async function () {
     // check token balance of the relayer
     // check that transfer event was emitted
     // check that nonce was correctly updated
-    // decrypt and check balance
+
+    const recipientDecryptedBalance = await getDecryptedValue(
+      account2,
+      recipient_balance
+    );
+    expect(
+      Number(recipientDecryptedBalance) == transferAmount,
+      "decrypted balances should match"
+    );
   });
 
   it("should process pending transfers", async () => {
@@ -199,6 +218,7 @@ describe("Private Token integration testing", async function () {
       transferAmount
     );
     const encAmountToSend = encryptedValueToEncryptedBalance(encryptedAmount);
+    let encNewBalance;
 
     // Do a few transfers to stage them in pending
     for (let i = 0; i < 2; i++) {
@@ -207,7 +227,6 @@ describe("Private Token integration testing", async function () {
         await privateToken.read.balances([account1.packedPublicKey])
       );
 
-      // TODO adjust the new balance for each loop
       let newClearBalance =
         Number(preClearBalance) -
         (transferAmount + transferProcessFee + transferRelayFee);
@@ -216,7 +235,7 @@ describe("Private Token integration testing", async function () {
         account1.packedPublicKey,
         newClearBalance
       );
-      let encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
+      encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
       await transfer(
         account2, // to
         account1, // from
@@ -228,9 +247,16 @@ describe("Private Token integration testing", async function () {
       );
     }
 
-    // process them
     await processPendingTransfer();
-    console.log("TODO: implement test");
+
+    let balance = (await privateToken.read.balances([
+      account2.packedPublicKey,
+    ])) as EncryptedBalanceArray;
+
+    expect(balance[0] == encNewBalance!.C1x);
+    expect(balance[1] == encNewBalance!.C1y);
+    expect(balance[2] == encNewBalance!.C2x);
+    expect(balance[3] == encNewBalance!.C2y);
   });
 
   it("should do withdrawals", async () => {
@@ -378,10 +404,10 @@ async function transfer(
 
   // if recipient balance == 0, process fee should be 0, per the smart contract
   if (
-    (recipientBalance[0] == 0n,
-    recipientBalance[1] == 0n,
-    recipientBalance[2] == 0n,
-    recipientBalance[3] == 0n)
+    recipientBalance[0] == 0n &&
+    recipientBalance[1] == 0n &&
+    recipientBalance[2] == 0n &&
+    recipientBalance[3] == 0n
   ) {
     processFee = 0;
   }
@@ -470,7 +496,7 @@ async function transfer(
     await privateToken.write.transfer([
       to.packedPublicKey,
       from.packedPublicKey,
-      transferProcessFee,
+      processFee,
       transferRelayFee,
       relayFeeRecipient,
       encryptedAmount,
@@ -496,15 +522,17 @@ async function processPendingTransfer() {
 
   let balanceAfterProcessTransfer = oldEncryptedBalance;
   let encryptedValues = [];
+  // pass indexes to contract to lookup and process
+  let txIndexes = [];
 
-  // TODO: update the starting point to be dynamic
-  for (let i = 1; i <= Number(pendingTransferCount) - 1; i++) {
+  for (let i = 0; i <= Number(pendingTransferCount) - 1; i++) {
     let pendingTransfer = await privateToken.read.allPendingTransfersMapping([
       account2.packedPublicKey,
       BigInt(i),
     ]);
+    txIndexes.push(i);
     // value will be 0 if it has been deleted or never set, skip this iteration
-    if (pendingTransfer[1] == 0) {
+    if (pendingTransfer[0].C1x == BigInt(0)) {
       console.log(
         "pending transfer is empty. It has been deleted or never set."
       );
@@ -518,8 +546,10 @@ async function processPendingTransfer() {
     const C1 = babyjub.add_points(balanceAfterProcessTransfer.C1, amount.C1);
     const C2 = babyjub.add_points(balanceAfterProcessTransfer.C2, amount.C2);
     balanceAfterProcessTransfer = { C1, C2 };
+
+    if (encryptedValues.length == MAX_TXS_TO_PROCESS * 2) break;
   }
-  for (let i = encryptedValues.length; i < 8; i++) {
+  for (let i = encryptedValues.length; i < MAX_TXS_TO_PROCESS * 2; i++) {
     encryptedValues.push({
       x: "0x0",
       y: "0x0",
@@ -568,11 +598,9 @@ async function processPendingTransfer() {
   await runNargoProve("process_pending_transfers", "Test.toml");
   const processTransfersProof = await getProcessTransfersProof();
 
-  console.log("pending transfer count", pendingTransferCount);
-
   await privateToken.write.processPendingTransfer([
     processTransfersProof,
-    [1],
+    txIndexes,
     processFeeRecipient,
     account2.packedPublicKey,
     newBalance,

@@ -1,17 +1,47 @@
-encrypted_values = [ ]
-
 [balance_old_to_encrypted_1]
-x = "0x0"
-y = "0x0"
+x = "0x00"
+y = "0x00"
 
 [balance_old_to_encrypted_2]
-x = "0x0"
-y = "0x0"
+x = "0x00"
+y = "0x00"
 
 [balance_new_to_encrypted_1]
 x = "0x0"
 y = "0x0"
 
 [balance_new_to_encrypted_2]
+x = "0x0"
+y = "0x0"
+
+[[encrypted_values]]
+x = "0x0"
+y = "0x0"
+
+[[encrypted_values]]
+x = "0x0"
+y = "0x0"
+
+[[encrypted_values]]
+x = "0x0"
+y = "0x0"
+
+[[encrypted_values]]
+x = "0x0"
+y = "0x0"
+
+[[encrypted_values]]
+x = "0x0"
+y = "0x0"
+
+[[encrypted_values]]
+x = "0x0"
+y = "0x0"
+
+[[encrypted_values]]
+x = "0x0"
+y = "0x0"
+
+[[encrypted_values]]
 x = "0x0"
 y = "0x0"

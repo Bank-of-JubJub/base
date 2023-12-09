@@ -41,7 +41,7 @@ fn main(
     let unpacked_sender_pub_key = utils::assert_private_key_matches_packed(private_key, sender_pub_key);
 
     // the sender must have sufficient balance
-    assert(value <= balance_old_me_clear);
+    assert(value + process_fee + relay_fee <= balance_old_me_clear);
 
     /* this is to deter potential front-running issue: ref https://crypto.stanford.edu/~buenz/papers/zether.pdf §3.1. 
     Here we adopt a simpler approach than the multistep approach proposed in the Zether paper, for a better UX: 
