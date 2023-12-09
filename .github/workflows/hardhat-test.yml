@@ -1,0 +1,35 @@
+name: Hardhat Tests
+
+on:
+  pull_request:
+    branches: [ master ]
+
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '20' # Specify the Node.js version
+
+    - name: Install Yarn
+      run: npm install -g yarn
+
+    - name: Install Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+
+    - name: Build
+      run: cargo build --release --manifest-path circuits/exponential_elgamal/babygiant_native/Cargo.toml
+
+    - name: Install dependencies and test
+      run: cd hardhat && yarn && yarn test
