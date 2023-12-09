@@ -465,133 +465,133 @@ contract PrivateToken is UsingAccountControllers {
 
     // TODO: update withdraw function to have validational conditional on the type of accounts, 4337, eth signer, multisig
 
-    // function withdraw(
-    //     bytes32 _from,
-    //     address _to,
-    //     uint40 _amount,
-    //     uint40 _relayFee,
-    //     address _relayFeeRecipient,
-    //     bytes memory _withdraw_proof,
-    //     EncryptedAmount memory _newEncryptedAmount
-    // ) public {
-    //     uint256 txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
-    //     address lockedToAddress = lockedTo[_from];
-    //     require(
-    //         lockedToAddress == address(0) || lockedToAddress == msg.sender,
-    //         "account is locked to another account"
-    //     );
-    //     // TODO: fee
-    //     EncryptedAmount memory oldEncryptedAmount = balances[_from];
-    //     // calculate the new total encrypted supply offchain, replace existing value (not an increment)
-    //     balances[_from] = _newEncryptedAmount;
-    //     totalSupply -= _amount;
-    //     if (_relayFee != 0) {
-    //         token.transfer(
-    //             _relayFeeRecipient,
-    //             uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
-    //         );
-    //     }
-    //     uint256 convertedAmount = _amount *
-    //         10 ** (SOURCE_TOKEN_DECIMALS - decimals);
-    //     token.transfer(_to, convertedAmount);
-    //     emit Withdraw(
-    //         _from,
-    //         _to,
-    //         convertedAmount,
-    //         _relayFeeRecipient,
-    //         _relayFee
-    //     );
+    function withdraw(
+        bytes32 _from,
+        address _to,
+        uint40 _amount,
+        uint40 _relayFee,
+        address _relayFeeRecipient,
+        bytes memory _withdraw_proof,
+        EncryptedAmount memory _newEncryptedAmount
+    ) public {
+        uint256 txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
+        address lockedToAddress = lockedTo[_from];
+        require(
+            lockedToAddress == address(0) || lockedToAddress == msg.sender,
+            "account is locked to another account"
+        );
+        // TODO: fee
+        EncryptedAmount memory oldEncryptedAmount = balances[_from];
+        // calculate the new total encrypted supply offchain, replace existing value (not an increment)
+        balances[_from] = _newEncryptedAmount;
+        totalSupply -= _amount;
+        if (_relayFee != 0) {
+            token.transfer(
+                _relayFeeRecipient,
+                uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
+            );
+        }
+        uint256 convertedAmount = _amount *
+            10 ** (SOURCE_TOKEN_DECIMALS - decimals);
+        token.transfer(_to, convertedAmount);
+        emit Withdraw(
+            _from,
+            _to,
+            convertedAmount,
+            _relayFeeRecipient,
+            _relayFee
+        );
 
-    //     // this makes sure the signature cannot be reused
-    //     bytes32 messageHash = keccak256(
-    //         abi.encodePacked(address(this), _from, _to, txNonce)
-    //     );
-    //     uint256 messageHashModulus = uint256(messageHash) % BJJ_PRIME;
+        // this makes sure the signature cannot be reused
+        bytes32 messageHash = keccak256(
+            abi.encodePacked(address(this), _from, _to, txNonce)
+        );
+        uint256 messageHashModulus = uint256(messageHash) % BJJ_PRIME;
 
-    //     if (ethSigner[_from] != address(0)) {
-    //         bytes32[] memory publicInputs = new bytes32[](45);
-    //         publicInputs = _stageCommonWithdrawInputs(
-    //             _from,
-    //             _to,
-    //             _amount,
-    //             _relayFee,
-    //             oldEncryptedAmount,
-    //             _newEncryptedAmount,
-    //             publicInputs,
-    //             txNonce
-    //         );
-    //         publicInputs[publicInputs.length + 1] = bytes32(
-    //             uint256(uint160(ethSigner[_from]))
-    //         );
-    //         publicInputs[publicInputs.length + 2] = bytes32(messageHashModulus);
-    //         require(
-    //             WITHDRAW_ETH_SIGNER_VERIFIER.verify(
-    //                 _withdraw_proof,
-    //                 publicInputs
-    //             ),
-    //             "Withdraw proof is invalid"
-    //         );
-    //     } else if (erc4337Controller[_from] != address(0)) {
-    //         bytes32[] memory publicInputs = new bytes32[](44);
-    //         publicInputs = _stageCommonWithdrawInputs(
-    //             _from,
-    //             _to,
-    //             _amount,
-    //             _relayFee,
-    //             oldEncryptedAmount,
-    //             _newEncryptedAmount,
-    //             publicInputs,
-    //             txNonce
-    //         );
-    //         publicInputs[publicInputs.length + 1] = bytes32(
-    //             uint256(uint160(msg.sender))
-    //         );
-    //         require(
-    //             WITHDRAW_4337_VERIFIER.verify(_withdraw_proof, publicInputs),
-    //             "Withdraw proof is invalid"
-    //         );
-    //     } else if (multisigEthSigners[_from].threshold != 0) {
-    //         bytes32[] memory publicInputs = new bytes32[](55);
-    //         publicInputs = _stageCommonWithdrawInputs(
-    //             _from,
-    //             _to,
-    //             _amount,
-    //             _relayFee,
-    //             oldEncryptedAmount,
-    //             _newEncryptedAmount,
-    //             publicInputs,
-    //             txNonce
-    //         );
-    //         publicInputs = _getAndAddMultisigSigners(
-    //             publicInputs,
-    //             _from,
-    //             messageHashModulus
-    //         );
-    //         require(
-    //             WITHDRAW_MULTISIG_VERIFIER.verify(
-    //                 _withdraw_proof,
-    //                 publicInputs
-    //             ),
-    //             "Withdraw proof is invalid"
-    //         );
-    //     } else {
-    //         bytes32[] memory publicInputs = new bytes32[](43);
-    //         publicInputs = _stageCommonWithdrawInputs(
-    //             _from,
-    //             _to,
-    //             _amount,
-    //             _relayFee,
-    //             oldEncryptedAmount,
-    //             _newEncryptedAmount,
-    //             publicInputs,
-    //             txNonce
-    //         );
-    //         require(
-    //             WITHDRAW_VERIFIER.verify(_withdraw_proof, publicInputs),
-    //             "Withdraw proof is invalid"
-    //         );
-    //     }
-    // }
+        if (ethSigner[_from] != address(0)) {
+            bytes32[] memory publicInputs = new bytes32[](45);
+            publicInputs = _stageCommonWithdrawInputs(
+                _from,
+                _to,
+                _amount,
+                _relayFee,
+                oldEncryptedAmount,
+                _newEncryptedAmount,
+                publicInputs,
+                txNonce
+            );
+            publicInputs[publicInputs.length + 1] = bytes32(
+                uint256(uint160(ethSigner[_from]))
+            );
+            publicInputs[publicInputs.length + 2] = bytes32(messageHashModulus);
+            require(
+                WITHDRAW_ETH_SIGNER_VERIFIER.verify(
+                    _withdraw_proof,
+                    publicInputs
+                ),
+                "Withdraw proof is invalid"
+            );
+        } else if (erc4337Controller[_from] != address(0)) {
+            bytes32[] memory publicInputs = new bytes32[](44);
+            publicInputs = _stageCommonWithdrawInputs(
+                _from,
+                _to,
+                _amount,
+                _relayFee,
+                oldEncryptedAmount,
+                _newEncryptedAmount,
+                publicInputs,
+                txNonce
+            );
+            publicInputs[publicInputs.length + 1] = bytes32(
+                uint256(uint160(msg.sender))
+            );
+            require(
+                WITHDRAW_4337_VERIFIER.verify(_withdraw_proof, publicInputs),
+                "Withdraw proof is invalid"
+            );
+        } else if (multisigEthSigners[_from].threshold != 0) {
+            bytes32[] memory publicInputs = new bytes32[](55);
+            publicInputs = _stageCommonWithdrawInputs(
+                _from,
+                _to,
+                _amount,
+                _relayFee,
+                oldEncryptedAmount,
+                _newEncryptedAmount,
+                publicInputs,
+                txNonce
+            );
+            publicInputs = _getAndAddMultisigSigners(
+                publicInputs,
+                _from,
+                messageHashModulus
+            );
+            require(
+                WITHDRAW_MULTISIG_VERIFIER.verify(
+                    _withdraw_proof,
+                    publicInputs
+                ),
+                "Withdraw proof is invalid"
+            );
+        } else {
+            bytes32[] memory publicInputs = new bytes32[](43);
+            publicInputs = _stageCommonWithdrawInputs(
+                _from,
+                _to,
+                _amount,
+                _relayFee,
+                oldEncryptedAmount,
+                _newEncryptedAmount,
+                publicInputs,
+                txNonce
+            );
+            require(
+                WITHDRAW_VERIFIER.verify(_withdraw_proof, publicInputs),
+                "Withdraw proof is invalid"
+            );
+        }
+    }
 
     /**
      * @notice the circuit processing this takes in a fixes number of pending transactions.
