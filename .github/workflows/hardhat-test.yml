@@ -32,4 +32,4 @@ jobs:
       run: cargo build --release --manifest-path circuits/exponential_elgamal/babygiant_native/Cargo.toml
 
     - name: Install dependencies and test
-      run: cd hardhat && yarn && yarn test
+      run: yarn && cd hardhat && yarn && yarn test
