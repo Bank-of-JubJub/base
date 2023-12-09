@@ -21,12 +21,14 @@ export const withdrawAddress =
 
 export const depositAmount = BigInt(10 * 10 ** 18);
 export const depositProcessFee = 1;
-export const transferProcessFee = 0;
+export const transferProcessFee = 2;
 export const transferRelayFee = 2;
 export const transferAmount = 5;
 
 export const BJJ_PRIME =
   21888242871839275222246405745257275088548364400416034343698204186575808495617n;
+
+export const MAX_TXS_TO_PROCESS = 4;
 
 // 168986485046885582825082387270879151100288537211746581237924789162159767775n
 export const random =
