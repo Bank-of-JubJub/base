@@ -202,6 +202,7 @@ describe("Private Token integration testing", async function () {
 
     // console.log(recipient_balance);
 
+    // TODO: Figure out why the follow errors
     // const recipientDecryptedBalance = await getDecryptedValue(
     //   account2,
     //   recipient_balance
