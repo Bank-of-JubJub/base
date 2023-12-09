@@ -13,30 +13,43 @@ use dep::utils;
 // Code of the circuit used once at construction of the token to prove the correctness of encryption of the minted total supply.
 // In this particular case, we are using a zkSNARK only for its succintness property, not the zk property, because total supply is publicly known.
 // The alternative would have been to reimplement Baby JubJub encryption in the EVM onchain which is very gas-expensive and complex.
-fn main(private_key: Field, 
-        randomness: Field, 
-        /* Balance_old_me_clear is the clear (i.e decrypted) balance of sender 
+fn main(
+    private_key: Field,
+    randomness: Field,
+    /* Balance_old_me_clear is the clear (i.e decrypted) balance of sender 
         this is computed offchain by solving the DLP with babygiant algorithm, 
         after calling bjj_exp_elgamal_decrypt with his private key */
-        balance_old_clear: u40,
-
-        // Public Inputs
-        packed_public_key: pub [Field;32], 
-        nonce: pub Field,
-        value: pub u40, 
-        relay_fee: pub u40,
-        balance_old_encrypted_1: pub Gaffine, 
-        balance_old_encrypted_2: pub Gaffine,
-        balance_new_encrypted_1: pub Gaffine, 
-        balance_new_encrypted_2: pub Gaffine,
-        erc4337_address: pub Field, // passed from contract storage 
-        )
-{
+    balance_old_clear: u40,
+    nonce_priv: Field,
+    // Public Inputs
+    packed_public_key: pub [Field;32],
+    nonce: pub Field,
+    value: pub u40,
+    relay_fee: pub u40,
+    balance_old_encrypted_1: pub Gaffine,
+    balance_old_encrypted_2: pub Gaffine,
+    balance_new_encrypted_1: pub Gaffine,
+    balance_new_encrypted_2: pub Gaffine,
+    erc4337_address: pub Field // passed from contract storage
+) {
     let public_key = utils::assert_private_key_matches_packed(private_key, packed_public_key);
-    utils::assert_correct_clear_balance(private_key, balance_old_clear,balance_old_encrypted_1, balance_old_encrypted_2 );
-    utils::assert_correct_new_balance_withdraw(public_key, balance_old_clear, balance_new_encrypted_1, balance_new_encrypted_2, value, relay_fee, randomness);
+    utils::assert_correct_clear_balance(
+        private_key,
+        balance_old_clear,
+        balance_old_encrypted_1,
+        balance_old_encrypted_2
+    );
+    utils::assert_correct_new_balance_withdraw(
+        public_key,
+        balance_old_clear,
+        balance_new_encrypted_1,
+        balance_new_encrypted_2,
+        value,
+        relay_fee,
+        randomness
+    );
 
-    assert(nonce == nonce); // for clarity and to remove the unused variable warning
+    assert(nonce_priv == nonce); // for clarity and to remove the unused variable warning
 }
 
 #[test]
@@ -71,6 +84,18 @@ fn test_withdraw_4337() {
     // compute in Solidity, keccak(encryped amt) % p
     // TODO: update test to use the correct erc4337_address
     main(
-        private_key, randomness, balance, packed_public_key_Field, nonce, value, relay_fee, old_encrypted_amount.0, old_encrypted_amount.1, new_encrypted_amount.0, new_encrypted_amount.1, address
+        private_key,
+        randomness,
+        balance,
+        nonce,
+        packed_public_key_Field,
+        nonce,
+        value,
+        relay_fee,
+        old_encrypted_amount.0,
+        old_encrypted_amount.1,
+        new_encrypted_amount.0,
+        new_encrypted_amount.1,
+        address
     );
 }

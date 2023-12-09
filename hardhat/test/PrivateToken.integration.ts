@@ -420,6 +420,10 @@ async function transfer(
       value: relayFee,
     },
     {
+      key: "nonce_private",
+      value: toHex(getNonce(encNewBalance)),
+    },
+    {
       key: "nonce",
       value: toHex(getNonce(encNewBalance)),
     },
@@ -493,26 +497,33 @@ async function processPendingTransfer() {
   let balanceAfterProcessTransfer = oldEncryptedBalance;
   let encryptedValues = [];
 
-  console.log(pendingTransferCount);
-
   // TODO: update the starting point to be dynamic
-  for (let i = 1; i <= pendingTransferCount; i++) {
-    console.log("in loop, count: ", i);
+  for (let i = 1; i <= Number(pendingTransferCount) - 1; i++) {
     let pendingTransfer = await privateToken.read.allPendingTransfersMapping([
       account2.packedPublicKey,
       BigInt(i),
     ]);
+    // value will be 0 if it has been deleted or never set, skip this iteration
+    if (pendingTransfer[1] == 0) {
+      console.log(
+        "pending transfer is empty. It has been deleted or never set."
+      );
+      continue;
+    }
     const amount = encryptedBalanceToPointObjects(pendingTransfer[0]);
-    // encryptedValues.push(formatEncryptedValueForToml(amount.C1));
-    // encryptedValues.push(formatEncryptedValueForToml(amount.C2));
 
     encryptedValues.push({ x: toHex(amount.C1.x), y: toHex(amount.C1.y) });
     encryptedValues.push({ x: toHex(amount.C2.x), y: toHex(amount.C2.y) });
 
-    console.log(encryptedValues);
     const C1 = babyjub.add_points(balanceAfterProcessTransfer.C1, amount.C1);
     const C2 = babyjub.add_points(balanceAfterProcessTransfer.C2, amount.C2);
     balanceAfterProcessTransfer = { C1, C2 };
+  }
+  for (let i = encryptedValues.length; i < 8; i++) {
+    encryptedValues.push({
+      x: "0x0",
+      y: "0x0",
+    });
   }
 
   let newBalance = pointObjectsToEncryptedBalance(balanceAfterProcessTransfer);
@@ -521,15 +532,16 @@ async function processPendingTransfer() {
     {
       key: "balance_old_to_encrypted_1",
       value: {
-        x: toHex(oldBalanceArray[0]),
-        y: toHex(oldBalanceArray[1]),
+        // toBytes then toHex to make sure its padded properly
+        x: toHex(toBytes(oldBalanceArray[0])),
+        y: toHex(toBytes(oldBalanceArray[1])),
       },
     },
     {
       key: "balance_old_to_encrypted_2",
       value: {
-        x: toHex(oldBalanceArray[2]),
-        y: toHex(oldBalanceArray[3]),
+        x: toHex(toBytes(oldBalanceArray[2])),
+        y: toHex(toBytes(oldBalanceArray[3])),
       },
     },
     {
@@ -543,7 +555,7 @@ async function processPendingTransfer() {
       key: "balance_new_to_encrypted_2",
       value: {
         x: toHex(newBalance.C2x),
-        y: toHex(newBalance.C2x),
+        y: toHex(newBalance.C2y),
       },
     },
     {
@@ -556,9 +568,11 @@ async function processPendingTransfer() {
   await runNargoProve("process_pending_transfers", "Test.toml");
   const processTransfersProof = await getProcessTransfersProof();
 
+  console.log("pending transfer count", pendingTransferCount);
+
   await privateToken.write.processPendingTransfer([
     processTransfersProof,
-    [Number(pendingTransferCount)],
+    [1],
     processFeeRecipient,
     account2.packedPublicKey,
     newBalance,
@@ -594,6 +608,10 @@ async function withdraw(
     {
       key: "packed_public_key",
       value: Array.from(toBytes(account1.packedPublicKey)),
+    },
+    {
+      key: "nonce_private",
+      value: toHex(getNonce(encNewBalance)),
     },
     {
       key: "nonce",
