@@ -31,5 +31,10 @@ jobs:
     - name: Build
       run: cargo build --release --manifest-path circuits/exponential_elgamal/babygiant_native/Cargo.toml
 
+    - name: Install Nargo
+      uses: noir-lang/noirup@v0.1.2
+      with:
+        toolchain: 0.19.4
+
     - name: Install dependencies and test
       run: yarn && cd hardhat && yarn && yarn test
