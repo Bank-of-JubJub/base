@@ -65,10 +65,10 @@ describe("Private Token integration testing", async function () {
     const { privateToken, token } = await setup();
     privateTokenAddress = privateToken.address;
     tokenAddress = token.address;
+    await babyjub.init();
   });
 
   it("should add a deposit", async () => {
-    await babyjub.init();
     const { privateToken } = await getContracts();
     await deposit();
 
@@ -200,17 +200,14 @@ describe("Private Token integration testing", async function () {
     // check that transfer event was emitted
     // check that nonce was correctly updated
 
-    // console.log(recipient_balance);
-
-    // TODO: Figure out why the follow errors
-    // const recipientDecryptedBalance = await getDecryptedValue(
-    //   account2,
-    //   recipient_balance
-    // );
-    // expect(
-    //   Number(recipientDecryptedBalance) == newClearBalance,
-    //   "decrypted balances should match"
-    // );
+    const recipientDecryptedBalance = await getDecryptedValue(
+      account2,
+      recipient_balance
+    );
+    expect(
+      Number(recipientDecryptedBalance) == transferAmount,
+      "decrypted balances should match"
+    );
   });
 
   it("should process pending transfers", async () => {

@@ -2,9 +2,9 @@ import { Address } from "viem";
 
 export const account2 = {
   packedPublicKey:
-    "0x234d82bce79776db7039e5f91d4d48f658519b058f42c0a6fe42875d55d84f9d" as `0x${string}`,
+    "0x2713781b8a47737cc765d8b1e134c84c6c4764e8d4dbfc30e93a84606fb81d9d" as `0x${string}`,
   privateKey:
-    "0x02028c6b3014f8ef31beb9741a78d35ed5ef24e6c824bec458cdfa612940e5f2" as `0x${string}`,
+    "0x01e6ca61e1d33b85021d0ab4e651d069660c3c7521a3fbafe58dfa95798e884f" as `0x${string}`,
 };
 // old account 2 ("0x0c07999c15d406bc08d7f3f31f62cedbc89ebf3a53ff4d3bf7e2d0dda9314904");
 export const account1 = {
