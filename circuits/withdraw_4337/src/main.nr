@@ -33,6 +33,7 @@ fn main(
     erc4337_address: pub Field // passed from contract storage
 ) {
     let public_key = utils::assert_private_key_matches_packed(private_key, packed_public_key);
+    assert(value + relay_fee <= balance_old_clear);
     utils::assert_correct_clear_balance(
         private_key,
         balance_old_clear,
