@@ -57,6 +57,18 @@ cargo build --release --manifest-path circuits/exponential_elgamal/babygiant_nat
 
 to build the native library for the babygiant decryption algorithm.
 
+Install deps at root:
+
+```bash
+yarn
+```
+
+Generate Solidity Verifier contracts:
+
+```bash
+nargo codegen-verifier --workspace && ./copy_verifiers.sh
+```
+
 Then run:
 
 ```bash
