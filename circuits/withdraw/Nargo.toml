@@ -5,5 +5,5 @@ authors = [""]
 compiler_version = ">=0.17.0"
 
 [dependencies]
-bjj = { tag = "v0.2.0", git = "https://github.com/Bank-of-JubJu/noir-elgamal" }
+bjj = { tag = "v0.2.0", git = "https://github.com/Bank-of-JubJub/noir-elgamal" }
 utils = { path="../utils" }
