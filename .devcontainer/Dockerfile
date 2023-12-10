@@ -12,8 +12,3 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 # Add Cargo to PATH
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# Generate solidity verifiers
-RUN nargo codegen-verifier --workspace && ./copy_verifiers.sh
-
-## Install hardhat deps
-RUN cd hardhat && yarn
