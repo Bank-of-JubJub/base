@@ -13,6 +13,17 @@ jobs:
     - name: Check out repository code
       uses: actions/checkout@v2
 
+    - name: Generate hash of the folder
+      id: hash-folder
+      run: echo "::set-output name=hash::$(find contract -type f -exec md5sum {} + | md5sum | cut -d' ' -f1)"
+
+    - name: Cache Soldity Verifiers
+      uses: actions/cache@v2
+      with:
+        path: path/to/folder
+        key: ${{ runner.os }}-folder-${{ steps.hash-folder.outputs.hash }}
+
+
     - name: Set up Node.js
       uses: actions/setup-node@v2
       with:
@@ -37,7 +48,10 @@ jobs:
         toolchain: 0.19.4
 
     - name: Generate Solidity Verifieres
-      run: nargo codegen-verifier --workspace && ./copy_verifiers.sh
+      run: nargo codegen-verifier --workspace
+
+    - name: Copy verifiers to Hardhat
+      run: ./copy_verifiers.sh
 
     - name: Install dependencies and test
       run: yarn && cd hardhat && yarn && yarn test
