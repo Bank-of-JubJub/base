@@ -36,5 +36,8 @@ jobs:
       with:
         toolchain: 0.19.4
 
+    - name: Generate Solidity Verifieres
+      run: nargo codegen-verifiers --workspace && ./copy_verifiers.sh
+
     - name: Install dependencies and test
       run: yarn && cd hardhat && yarn && yarn test
