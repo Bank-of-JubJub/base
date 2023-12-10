@@ -1,10 +1,6 @@
 import { assert, expect } from "chai";
-import * as fs from "fs";
 import hre from "hardhat";
-import { spawn } from "child_process";
-import BabyJubJubUtils, { PointObject } from "../utils/babyJubJubUtils.ts";
-// import * as proofUtils from "../../utils/proof_utils.js";
-import { loadFixture } from "@nomicfoundation/hardhat-toolbox-viem/network-helpers";
+import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
 import {
   EncryptedBalanceArray,
   EncryptedBalance,
@@ -342,8 +338,8 @@ async function processPendingDeposit(
     old_enc_balance_1: getC1PointFromEncryptedBalance(startingBalance, true),
     old_enc_balance_2: getC1PointFromEncryptedBalance(startingBalance, false),
     new_enc_balance_1: getC1PointFromEncryptedBalance(newBalance, true),
-    new_enc_balance_2: getC1PointFromEncryptedBalance(newBalance, false)
-  }
+    new_enc_balance_2: getC1PointFromEncryptedBalance(newBalance, false),
+  };
 
   if (processDepositProof == undefined) {
     createAndWriteToml("process_pending_deposits", proofInputs);
@@ -412,9 +408,15 @@ async function transfer(
     },
     encrypted_amount_1: getC1PointFromEncryptedBalance(encryptedAmount, true),
     encrypted_amount_2: getC1PointFromEncryptedBalance(encryptedAmount, false),
-    new_balance_encrypted_1: getC1PointFromEncryptedBalance(encNewBalance, true),
-    new_balance_encrypted_2: getC1PointFromEncryptedBalance(encNewBalance, false),
-  }
+    new_balance_encrypted_1: getC1PointFromEncryptedBalance(
+      encNewBalance,
+      true
+    ),
+    new_balance_encrypted_2: getC1PointFromEncryptedBalance(
+      encNewBalance,
+      false
+    ),
+  };
 
   const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
 
@@ -507,7 +509,7 @@ async function processPendingTransfer() {
       y: toHex(newBalance.C2y),
     },
     encrypted_values: encryptedValues,
-  }
+  };
 
   createAndWriteToml("process_pending_transfers", proofInputs);
   await runNargoProve("process_pending_transfers", "Test.toml");
@@ -560,7 +562,7 @@ async function withdraw(
       x: toHex(encNewBalance.C2x),
       y: toHex(encNewBalance.C2y),
     },
-  }
+  };
 
   try {
     createAndWriteToml("withdraw", proofInputs);
