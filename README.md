@@ -60,7 +60,7 @@ to build the native library for the babygiant decryption algorithm.
 Then run:
 
 ```bash
-cd hardhat && yarn test
+cd hardhat && yarn && yarn test
 ```
 
 ![gate count](gate_count.png)
