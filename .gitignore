@@ -13,6 +13,8 @@ utils/crs/
 
 .env
 
+target/
+proofs/
 
 frontend/lib/wagmiGenerated.ts
 
