@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as toml from "@iarna/toml";
 import * as path from "path";
+import { JsonMap } from "@iarna/toml";
 
 export type TomlKeyValue = {
   key: string;
@@ -16,14 +17,9 @@ type TomlValue = string | number | Point | number[] | Point[];
 
 export function createAndWriteToml(
   nargoPackage: string,
-  keyValues: Array<TomlKeyValue>
+  inputs: JsonMap
 ) {
-  let data: any = {};
-  keyValues.map((item) => {
-    data[item.key] = item.value;
-  });
-
-  const tomlContent = toml.stringify(data);
+  const tomlContent = toml.stringify(inputs);
 
   const directoryPath = path.join(__dirname, "circuits", nargoPackage);
   const filePath = path.join(directoryPath, "Test.toml");

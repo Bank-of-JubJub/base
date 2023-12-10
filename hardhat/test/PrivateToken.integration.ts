@@ -335,36 +335,15 @@ async function processPendingDeposit(
   await deposit();
   const { privateToken, token } = await getContracts();
 
-  const proofInputs: Array<TomlKeyValue> = [
-    {
-      key: "randomness",
-      value: random,
-    },
-    {
-      key: "amount_sum",
-      value: Number(convertedAmount) - depositProcessFee,
-    },
-    {
-      key: "packed_public_key",
-      value: Array.from(toBytes(account1.packedPublicKey)),
-    },
-    {
-      key: "old_enc_balance_1",
-      value: getC1PointFromEncryptedBalance(startingBalance, true),
-    },
-    {
-      key: "old_enc_balance_2",
-      value: getC1PointFromEncryptedBalance(startingBalance, false),
-    },
-    {
-      key: "new_enc_balance_1",
-      value: getC1PointFromEncryptedBalance(newBalance, true),
-    },
-    {
-      key: "new_enc_balance_2",
-      value: getC1PointFromEncryptedBalance(newBalance, false),
-    },
-  ];
+  const proofInputs = {
+    randomness: random,
+    amount_sum: Number(convertedAmount) - depositProcessFee,
+    packed_public_key: Array.from(toBytes(account1.packedPublicKey)),
+    old_enc_balance_1: getC1PointFromEncryptedBalance(startingBalance, true),
+    old_enc_balance_2: getC1PointFromEncryptedBalance(startingBalance, false),
+    new_enc_balance_1: getC1PointFromEncryptedBalance(newBalance, true),
+    new_enc_balance_2: getC1PointFromEncryptedBalance(newBalance, false)
+  }
 
   if (processDepositProof == undefined) {
     createAndWriteToml("process_pending_deposits", proofInputs);
@@ -412,86 +391,37 @@ async function transfer(
     processFee = 0;
   }
 
-  const proofInputs: Array<TomlKeyValue> = [
-    {
-      key: "balance_old_me_clear",
-      value: clearOldBalance,
+  const proofInputs = {
+    balance_old_me_clear: clearOldBalance,
+    private_key: account1.privateKey,
+    value: transferAmount,
+    randomness: random,
+    sender_pub_key: Array.from(toBytes(from.packedPublicKey)),
+    recipient_pub_key: Array.from(toBytes(to.packedPublicKey)),
+    process_fee: processFee,
+    relay_fee: relayFee,
+    nonce_private: toHex(getNonce(encNewBalance)),
+    nonce: toHex(getNonce(encNewBalance)),
+    old_balance_encrypted_1: {
+      x: toHex(encOldBalance[0]),
+      y: toHex(encOldBalance[1]),
     },
-    {
-      key: "private_key",
-      value: account1.privateKey,
+    old_balance_encrypted_2: {
+      x: toHex(encOldBalance[2]),
+      y: toHex(encOldBalance[3]),
     },
-    {
-      key: "value",
-      value: transferAmount,
-    },
-    {
-      key: "randomness",
-      value: random,
-    },
-    {
-      key: "sender_pub_key",
-      value: Array.from(toBytes(from.packedPublicKey)),
-    },
-    {
-      key: "recipient_pub_key",
-      value: Array.from(toBytes(to.packedPublicKey)),
-    },
-    {
-      key: "process_fee",
-      value: processFee,
-    },
-    {
-      key: "relay_fee",
-      value: relayFee,
-    },
-    {
-      key: "nonce_private",
-      value: toHex(getNonce(encNewBalance)),
-    },
-    {
-      key: "nonce",
-      value: toHex(getNonce(encNewBalance)),
-    },
-    {
-      key: "old_balance_encrypted_1",
-      value: {
-        x: toHex(encOldBalance[0]),
-        y: toHex(encOldBalance[1]),
-      },
-    },
-    {
-      key: "old_balance_encrypted_2",
-      value: {
-        x: toHex(encOldBalance[2]),
-        y: toHex(encOldBalance[3]),
-      },
-    },
-    {
-      key: "encrypted_amount_1",
-      value: getC1PointFromEncryptedBalance(encryptedAmount, true),
-    },
-    {
-      key: "encrypted_amount_2",
-      value: getC1PointFromEncryptedBalance(encryptedAmount, false),
-    },
-    {
-      key: "new_balance_encrypted_1",
-      value: getC1PointFromEncryptedBalance(encNewBalance, true),
-    },
-    {
-      key: "new_balance_encrypted_2",
-      value: getC1PointFromEncryptedBalance(encNewBalance, false),
-    },
-  ];
+    encrypted_amount_1: getC1PointFromEncryptedBalance(encryptedAmount, true),
+    encrypted_amount_2: getC1PointFromEncryptedBalance(encryptedAmount, false),
+    new_balance_encrypted_1: getC1PointFromEncryptedBalance(encNewBalance, true),
+    new_balance_encrypted_2: getC1PointFromEncryptedBalance(encNewBalance, false),
+  }
+
   const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
 
   try {
-    // if (transferProof == undefined) {
     createAndWriteToml("transfer", proofInputs);
     await runNargoProve("transfer", "Test.toml");
     transferProof = await getTransferProof();
-    // }
 
     await privateToken.write.transfer([
       to.packedPublicKey,
@@ -558,41 +488,26 @@ async function processPendingTransfer() {
 
   let newBalance = pointObjectsToEncryptedBalance(balanceAfterProcessTransfer);
 
-  const proofInputs: Array<TomlKeyValue> = [
-    {
-      key: "balance_old_to_encrypted_1",
-      value: {
-        // toBytes then toHex to make sure its padded properly
-        x: toHex(toBytes(oldBalanceArray[0])),
-        y: toHex(toBytes(oldBalanceArray[1])),
-      },
+  const proofInputs = {
+    balance_old_to_encrypted_1: {
+      // toBytes then toHex to make sure its padded properly
+      x: toHex(toBytes(oldBalanceArray[0])),
+      y: toHex(toBytes(oldBalanceArray[1])),
     },
-    {
-      key: "balance_old_to_encrypted_2",
-      value: {
-        x: toHex(toBytes(oldBalanceArray[2])),
-        y: toHex(toBytes(oldBalanceArray[3])),
-      },
+    balance_old_to_encrypted_2: {
+      x: toHex(toBytes(oldBalanceArray[2])),
+      y: toHex(toBytes(oldBalanceArray[3])),
     },
-    {
-      key: "balance_new_to_encrypted_1",
-      value: {
-        x: toHex(newBalance.C1x),
-        y: toHex(newBalance.C1y),
-      },
+    balance_new_to_encrypted_1: {
+      x: toHex(newBalance.C1x),
+      y: toHex(newBalance.C1y),
     },
-    {
-      key: "balance_new_to_encrypted_2",
-      value: {
-        x: toHex(newBalance.C2x),
-        y: toHex(newBalance.C2y),
-      },
+    balance_new_to_encrypted_2: {
+      x: toHex(newBalance.C2x),
+      y: toHex(newBalance.C2y),
     },
-    {
-      key: "encrypted_values",
-      value: encryptedValues,
-    },
-  ];
+    encrypted_values: encryptedValues,
+  }
 
   createAndWriteToml("process_pending_transfers", proofInputs);
   await runNargoProve("process_pending_transfers", "Test.toml");
@@ -620,74 +535,37 @@ async function withdraw(
   const { privateToken, token } = await getContracts();
   const [walletClient0, walletClient1] = await viem.getWalletClients();
 
-  const proofInputs: Array<TomlKeyValue> = [
-    {
-      key: "private_key",
-      value: account1.privateKey,
+  const proofInputs = {
+    private_key: account1.privateKey,
+    randomness: random,
+    balance_old_clear: Number(clearOldBalance),
+    packed_public_key: Array.from(toBytes(account1.packedPublicKey)),
+    nonce_private: toHex(getNonce(encNewBalance)),
+    nonce: toHex(getNonce(encNewBalance)),
+    value: amount,
+    relay_fee: relayFee,
+    balance_old_encrypted_1: {
+      x: toHex(encOldBalance.C1x),
+      y: toHex(encOldBalance.C1y),
     },
-    {
-      key: "randomness",
-      value: random,
+    balance_old_encrypted_2: {
+      x: toHex(encOldBalance.C2x),
+      y: toHex(encOldBalance.C2y),
     },
-    {
-      key: "balance_old_clear",
-      value: Number(clearOldBalance),
+    balance_new_encrypted_1: {
+      x: toHex(encNewBalance.C1x),
+      y: toHex(encNewBalance.C1y),
     },
-    {
-      key: "packed_public_key",
-      value: Array.from(toBytes(account1.packedPublicKey)),
+    balance_new_encrypted_2: {
+      x: toHex(encNewBalance.C2x),
+      y: toHex(encNewBalance.C2y),
     },
-    {
-      key: "nonce_private",
-      value: toHex(getNonce(encNewBalance)),
-    },
-    {
-      key: "nonce",
-      value: toHex(getNonce(encNewBalance)),
-    },
-    {
-      key: "value",
-      value: amount,
-    },
-    {
-      key: "relay_fee",
-      value: relayFee,
-    },
-    {
-      key: "balance_old_encrypted_1",
-      value: {
-        x: toHex(encOldBalance.C1x),
-        y: toHex(encOldBalance.C1y),
-      },
-    },
-    {
-      key: "balance_old_encrypted_2",
-      value: {
-        x: toHex(encOldBalance.C2x),
-        y: toHex(encOldBalance.C2y),
-      },
-    },
-    {
-      key: "balance_new_encrypted_1",
-      value: {
-        x: toHex(encNewBalance.C1x),
-        y: toHex(encNewBalance.C1y),
-      },
-    },
-    {
-      key: "balance_new_encrypted_2",
-      value: {
-        x: toHex(encNewBalance.C2x),
-        y: toHex(encNewBalance.C2y),
-      },
-    },
-  ];
+  }
+
   try {
-    // if (withdrawProof == undefined) {
     createAndWriteToml("withdraw", proofInputs);
     await runNargoProve("withdraw", "Test.toml");
     const withdrawProof = await getWithdrawProof();
-    // }
 
     await privateToken.write.withdraw([
       from.packedPublicKey,
