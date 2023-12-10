@@ -4,7 +4,6 @@ RUN apt update && apt install -y curl bash git tar gzip libc++-dev build-essenti
 RUN curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
 ENV PATH="/root/.nargo/bin:$PATH"
 RUN noirup
-ENTRYPOINT ["nargo"]
 
 # Install Rust
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
