@@ -1,6 +1,7 @@
 import hre from "hardhat";
 import dotenv from "dotenv";
 import { readDeploymentData, saveDeploymentData } from "./saveDeploy";
+import { delay } from "../utils/utils";
 dotenv.config({ path: "../.env" });
 
 async function main() {
@@ -194,8 +195,4 @@ async function deployAndSave(name: string, constructorArgs: any[]) {
   });
 
   return await hre.viem.getContractAt(name, receipt.contractAddress!);
-}
-
-function delay(time: number) {
-  return new Promise((resolve) => setTimeout(resolve, time));
 }
