@@ -6,7 +6,7 @@ import {
   EncryptedBalance,
   BojAccount,
 } from "../utils/types.ts";
-import { runNargoProve } from "../test/generateNargoProof";
+import { runNargoProve } from "../utils/generateNargoProof.ts";
 import {
   account1,
   account2,
@@ -119,9 +119,7 @@ describe("Private Token integration testing", async function () {
       balanceAfterProcessDeposit
     );
 
-    let balance = (await privateToken.read.balances([
-      account1.packedPublicKey,
-    ])) as EncryptedBalanceArray;
+    let balance = await privateToken.read.balances([account1.packedPublicKey]);
 
     expect(balance[0] == balanceAfterProcessDeposit.C1x);
     expect(balance[1] == balanceAfterProcessDeposit.C1y);
@@ -493,12 +491,12 @@ async function processPendingTransfer() {
   const proofInputs = {
     balance_old_to_encrypted_1: {
       // toBytes then toHex to make sure its padded properly
-      x: toHex(toBytes(oldBalanceArray[0])),
-      y: toHex(toBytes(oldBalanceArray[1])),
+      x: toHex(toBytes(oldBalanceArray[0]), { size: 32 }),
+      y: toHex(toBytes(oldBalanceArray[1]), { size: 32 }),
     },
     balance_old_to_encrypted_2: {
-      x: toHex(toBytes(oldBalanceArray[2])),
-      y: toHex(toBytes(oldBalanceArray[3])),
+      x: toHex(toBytes(oldBalanceArray[2]), { size: 32 }),
+      y: toHex(toBytes(oldBalanceArray[3]), { size: 32 }),
     },
     balance_new_to_encrypted_1: {
       x: toHex(newBalance.C1x),
