@@ -10,6 +10,4 @@ types
 cache
 artifacts
 
-deployments
-
 yarn-error.log

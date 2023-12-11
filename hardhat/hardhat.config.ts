@@ -10,7 +10,6 @@ module.exports = {
   solidity: {
     version: "0.8.20",
     settings: {
-      //viaIR: true,
       optimizer: {
         enabled: true,
         runs: 50000,
@@ -37,13 +36,25 @@ module.exports = {
     sepolia: {
       chainId: 11155111,
       url: process.env.SEPOLIA_RPC_URL || "",
-      accounts: [process.env.TESTING_PRIVATE_KEY || "0".repeat(64)],
+      accounts: [process.env.PRIVATE_KEY || "0".repeat(64)],
       saveDeployments: true,
       verify: {
         etherscan: {
           apiKey: process.env.ETHERSCAN_API_KEY || "",
         },
       },
+    },
+    arbitrumSepolia: {
+      chainId: 421614,
+      url: process.env.ARBITRUM_SEPOLIA_RPC_URL || "",
+      accounts: [process.env.PRIVATE_KEY || "0".repeat(64)],
+      saveDeployments: true,
+    },
+    optimismSepolia: {
+      chainId: 11155420,
+      url: process.env.OPTIMISM_SEPOLIA_RPC_URL || "",
+      accounts: [process.env.PRIVATE_KEY || "0".repeat(64)],
+      saveDeployments: true,
     },
   },
 
