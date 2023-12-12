@@ -56,6 +56,11 @@ module.exports = {
       accounts: [process.env.PRIVATE_KEY || "0".repeat(64)],
       saveDeployments: true,
     },
+    chaidochain: {
+      chainId: 10200,
+      url: "https://rpc.chiadochain.net",
+      accounts: [process.env.PRIVATE_KEY || "0".repeat(64)],
+    },
   },
 
   namedAccounts: {

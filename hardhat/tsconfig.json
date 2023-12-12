@@ -15,7 +15,8 @@
     "./test/*",
     "./artifacts",
     "../utils",
-    "../circuits/"
+    "../circuits/",
+    "utils/generateNargoProof.ts"
   ],
   "files": ["./hardhat.config.ts"]
 }

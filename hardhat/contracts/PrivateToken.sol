@@ -79,6 +79,8 @@ contract PrivateToken is UsingAccountControllers {
 
     IERC20 token;
     uint256 public SOURCE_TOKEN_DECIMALS;
+
+    //TODO: allow this to be set in the constructor
     uint8 public immutable decimals = 2;
 
     // packed public key => encrypted balance
@@ -512,7 +514,6 @@ contract PrivateToken is UsingAccountControllers {
             bytes32[] memory publicInputs = new bytes32[](45);
             publicInputs = _stageCommonWithdrawInputs(
                 _from,
-                _to,
                 _amount,
                 _relayFee,
                 oldEncryptedAmount,
@@ -535,7 +536,6 @@ contract PrivateToken is UsingAccountControllers {
             bytes32[] memory publicInputs = new bytes32[](44);
             publicInputs = _stageCommonWithdrawInputs(
                 _from,
-                _to,
                 _amount,
                 _relayFee,
                 oldEncryptedAmount,
@@ -554,7 +554,6 @@ contract PrivateToken is UsingAccountControllers {
             bytes32[] memory publicInputs = new bytes32[](55);
             publicInputs = _stageCommonWithdrawInputs(
                 _from,
-                _to,
                 _amount,
                 _relayFee,
                 oldEncryptedAmount,
@@ -578,7 +577,6 @@ contract PrivateToken is UsingAccountControllers {
             bytes32[] memory publicInputs = new bytes32[](43);
             publicInputs = _stageCommonWithdrawInputs(
                 _from,
-                _to,
                 _amount,
                 _relayFee,
                 oldEncryptedAmount,
@@ -883,7 +881,6 @@ contract PrivateToken is UsingAccountControllers {
 
     function _stageCommonWithdrawInputs(
         bytes32 _from,
-        address _to,
         uint40 _amount,
         uint40 _relayFee,
         EncryptedAmount memory _oldEncryptedAmount,
@@ -914,7 +911,7 @@ contract PrivateToken is UsingAccountControllers {
         bytes32[] memory publicInputs,
         bytes32 _from,
         uint256 messageHashModulus
-    ) internal returns (bytes32[] memory) {
+    ) internal view returns (bytes32[] memory) {
         uint256 length = publicInputs.length;
         address[] memory signers = multisigEthSigners[_from].ethSigners;
         for (uint8 i = 0; i < signers.length; i++) {

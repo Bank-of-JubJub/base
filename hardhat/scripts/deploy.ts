@@ -152,6 +152,9 @@ main().catch((error) => {
 async function deployAndSave(name: string, constructorArgs: any[]) {
   const publicClient = await hre.viem.getPublicClient();
   const [deployer] = await hre.viem.getWalletClients();
+  const count = await publicClient.getTransactionCount({
+    address: deployer.account.address,
+  });
 
   let contractName = name;
   if (name.startsWith("contracts/")) {
@@ -181,7 +184,7 @@ async function deployAndSave(name: string, constructorArgs: any[]) {
 
   console.log(`${name} contract deployed`);
 
-  await delay(10000);
+  await delay(20000);
 
   const receipt = await publicClient.getTransactionReceipt({ hash });
 
