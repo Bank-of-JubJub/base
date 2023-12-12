@@ -101,9 +101,13 @@ describe("Private Token integration testing", async function () {
 
     const processAmount = 999;
 
-    const startingAmount = getEncryptedValue(account1.packedPublicKey, 0);
+    const startingAmount = getEncryptedValue(account1.packedPublicKey, 0, true);
     encryptedZero = encryptedValueToEncryptedBalance(startingAmount);
-    const amount = getEncryptedValue(account1.packedPublicKey, processAmount);
+    const amount = getEncryptedValue(
+      account1.packedPublicKey,
+      processAmount,
+      true
+    );
     const C1 = babyjub.add_points(startingAmount.C1, amount.C1);
     const C2 = babyjub.add_points(startingAmount.C2, amount.C2);
     balanceAfterProcessDeposit = {
@@ -155,12 +159,14 @@ describe("Private Token integration testing", async function () {
 
     const encryptedAmount = getEncryptedValue(
       account2.packedPublicKey,
-      transferAmount
+      transferAmount,
+      true
     );
     const encAmountToSend = encryptedValueToEncryptedBalance(encryptedAmount);
     const unfmtEncNewBalance = getEncryptedValue(
       account1.packedPublicKey,
-      newClearBalance
+      newClearBalance,
+      true
     );
     const encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
 
@@ -209,7 +215,8 @@ describe("Private Token integration testing", async function () {
 
     const encryptedAmount = getEncryptedValue(
       account2.packedPublicKey,
-      transferAmount
+      transferAmount,
+      true
     );
     const encAmountToSend = encryptedValueToEncryptedBalance(encryptedAmount);
     let encNewBalance;
@@ -227,7 +234,8 @@ describe("Private Token integration testing", async function () {
 
       let unfmtEncNewBalance = getEncryptedValue(
         account1.packedPublicKey,
-        newClearBalance
+        newClearBalance,
+        true
       );
       encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
       await transfer(
@@ -274,7 +282,8 @@ describe("Private Token integration testing", async function () {
 
     const unfmtEncNewBalance = getEncryptedValue(
       account1.packedPublicKey,
-      newBalanceClear
+      newBalanceClear,
+      true
     );
     const encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
 
