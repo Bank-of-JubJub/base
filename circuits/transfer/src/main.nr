@@ -22,9 +22,11 @@ fn main(
         after calling bjj_exp_elgamal_decrypt with his private key */
     balance_old_me_clear: u40,
     nonce_private: Field,
+    sender_pub_key: [u8; 32],
+    recipient_pub_key: [u8; 32],
     // Public inputs
-    sender_pub_key: pub [Field; 32],
-    recipient_pub_key: pub [Field; 32],
+    sender_pub_key_modulus: Field,
+    recipient_pub_key_modulus: Field,
     // account_address: pub Field, // can be removed with packed public keys
     process_fee: pub u40,
     relay_fee: pub u40,
@@ -39,6 +41,9 @@ fn main(
     assert(nonce == nonce_private);
 
     let unpacked_sender_pub_key = utils::assert_private_key_matches_packed(private_key, sender_pub_key);
+
+    assert(sender_pub_key_modulus == bjj::from_rpr_le(sender_pub_key));
+    assert(recipient_pub_key_modulus == bjj::from_rpr_le(recipient_pub_key));
 
     // the sender must have sufficient balance
     assert(value + relay_fee + process_fee <= balance_old_me_clear);
@@ -98,6 +103,7 @@ fn test_transfer() {
         0x5a, 0x58, 0x57, 0x0b, 0x90, 0x66, 0x14, 0x99, 0xf8, 0xa6, 0xa6, 0x69, 0x6f, 0xf4, 0x15,
         0x6b, 0xaa
     ];
+    let sender_pub_key_modulus = bjj::from_rpr_le(packed_sender_pub_key);
 
     //generated via circomlibjs
     // let recipient_pub_key: Gaffine = bjj::priv_to_pub_key(2397698694665525209403000085013646741088197704326090841842743616643093564368); // bjj_priv_to_pub_key(private_key_to)
@@ -106,6 +112,7 @@ fn test_transfer() {
         0xdb, 0xc8, 0x9e, 0xbf, 0x3a, 0x53, 0xff, 0x4d, 0x3b, 0xf7, 0xe2, 0xd0, 0xdd, 0xa9, 0x31,
         0x49, 0x04
     ];
+    let recipient_pub_key_modulus = bjj::from_rpr_le(packed_recipient_pub_key);
 
     let process_fee: u40 = 1;
     let relay_fee: u40 = 2;
@@ -152,6 +159,8 @@ fn test_transfer() {
         nonce,
         packed_sender_pub_key,
         packed_recipient_pub_key,
+        sender_pub_key_modulus,
+        recipient_pub_key_modulus,
         process_fee,
         relay_fee,
         nonce,

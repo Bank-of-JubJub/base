@@ -37,16 +37,9 @@ pub fn assert_correct_clear_balance(private_key: Field, balance_old_me_clear: u4
     assert((decoded_value.x == embedded_balance_old_me_clear.x) & (decoded_value.y == embedded_balance_old_me_clear.y));
 }
 
-pub fn assert_private_key_matches_packed(private_key: Field, packed_key: [Field;32]) -> Gaffine {
+pub fn assert_private_key_matches_packed(private_key: Field, packed_key: [u8;32]) -> Gaffine {
     let computed_public_key = bjj::priv_to_pub_key(private_key);
-    let mut sender_pub_key_u8: [u8;32] = [0; 32];
-
-    // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
-    for i in 0..32 {
-        sender_pub_key_u8[i] = packed_key[i] as u8;
-    }
-
-    let unpacked_sender_pub_key = bjj::unpack_point(sender_pub_key_u8);
+    let unpacked_sender_pub_key = bjj::unpack_point(packed_key);
     assert(computed_public_key.x == unpacked_sender_pub_key.x);
     assert(computed_public_key.y == unpacked_sender_pub_key.y);
     unpacked_sender_pub_key
@@ -62,17 +55,11 @@ pub fn assert_correct_new_balance_transfer(public_key: Gaffine, balance_old_clea
     assert((new_balance_encrypted_computed.0.x == balance_new_encrypted_1.x) & (new_balance_encrypted_computed.0.y == balance_new_encrypted_1.y) & (new_balance_encrypted_computed.1.x == balance_new_encrypted_2.x) & (new_balance_encrypted_computed.1.y == balance_new_encrypted_2.y));
 }
 
-pub fn assert_correct_recipient_balance(recipient_pub_key: [Field;32], value: u40, randomness:Field, encrypted_amount_1: Gaffine, encrypted_amount_2:Gaffine){
-     let mut recipient_pub_key_u8: [u8;32] = [0; 32];
-    // for some reason nargo 0.17 and 0.18 is not able to verify the circuit without this type conversion
-    for i in 0..32 {
-        recipient_pub_key_u8[i] = recipient_pub_key[i] as u8;
-    }
-    let unpacked_recipient_pub_key = bjj::unpack_point(recipient_pub_key_u8);
+pub fn assert_correct_recipient_balance(recipient_pub_key: [u8;32], value: u40, randomness:Field, encrypted_amount_1: Gaffine, encrypted_amount_2:Gaffine){
+    let unpacked_recipient_pub_key = bjj::unpack_point(recipient_pub_key);
     // // check that the amount being transferred is correctly encrypted
     let encrypted_amount_computed = bjj::exp_elgamal_encrypt(unpacked_recipient_pub_key, value, randomness);
     assert((encrypted_amount_computed.0.x == encrypted_amount_1.x) & (encrypted_amount_computed.0.y == encrypted_amount_1.y) & (encrypted_amount_computed.1.x == encrypted_amount_2.x) & (encrypted_amount_computed.1.y == encrypted_amount_2.y));
-
 }
 
 // #[test]
