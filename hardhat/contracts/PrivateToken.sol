@@ -355,23 +355,25 @@ contract PrivateToken is UsingAccountControllers {
             abi.encodePacked(address(this), _from, _to, local.txNonce)
         );
         uint256 messageHashModulus = uint256(messageHash) % BJJ_PRIME;
+        uint256 toModulus = uint256(_to) % BJJ_PRIME;
+        uint256 fromModulus = uint256(_from) % BJJ_PRIME;
 
         if (ethSigner[_from] != address(0)) {
             // use the transfer_eth_signer circuit
-            local.publicInputs = new bytes32[](81);
+            local.publicInputs = new bytes32[](18);
             local = _stageCommonTransferInputs(
                 local,
-                _from,
-                _to,
+                fromModulus,
+                toModulus,
                 _processFee,
                 _relayFee,
                 _amountToSend,
                 _senderNewBalance
             );
-            local.publicInputs[79] = bytes32(
+            local.publicInputs[16] = bytes32(
                 uint256(uint160(ethSigner[_from]))
             );
-            local.publicInputs[80] = bytes32(messageHashModulus);
+            local.publicInputs[17] = bytes32(messageHashModulus);
 
             require(
                 TRANSFER_ETH_SIGNER_VERIFIER.verify(
@@ -381,18 +383,18 @@ contract PrivateToken is UsingAccountControllers {
                 "Eth signer transfer proof is invalid"
             );
         } else if (erc4337Controller[_from] != address(0)) {
-            local.publicInputs = new bytes32[](80);
+            local.publicInputs = new bytes32[](17);
             local = _stageCommonTransferInputs(
                 local,
-                _from,
-                _to,
+                fromModulus,
+                toModulus,
                 _processFee,
                 _relayFee,
                 _amountToSend,
                 _senderNewBalance
             );
             // msg.sender should be 4337 account address
-            local.publicInputs[79] = bytes32(uint256(uint160(msg.sender)));
+            local.publicInputs[16] = bytes32(uint256(uint160(msg.sender)));
 
             require(
                 TRANSFER_4337_VERIFIER.verify(
@@ -402,11 +404,11 @@ contract PrivateToken is UsingAccountControllers {
                 "4337 Transfer proof is invalid"
             );
         } else if (multisigEthSigners[_from].threshold != 0) {
-            local.publicInputs = new bytes32[](90);
+            local.publicInputs = new bytes32[](28);
             local = _stageCommonTransferInputs(
                 local,
-                _from,
-                _to,
+                fromModulus,
+                toModulus,
                 _processFee,
                 _relayFee,
                 _amountToSend,
@@ -418,13 +420,17 @@ contract PrivateToken is UsingAccountControllers {
                     uint256(uint160(signers[i]))
                 );
             }
-            local.publicInputs[79 + signers.length] = bytes32(
-                uint256(multisigEthSigners[_from].threshold)
-            );
-            local.publicInputs[79 + signers.length + 1] = bytes32(
+            // local.publicInputs[79 + signers.length] = bytes32(
+            //     uint256(multisigEthSigners[_from].threshold)
+            // );
+            // local.publicInputs[79 + signers.length + 1] = bytes32(
+            //     messageHashModulus
+            // );
+            local.publicInputs = _getAndAddMultisigSigners(
+                local.publicInputs,
+                _from,
                 messageHashModulus
             );
-
             require(
                 TRANSFER_MULTISIG_VERIFIER.verify(
                     _proof_transfer,
@@ -436,8 +442,8 @@ contract PrivateToken is UsingAccountControllers {
             local.publicInputs = new bytes32[](79);
             local = _stageCommonTransferInputs(
                 local,
-                _from,
-                _to,
+                fromModulus,
+                toModulus,
                 _processFee,
                 _relayFee,
                 _amountToSend,
@@ -509,11 +515,11 @@ contract PrivateToken is UsingAccountControllers {
             abi.encodePacked(address(this), _from, _to, txNonce)
         );
         uint256 messageHashModulus = uint256(messageHash) % BJJ_PRIME;
-
+        uint256 fromModulus = uint256(_from) % BJJ_PRIME;
         if (ethSigner[_from] != address(0)) {
-            bytes32[] memory publicInputs = new bytes32[](45);
+            bytes32[] memory publicInputs = new bytes32[](14);
             publicInputs = _stageCommonWithdrawInputs(
-                _from,
+                fromModulus,
                 _amount,
                 _relayFee,
                 oldEncryptedAmount,
@@ -533,9 +539,9 @@ contract PrivateToken is UsingAccountControllers {
                 "Withdraw proof is invalid"
             );
         } else if (erc4337Controller[_from] != address(0)) {
-            bytes32[] memory publicInputs = new bytes32[](44);
+            bytes32[] memory publicInputs = new bytes32[](13);
             publicInputs = _stageCommonWithdrawInputs(
-                _from,
+                fromModulus,
                 _amount,
                 _relayFee,
                 oldEncryptedAmount,
@@ -551,9 +557,9 @@ contract PrivateToken is UsingAccountControllers {
                 "Withdraw proof is invalid"
             );
         } else if (multisigEthSigners[_from].threshold != 0) {
-            bytes32[] memory publicInputs = new bytes32[](55);
+            bytes32[] memory publicInputs = new bytes32[](22);
             publicInputs = _stageCommonWithdrawInputs(
-                _from,
+                fromModulus,
                 _amount,
                 _relayFee,
                 oldEncryptedAmount,
@@ -574,9 +580,9 @@ contract PrivateToken is UsingAccountControllers {
                 "Withdraw proof is invalid"
             );
         } else {
-            bytes32[] memory publicInputs = new bytes32[](43);
+            bytes32[] memory publicInputs = new bytes32[](12);
             publicInputs = _stageCommonWithdrawInputs(
-                _from,
+                fromModulus,
                 _amount,
                 _relayFee,
                 oldEncryptedAmount,
@@ -642,21 +648,23 @@ contract PrivateToken is UsingAccountControllers {
             totalFees += userPendingDepositsArray[i].fee;
         }
 
-        bytes32[] memory publicInputs = new bytes32[](41);
-        for (uint8 i = 0; i < 32; i++) {
-            // Noir takes an array of 32 bytes32 as public inputs
-            bytes1 aByte = bytes1((_recipient << (i * 8)));
-            publicInputs[i] = bytes32(uint256(uint8(aByte)));
-        }
-        publicInputs[32] = bytes32(totalAmount);
-        publicInputs[33] = bytes32(oldBalance.C1x);
-        publicInputs[34] = bytes32(oldBalance.C1y);
-        publicInputs[35] = bytes32(oldBalance.C2x);
-        publicInputs[36] = bytes32(oldBalance.C2y);
-        publicInputs[37] = bytes32(_newBalance.C1x);
-        publicInputs[38] = bytes32(_newBalance.C1y);
-        publicInputs[39] = bytes32(_newBalance.C2x);
-        publicInputs[40] = bytes32(_newBalance.C2y);
+        uint256 recipientModulus = uint256(_recipient) % BJJ_PRIME;
+        bytes32[] memory publicInputs = new bytes32[](10);
+        // for (uint8 i = 0; i < 32; i++) {
+        //     // Noir takes an array of 32 bytes32 as public inputs
+        //     bytes1 aByte = bytes1((_recipient << (i * 8)));
+        //     publicInputs[i] = bytes32(uint256(uint8(aByte)));
+        // }
+        publicInputs[0] = bytes32(recipientModulus);
+        publicInputs[1] = bytes32(totalAmount);
+        publicInputs[2] = bytes32(oldBalance.C1x);
+        publicInputs[3] = bytes32(oldBalance.C1y);
+        publicInputs[4] = bytes32(oldBalance.C2x);
+        publicInputs[5] = bytes32(oldBalance.C2y);
+        publicInputs[6] = bytes32(_newBalance.C1x);
+        publicInputs[7] = bytes32(_newBalance.C1y);
+        publicInputs[8] = bytes32(_newBalance.C2x);
+        publicInputs[9] = bytes32(_newBalance.C2y);
 
         require(
             PROCESS_DEPOSIT_VERIFIER.verify(_proof, publicInputs),
@@ -844,43 +852,45 @@ contract PrivateToken is UsingAccountControllers {
 
     function _stageCommonTransferInputs(
         transferLocals memory local,
-        bytes32 _from,
-        bytes32 _to,
+        uint256 _fromModulus,
+        uint256 _toModulus,
         uint40 _processFee,
         uint40 _relayFee,
         EncryptedAmount memory _amountToSend,
         EncryptedAmount memory _senderNewBalance
     ) internal pure returns (transferLocals memory) {
-        for (uint8 i = 0; i < 32; i++) {
-            // Noir takes an array of 32 bytes32 as public inputs
-            bytes1 aByte = bytes1((_from << (i * 8)));
-            local.publicInputs[i] = bytes32(uint256(uint8(aByte)));
-        }
-        for (uint8 i = 0; i < 32; i++) {
-            bytes1 aByte = bytes1((_to << (i * 8)));
-            local.publicInputs[i + 32] = bytes32(uint256(uint8(aByte)));
-        }
-        local.publicInputs[64] = bytes32(uint256(_processFee));
-        local.publicInputs[65] = bytes32(uint256(_relayFee));
+        // for (uint8 i = 0; i < 32; i++) {
+        //     // Noir takes an array of 32 bytes32 as public inputs
+        //     bytes1 aByte = bytes1((_from << (i * 8)));
+        //     local.publicInputs[i] = bytes32(uint256(uint8(aByte)));
+        // }
+        // for (uint8 i = 0; i < 32; i++) {
+        //     bytes1 aByte = bytes1((_to << (i * 8)));
+        //     local.publicInputs[i + 32] = bytes32(uint256(uint8(aByte)));
+        // }
+        local.publicInputs[0] = bytes32(_fromModulus);
+        local.publicInputs[1] = bytes32(_toModulus);
+        local.publicInputs[2] = bytes32(uint256(_processFee));
+        local.publicInputs[3] = bytes32(uint256(_relayFee));
         // this nonce should be unique because it uses the randomness calculated in the encrypted balance
-        local.publicInputs[66] = bytes32(local.txNonce);
-        local.publicInputs[67] = bytes32(local.oldBalance.C1x);
-        local.publicInputs[68] = bytes32(local.oldBalance.C1y);
-        local.publicInputs[69] = bytes32(local.oldBalance.C2x);
-        local.publicInputs[70] = bytes32(local.oldBalance.C2y);
-        local.publicInputs[71] = bytes32(_amountToSend.C1x);
-        local.publicInputs[72] = bytes32(_amountToSend.C1y);
-        local.publicInputs[73] = bytes32(_amountToSend.C2x);
-        local.publicInputs[74] = bytes32(_amountToSend.C2y);
-        local.publicInputs[75] = bytes32(_senderNewBalance.C1x);
-        local.publicInputs[76] = bytes32(_senderNewBalance.C1y);
-        local.publicInputs[77] = bytes32(_senderNewBalance.C2x);
-        local.publicInputs[78] = bytes32(_senderNewBalance.C2y);
+        local.publicInputs[4] = bytes32(local.txNonce);
+        local.publicInputs[5] = bytes32(local.oldBalance.C1x);
+        local.publicInputs[6] = bytes32(local.oldBalance.C1y);
+        local.publicInputs[7] = bytes32(local.oldBalance.C2x);
+        local.publicInputs[8] = bytes32(local.oldBalance.C2y);
+        local.publicInputs[9] = bytes32(_amountToSend.C1x);
+        local.publicInputs[10] = bytes32(_amountToSend.C1y);
+        local.publicInputs[11] = bytes32(_amountToSend.C2x);
+        local.publicInputs[12] = bytes32(_amountToSend.C2y);
+        local.publicInputs[13] = bytes32(_senderNewBalance.C1x);
+        local.publicInputs[14] = bytes32(_senderNewBalance.C1y);
+        local.publicInputs[15] = bytes32(_senderNewBalance.C2x);
+        local.publicInputs[16] = bytes32(_senderNewBalance.C2y);
         return local;
     }
 
     function _stageCommonWithdrawInputs(
-        bytes32 _from,
+        uint256 _fromModulus,
         uint40 _amount,
         uint40 _relayFee,
         EncryptedAmount memory _oldEncryptedAmount,
@@ -888,22 +898,23 @@ contract PrivateToken is UsingAccountControllers {
         bytes32[] memory publicInputs,
         uint256 _txNonce
     ) internal pure returns (bytes32[] memory) {
-        for (uint8 i = 0; i < 32; i++) {
-            // Noir takes an array of 32 bytes32 as public inputs
-            bytes1 aByte = bytes1((_from << (i * 8)));
-            publicInputs[i] = bytes32(uint256(uint8(aByte)));
-        }
-        publicInputs[32] = bytes32(_txNonce);
-        publicInputs[33] = bytes32(uint256(_amount));
-        publicInputs[34] = bytes32(uint256(_relayFee));
-        publicInputs[35] = bytes32(_oldEncryptedAmount.C1x);
-        publicInputs[36] = bytes32(_oldEncryptedAmount.C1y);
-        publicInputs[37] = bytes32(_oldEncryptedAmount.C2x);
-        publicInputs[38] = bytes32(_oldEncryptedAmount.C2y);
-        publicInputs[39] = bytes32(_newEncryptedAmount.C1x);
-        publicInputs[40] = bytes32(_newEncryptedAmount.C1y);
-        publicInputs[41] = bytes32(_newEncryptedAmount.C2x);
-        publicInputs[42] = bytes32(_newEncryptedAmount.C2y);
+        // for (uint8 i = 0; i < 32; i++) {
+        //     // Noir takes an array of 32 bytes32 as public inputs
+        //     bytes1 aByte = bytes1((_from << (i * 8)));
+        //     publicInputs[i] = bytes32(uint256(uint8(aByte)));
+        // }
+        publicInputs[0] = bytes32(_fromModulus);
+        publicInputs[1] = bytes32(_txNonce);
+        publicInputs[2] = bytes32(uint256(_amount));
+        publicInputs[3] = bytes32(uint256(_relayFee));
+        publicInputs[4] = bytes32(_oldEncryptedAmount.C1x);
+        publicInputs[5] = bytes32(_oldEncryptedAmount.C1y);
+        publicInputs[6] = bytes32(_oldEncryptedAmount.C2x);
+        publicInputs[7] = bytes32(_oldEncryptedAmount.C2y);
+        publicInputs[8] = bytes32(_newEncryptedAmount.C1x);
+        publicInputs[9] = bytes32(_newEncryptedAmount.C1y);
+        publicInputs[10] = bytes32(_newEncryptedAmount.C2x);
+        publicInputs[11] = bytes32(_newEncryptedAmount.C2y);
         return publicInputs;
     }
 
