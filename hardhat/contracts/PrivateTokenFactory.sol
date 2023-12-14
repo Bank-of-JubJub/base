@@ -23,9 +23,7 @@ contract PrivateTokenFactory {
     address public withdrawEthSignerVerifier;
     address public withdrawMultisigVerifier;
     address public lockVerifier;
-    address public addEthSignerVerifier;
-    address public changeEthSignerVerifier;
-    address public changeMultisigEthSignerVerifier;
+    address public accountController;
     PrivateToken public newToken;
     event Deployed(address indexed token);
 
@@ -35,18 +33,14 @@ contract PrivateTokenFactory {
         address _transferVerifier,
         address _withdrawVerifier,
         address _lockVerifier,
-        address _addEthSignerVerifier,
-        address _changeEthSignerVerfier,
-        address _changeMultisigEthSignerVerifier
+        address _accountController
     ) {
         processDepositVerifier = _pendingDepositVerifier;
         processTransferVerifier = _pendingTransferVerifier;
         transferVerifier = _transferVerifier;
         withdrawVerifier = _withdrawVerifier;
         lockVerifier = _lockVerifier;
-        addEthSignerVerifier = _addEthSignerVerifier;
-        changeEthSignerVerifier = _changeEthSignerVerfier;
-        changeMultisigEthSignerVerifier = _changeMultisigEthSignerVerifier;
+        accountController = _accountController;
     }
 
     function deploy(address _token) public {
@@ -58,9 +52,7 @@ contract PrivateTokenFactory {
             lockVerifier,
             _token,
             18,
-            addEthSignerVerifier,
-            changeEthSignerVerifier,
-            changeMultisigEthSignerVerifier
+            accountController
         );
         emit Deployed(address(newToken));
         //return address(newToken);
