@@ -57,7 +57,7 @@ contract TransferVerify {
         local.toModulus = uint256(inputs.to) % local.BJJ_PRIME;
         local.fromModulus = uint256(inputs.from) % local.BJJ_PRIME;
 
-        local.senderAccountType = inputs.accountController.getAccountType(inputs.from);
+        local.senderAccountType = accountController.getAccountType(inputs.from);
 
         if (local.senderAccountType == AccountController.AccountType.EthSigner) {
             // use the transfer_eth_signer circuit
@@ -79,7 +79,7 @@ contract TransferVerify {
                 );
             }
             {
-                local.publicInputs[16] = bytes32(uint256(uint160(inputs.accountController.ethSigner(inputs.from))));
+                local.publicInputs[16] = bytes32(uint256(uint160(accountController.ethSigner(inputs.from))));
                 local.publicInputs[17] = bytes32(local.messageHashModulus);
             }
             require(
@@ -130,8 +130,7 @@ contract TransferVerify {
                 );
             }
             {
-                AccountController.MultisigParams memory params =
-                    inputs.accountController.getMultisigEthSigners(inputs.from);
+                AccountController.MultisigParams memory params = accountController.getMultisigEthSigners(inputs.from);
                 for (uint8 i = 0; i < params.ethSigners.length; i++) {
                     local.publicInputs[17 + i] = bytes32(uint256(uint160(params.ethSigners[i])));
                 }
