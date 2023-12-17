@@ -29,8 +29,8 @@ fn main(
     signature: [u8; 64],
     hashed_message: [u8;32],
     nonce_private: Field,
-    sender_pub_key: pub [u8; 32],
-    recipient_pub_key: pub [u8; 32],
+    sender_pub_key: [u8; 32],
+    recipient_pub_key: [u8; 32],
     // Public inputs
     sender_pub_key_modulus: Field,
     recipient_pub_key_modulus: Field,

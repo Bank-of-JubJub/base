@@ -22,8 +22,8 @@ fn main(
         after calling bjj_exp_elgamal_decrypt with his private key */
     balance_old_me_clear: u40,
     nonce_private: Field,
-    sender_pub_key: pub [u8; 32],
-    recipient_pub_key: pub [u8; 32],
+    sender_pub_key: [u8; 32],
+    recipient_pub_key: [u8; 32],
     // Public inputs
     sender_pub_key_modulus: Field,
     recipient_pub_key_modulus: Field,

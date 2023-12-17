@@ -25,8 +25,8 @@ fn main(
     sender_pub_key: [u8; 32],
     recipient_pub_key: [u8; 32],
     // Public inputs
-    sender_pub_key_modulus: Field,
-    recipient_pub_key_modulus: Field,
+    sender_pub_key_modulus: pub Field,
+    recipient_pub_key_modulus: pub Field,
     // account_address: pub Field, // can be removed with packed public keys
     process_fee: pub u40,
     relay_fee: pub u40,
