@@ -580,13 +580,14 @@ contract PrivateToken {
             totalFees += userPendingDepositsArray[i].fee;
         }
 
-        uint256 recipientModulus = uint256(_recipient) % BJJ_PRIME;
+        uint256 recipientModulus = fromRprLe(_recipient);
         bytes32[] memory publicInputs = new bytes32[](10);
         // for (uint8 i = 0; i < 32; i++) {
         //     // Noir takes an array of 32 bytes32 as public inputs
         //     bytes1 aByte = bytes1((_recipient << (i * 8)));
         //     publicInputs[i] = bytes32(uint256(uint8(aByte)));
         // }
+        // console.log("recipientModulus", recipientModulus);
         publicInputs[0] = bytes32(recipientModulus);
         publicInputs[1] = bytes32(totalAmount);
         publicInputs[2] = bytes32(oldBalance.C1x);
@@ -830,4 +831,22 @@ contract PrivateToken {
     //     publicInputs[length + signers.length + 1] = bytes32(messageHashModulus);
     //     return publicInputs;
     // }
+    function fromRprLe(bytes32 publicKey) internal view returns (uint256) {
+        uint256 y = 0;
+        uint256 v = 1;
+        bytes32[] memory publicKeyBytes = bytes32ToBytes(publicKey);
+        for (uint8 i = 0; i < 32; i++) {
+            y += (uint256(publicKeyBytes[i]) * v) % BJJ_PRIME;
+            v *= 256;
+        }
+        return y;
+    }
+
+    function bytes32ToBytes(bytes32 _data) public pure returns (bytes32[] memory) {
+        bytes32[] memory byteArray = new bytes32[](32);
+        for (uint256 i = 0; i < 32; i++) {
+            byteArray[i] = _data[i];
+        }
+        return byteArray;
+    }
 }
