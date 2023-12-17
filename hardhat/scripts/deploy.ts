@@ -86,15 +86,19 @@ async function main() {
       []
     );
 
+    const accountController = await deployAndSave("AccountController", [
+      addEthSigners.address,
+      changeEthSigner.address,
+      changeMultiEthSigners.address,
+    ]);
+
     const privateTokenFactory = await deployAndSave("PrivateTokenFactory", [
       pendingDepositVerifier.address,
       pendingTransferVerifier.address,
       transferVerifier.address,
       withdrawVerifier.address,
       lockVerifier.address,
-      addEthSigners.address,
-      changeEthSigner.address,
-      changeMultiEthSigners.address,
+      accountController.address,
     ]);
 
     const txHash = await privateTokenFactory.write.deploy([token.address]);
@@ -184,7 +188,7 @@ async function deployAndSave(name: string, constructorArgs: any[]) {
 
   console.log(`${name} contract deployed`);
 
-  await delay(20000);
+  // await delay(20000);
 
   const receipt = await publicClient.getTransactionReceipt({ hash });
 

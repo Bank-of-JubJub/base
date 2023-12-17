@@ -27,7 +27,6 @@ import {TransferVerifyLib} from "./TransferVerifyLib.sol";
  */
 contract PrivateToken {
     using ERC165Checker for address;
-    using TransferVerifyLib for address;
 
     struct EncryptedAmount {
         // #TODO : We could pack those in 2 uints instead of 4 to save storage costs (for e.g using circomlibjs library to pack points on BabyJubjub)
@@ -80,6 +79,7 @@ contract PrivateToken {
     WithdrawMultisigVerifier public WITHDRAW_MULTISIG_VERIFIER;
     LockVerifier public LOCK_VERIFIER;
     AccountController public ACCOUNT_CONTROLLER;
+    address public transferVerifyLib;
 
     uint40 public totalSupply;
 
@@ -297,13 +297,21 @@ contract PrivateToken {
 
     // stack to deep so storing local variables in a struct
     // https://medium.com/1milliondevs/compilererror-stack-too-deep-try-removing-local-variables-solved-a6bcecc16231
-    struct transferLocals {
+    struct TransferLocals {
         uint256 txNonce;
         address lockedByAddress;
         EncryptedAmount oldBalance;
         EncryptedAmount receiverBalance;
         uint256 transferCount;
-        bool zeroBalance;
+        bytes32 to;
+        bytes32 from;
+        uint40 processFee;
+        uint40 relayFee;
+        EncryptedAmount amountToSend;
+        EncryptedAmount senderNewBalance;
+        PrivateToken privateToken;
+        AccountController accountController;
+        bytes proof;
         // bytes32[] publicInputs;
     }
 
@@ -317,7 +325,7 @@ contract PrivateToken {
         EncryptedAmount calldata _senderNewBalance,
         bytes memory _proof_transfer
     ) public {
-        transferLocals memory local;
+        TransferLocals memory local;
         local.txNonce = checkAndUpdateNonce(_from, _senderNewBalance);
         local.lockedByAddress = lockedTo[_from];
         require(
@@ -327,46 +335,57 @@ contract PrivateToken {
         );
         local.oldBalance = balances[_from];
         local.receiverBalance = balances[_to];
-        local.zeroBalance = (local.receiverBalance.C1x == 0 &&
-            local.receiverBalance.C2x == 0 &&
-            local.receiverBalance.C1y == 0 &&
-            local.receiverBalance.C2y == 0);
-        if (local.zeroBalance) {
-            // no fee required if a new account
-            _processFee = 0;
-            balances[_to] = _amountToSend;
-        } else {
-            local.transferCount = pendingTransferCounts[_to];
-            allPendingTransfersMapping[_to][
-                local.transferCount
-            ] = PendingTransfer(_amountToSend, _processFee, block.timestamp);
-            pendingTransferCounts[_to] += 1;
+        {
+            bool zeroBalance = (local.receiverBalance.C1x == 0 &&
+                local.receiverBalance.C2x == 0 &&
+                local.receiverBalance.C1y == 0 &&
+                local.receiverBalance.C2y == 0);
+            if (zeroBalance) {
+                // no fee required if a new account
+                _processFee = 0;
+                balances[_to] = _amountToSend;
+            } else {
+                local.transferCount = pendingTransferCounts[_to];
+                allPendingTransfersMapping[_to][
+                    local.transferCount
+                ] = PendingTransfer(
+                    _amountToSend,
+                    _processFee,
+                    block.timestamp
+                );
+                pendingTransferCounts[_to] += 1;
+            }
         }
-        balances[_from] = _senderNewBalance;
-        emit Transfer(_from, _to, _amountToSend);
-        if (_relayFee != 0) {
-            token.transfer(
-                _relayFeeRecipient,
-                _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)
-            );
+        {
+            balances[_from] = _senderNewBalance;
+            emit Transfer(_from, _to, _amountToSend);
+            if (_relayFee != 0) {
+                token.transfer(
+                    _relayFeeRecipient,
+                    _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)
+                );
+            }
         }
 
         // this makes sure the signature cannot be reused
         // bytes32 messageHash = keccak256(
         //     abi.encodePacked(address(this), _from, _to, local.txNonce)
         // );
-
+        local.senderNewBalance = _senderNewBalance;
+        local.privateToken = PrivateToken(address(this));
+        local.accountController = ACCOUNT_CONTROLLER;
+        local.proof = _proof_transfer;
         TransferVerifyLib.verifyTransfer(
-            local.txNonce,
-            _from,
-            _to,
-            PrivateToken(address(this)),
-            _processFee,
-            _relayFee,
-            _amountToSend,
-            _senderNewBalance,
-            AccountController(address(ACCOUNT_CONTROLLER)),
-            _proof_transfer
+            local
+            // _from,
+            // _to,
+            // PrivateToken(address(this)),
+            // _processFee,
+            // _relayFee,
+            // _amountToSend,
+            // _senderNewBalance,
+            // AccountController(address(ACCOUNT_CONTROLLER)),
+            // _proof_transfer
         );
         // uint256 messageHashModulus = uint256(messageHash) % BJJ_PRIME;
         // uint256 toModulus = uint256(_to) % BJJ_PRIME;
