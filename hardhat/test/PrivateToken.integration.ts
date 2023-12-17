@@ -19,6 +19,7 @@ import {
   transferAmount,
   withdrawAddress,
   MAX_TXS_TO_PROCESS,
+  BJJ_PRIME,
 } from "../utils/constants.ts";
 
 import {
@@ -34,13 +35,14 @@ import {
   encryptedBalanceArrayToPointObjects,
   encryptedBalanceToPointObjects,
   encryptedValueToEncryptedBalance,
+  fromRprLe,
   getC1PointFromEncryptedBalance,
   getDecryptedValue,
   getEncryptedValue,
   getNonce,
   pointObjectsToEncryptedBalance,
 } from "../utils/utils.ts";
-import { Address, toBytes, toHex } from "viem";
+import { Address, hexToBigInt, toBytes, toHex } from "viem";
 
 const viem = hre.viem;
 
@@ -344,6 +346,7 @@ async function processPendingDeposit(
     randomness: random,
     amount_sum: Number(convertedAmount) - depositProcessFee,
     packed_public_key: Array.from(toBytes(account1.packedPublicKey)),
+    packed_public_key_modulus: fromRprLe(account1.packedPublicKey),
     old_enc_balance_1: getC1PointFromEncryptedBalance(startingBalance, true),
     old_enc_balance_2: getC1PointFromEncryptedBalance(startingBalance, false),
     new_enc_balance_1: getC1PointFromEncryptedBalance(newBalance, true),
@@ -658,48 +661,51 @@ async function setup() {
     changeMultiEthSigners.address,
   ]);
 
-  const { contract: transferVerifyLib } = await deploy("TransferVerifyLib", []);
-
-  const { contract: privateTokenFactory } = await deploy(
-    "PrivateTokenFactory",
-    [
-      pendingDepositVerifier.address,
-      pendingTransferVerifier.address,
-      transferVerifier.address,
-      withdrawVerifier.address,
-      lockVerifier.address,
-      accountController.address,
-    ]
-  );
-
-  await privateTokenFactory.write.deploy([token.address]);
-  const logs = await publicClient.getContractEvents({
-    address: privateTokenFactory.address,
-    abi: privateTokenFactory.abi,
-    eventName: "Deployed",
-  });
-  // @ts-ignore
-  let privateTokenAddress = logs[0].args.token;
-  const privateToken = await viem.getContractAt(
-    "PrivateToken",
-    privateTokenAddress
-  );
-
-  // const { contract: privateToken } = await deploy("PrivateToken", [
-  //   pendingDepositVerifier.address,
-  //   pendingTransferVerifier.address,
-  //   transferVerifier.address,
-  //   withdrawVerifier.address,
-  //   lockVerifier.address,
-  //   token.address,
-  //   await token.read.decimals(),
-  //   accountController.address,
-  // ]);
-
-  privateToken.write.initOtherVerifiers([
+  const { contract: allTransferVerifier } = await deploy("TransferVerify", [
+    transferVerifier.address,
     transfer4337Verifier.address,
     transferEthSignerVerifier.address,
     transferMultisigVerifier.address,
+    accountController.address
+  ]);
+
+  // const { contract: privateTokenFactory } = await deploy(
+  //   "PrivateTokenFactory",
+  //   [
+  //     pendingDepositVerifier.address,
+  //     pendingTransferVerifier.address,
+  //     transferVerifier.address,
+  //     withdrawVerifier.address,
+  //     lockVerifier.address,
+  //     accountController.address,
+  //   ]
+  // );
+
+  // await privateTokenFactory.write.deploy([token.address]);
+  // const logs = await publicClient.getContractEvents({
+  //   address: privateTokenFactory.address,
+  //   abi: privateTokenFactory.abi,
+  //   eventName: "Deployed",
+  // });
+  // // @ts-ignore
+  // let privateTokenAddress = logs[0].args.token;
+  // const privateToken = await viem.getContractAt(
+  //   "PrivateToken",
+  //   privateTokenAddress
+  // );
+
+  const { contract: privateToken } = await deploy("PrivateToken", [
+    pendingDepositVerifier.address,
+    pendingTransferVerifier.address,
+    allTransferVerifier.address,
+    withdrawVerifier.address,
+    lockVerifier.address,
+    token.address,
+    await token.read.decimals(),
+    accountController.address,
+  ]);
+
+  privateToken.write.initOtherVerifiers([
     withdraw4337Verifier.address,
     withdrawEthSignerVerifier.address,
     withdrawMultisigVerifier.address,
