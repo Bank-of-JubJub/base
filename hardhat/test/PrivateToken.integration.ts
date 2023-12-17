@@ -378,7 +378,7 @@ async function transfer(
   processFee: number,
   relayFee: number
 ) {
-  const { privateToken, token } = await getContracts();
+  const { privateToken } = await getContracts();
   const [walletClient0, walletClient1] = await viem.getWalletClients();
 
   const encOldBalance = await privateToken.read.balances([
@@ -410,15 +410,15 @@ async function transfer(
     recipient_pub_key_modulus: fromRprLe(to.packedPublicKey),
     process_fee: processFee,
     relay_fee: relayFee,
-    nonce_private: toHex(getNonce(encNewBalance)),
-    nonce: toHex(getNonce(encNewBalance)),
+    nonce_private: toHex(getNonce(encNewBalance), { size: 32 }),
+    nonce: toHex(getNonce(encNewBalance), { size: 32 }),
     old_balance_encrypted_1: {
-      x: toHex(encOldBalance[0]),
-      y: toHex(encOldBalance[1]),
+      x: toHex(encOldBalance[0], { size: 32 }),
+      y: toHex(encOldBalance[1], { size: 32 }),
     },
     old_balance_encrypted_2: {
-      x: toHex(encOldBalance[2]),
-      y: toHex(encOldBalance[3]),
+      x: toHex(encOldBalance[2], { size: 32 }),
+      y: toHex(encOldBalance[3], { size: 32 }),
     },
     encrypted_amount_1: getC1PointFromEncryptedBalance(encryptedAmount, true),
     encrypted_amount_2: getC1PointFromEncryptedBalance(encryptedAmount, false),
@@ -431,6 +431,8 @@ async function transfer(
       false
     ),
   };
+
+  console.log(proofInputs);
 
   const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
 
@@ -486,8 +488,14 @@ async function processPendingTransfer() {
     }
     const amount = encryptedBalanceToPointObjects(pendingTransfer[0]);
 
-    encryptedValues.push({ x: toHex(amount.C1.x), y: toHex(amount.C1.y) });
-    encryptedValues.push({ x: toHex(amount.C2.x), y: toHex(amount.C2.y) });
+    encryptedValues.push({
+      x: toHex(amount.C1.x, { size: 32 }),
+      y: toHex(amount.C1.y, { size: 32 }),
+    });
+    encryptedValues.push({
+      x: toHex(amount.C2.x, { size: 32 }),
+      y: toHex(amount.C2.y, { size: 32 }),
+    });
 
     const C1 = babyjub.add_points(balanceAfterProcessTransfer.C1, amount.C1);
     const C2 = babyjub.add_points(balanceAfterProcessTransfer.C2, amount.C2);
@@ -506,21 +514,20 @@ async function processPendingTransfer() {
 
   const proofInputs = {
     balance_old_to_encrypted_1: {
-      // toBytes then toHex to make sure its padded properly
-      x: toHex(toBytes(oldBalanceArray[0]), { size: 32 }),
-      y: toHex(toBytes(oldBalanceArray[1]), { size: 32 }),
+      x: toHex(oldBalanceArray[0], { size: 32 }),
+      y: toHex(oldBalanceArray[1], { size: 32 }),
     },
     balance_old_to_encrypted_2: {
-      x: toHex(toBytes(oldBalanceArray[2]), { size: 32 }),
-      y: toHex(toBytes(oldBalanceArray[3]), { size: 32 }),
+      x: toHex(oldBalanceArray[2], { size: 32 }),
+      y: toHex(oldBalanceArray[3], { size: 32 }),
     },
     balance_new_to_encrypted_1: {
-      x: toHex(newBalance.C1x),
-      y: toHex(newBalance.C1y),
+      x: toHex(newBalance.C1x, { size: 32 }),
+      y: toHex(newBalance.C1y, { size: 32 }),
     },
     balance_new_to_encrypted_2: {
-      x: toHex(newBalance.C2x),
-      y: toHex(newBalance.C2y),
+      x: toHex(newBalance.C2x, { size: 32 }),
+      y: toHex(newBalance.C2y, { size: 32 }),
     },
     encrypted_values: encryptedValues,
   };
@@ -557,25 +564,25 @@ async function withdraw(
     balance_old_clear: Number(clearOldBalance),
     packed_public_key: Array.from(toBytes(account1.packedPublicKey)),
     packed_public_key_modulus: fromRprLe(account1.packedPublicKey),
-    nonce_private: toHex(getNonce(encNewBalance)),
-    nonce: toHex(getNonce(encNewBalance)),
+    nonce_private: toHex(getNonce(encNewBalance), { size: 32 }),
+    nonce: toHex(getNonce(encNewBalance), { size: 32 }),
     value: amount,
     relay_fee: relayFee,
     balance_old_encrypted_1: {
-      x: toHex(encOldBalance.C1x),
-      y: toHex(encOldBalance.C1y),
+      x: toHex(encOldBalance.C1x, { size: 32 }),
+      y: toHex(encOldBalance.C1y, { size: 32 }),
     },
     balance_old_encrypted_2: {
-      x: toHex(encOldBalance.C2x),
-      y: toHex(encOldBalance.C2y),
+      x: toHex(encOldBalance.C2x, { size: 32 }),
+      y: toHex(encOldBalance.C2y, { size: 32 }),
     },
     balance_new_encrypted_1: {
-      x: toHex(encNewBalance.C1x),
-      y: toHex(encNewBalance.C1y),
+      x: toHex(encNewBalance.C1x, { size: 32 }),
+      y: toHex(encNewBalance.C1y, { size: 32 }),
     },
     balance_new_encrypted_2: {
-      x: toHex(encNewBalance.C2x),
-      y: toHex(encNewBalance.C2y),
+      x: toHex(encNewBalance.C2x, { size: 32 }),
+      y: toHex(encNewBalance.C2y, { size: 32 }),
     },
   };
 
@@ -669,7 +676,7 @@ async function setup() {
     transfer4337Verifier.address,
     transferEthSignerVerifier.address,
     transferMultisigVerifier.address,
-    accountController.address
+    accountController.address,
   ]);
 
   // const { contract: privateTokenFactory } = await deploy(
