@@ -28,6 +28,7 @@ contract TransferVerify {
     TransferEthSignerVerifier public transferEthSignerVerifier;
     TransferMultisigVerifier public transferMultisigVerifier;
     AccountController public accountController;
+    uint256 BJJ_PRIME = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     constructor(
         address _transferVerifier,
@@ -47,15 +48,15 @@ contract TransferVerify {
         PrivateToken.TransferLocals memory inputs // bytes32 from, // bytes32 to, // PrivateToken privateToken, // uint40 _processFee, // uint40 _relayFee, // PrivateToken.EncryptedAmount memory _amountToSend, // PrivateToken.EncryptedAmount memory _senderNewBalance, // AccountController accountController, // bytes memory _proof
     ) external {
         LocalVars memory local;
-        local.BJJ_PRIME = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
+        // local.BJJ_PRIME = BJJ_PRIME;
 
         (local.oldBalanceC1x, local.oldBalanceC1y, local.oldBalanceC2x, local.oldBalanceC2y) =
             inputs.privateToken.balances(inputs.from);
 
         local.messageHash = keccak256(abi.encodePacked(address(this), inputs.from, inputs.to, inputs.txNonce));
-        local.messageHashModulus = uint256(local.messageHash) % local.BJJ_PRIME;
-        local.toModulus = uint256(inputs.to) % local.BJJ_PRIME;
-        local.fromModulus = uint256(inputs.from) % local.BJJ_PRIME;
+        local.messageHashModulus = fromRprLe(local.messageHash);
+        local.toModulus = fromRprLe(inputs.to);
+        local.fromModulus = fromRprLe(inputs.from);
 
         local.senderAccountType = accountController.getAccountType(inputs.from);
 
@@ -208,5 +209,28 @@ contract TransferVerify {
         publicInputs[15] = bytes32(_senderNewBalance.C2x);
         publicInputs[16] = bytes32(_senderNewBalance.C2y);
         return publicInputs;
+    }
+
+    function fromRprLe(bytes32 publicKey) internal view returns (uint256) {
+        uint256 y = 0;
+        uint256 v = 1;
+        bytes memory publicKeyBytes = bytes32ToBytes(publicKey);
+        for (uint8 i = 0; i < 32; i++) {
+            // console.log(uint8(publicKeyBytes[i]));
+            // console.log(i);
+            y += (uint8(publicKeyBytes[i]) * v) % BJJ_PRIME;
+            if (i != 31) {
+                v *= 256;
+            }
+        }
+        return y;
+    }
+
+    function bytes32ToBytes(bytes32 _data) public pure returns (bytes memory) {
+        bytes memory byteArray = new bytes(32);
+        for (uint256 i = 0; i < 32; i++) {
+            byteArray[i] = _data[i];
+        }
+        return byteArray;
     }
 }
