@@ -20,7 +20,7 @@ initiated by from=msg.sender in the contract, so replay attack is impossible)
 // so no info is leaked
 fn main(
     randomness: Field, // randomness used for encryption, amount is already public so doesnt matter
-    packed_public_key: pub [u8;32],
+    packed_public_key: [u8;32],
     // Public inputs, this can be executed by anyone
     packed_public_key_modulus: pub Field,
     amount_sum: pub u40,

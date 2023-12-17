@@ -556,6 +556,7 @@ async function withdraw(
     randomness: random,
     balance_old_clear: Number(clearOldBalance),
     packed_public_key: Array.from(toBytes(account1.packedPublicKey)),
+    packed_public_key_modulus: fromRprLe(account1.packedPublicKey),
     nonce_private: toHex(getNonce(encNewBalance)),
     nonce: toHex(getNonce(encNewBalance)),
     value: amount,
