@@ -31,8 +31,7 @@ fn main(
     nonce_priv: Field,
     packed_public_key: [u8;32],
     // Public Inputs
-        packed_public_key_modulus: pub Field,
-
+    packed_public_key_modulus: pub Field,
     nonce: pub Field,
     value: pub u40,
     relay_fee: pub u40,
@@ -45,7 +44,7 @@ fn main(
     hashed_message_modulus: pub Field
 ) {
     let public_key = utils::assert_private_key_matches_packed(private_key, packed_public_key);
-        assert(packed_public_key_modulus == bjj::from_rpr_le(packed_public_key));
+    assert(packed_public_key_modulus == bjj::from_rpr_le(packed_public_key));
 
     assert(value + relay_fee <= balance_old_clear);
     utils::assert_correct_clear_balance(
