@@ -188,11 +188,11 @@ export function delay(time: number) {
 }
 
 export function fromRprLe(publicKey: `0x${string}`): string {
-  let y = BigInt(0)
+  let y = BigInt(0);
   let v = BigInt(1);
   for (let i = 0; i < 32; i++) {
     y += (BigInt(toBytes(publicKey)[i]) * v) % BJJ_PRIME;
-    v *= BigInt(256)
+    v *= BigInt(256);
   }
-  return toHex(y)
+  return toHex(y, { size: 32 });
 }
