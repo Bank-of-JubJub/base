@@ -406,6 +406,8 @@ async function transfer(
     randomness: random,
     sender_pub_key: Array.from(toBytes(from.packedPublicKey)),
     recipient_pub_key: Array.from(toBytes(to.packedPublicKey)),
+    sender_pub_key_modulus: fromRprLe(from.packedPublicKey),
+    recipient_pub_key_modulus: fromRprLe(to.packedPublicKey),
     process_fee: processFee,
     relay_fee: relayFee,
     nonce_private: toHex(getNonce(encNewBalance)),
