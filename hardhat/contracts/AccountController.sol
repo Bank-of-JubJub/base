@@ -9,10 +9,17 @@ import {UltraVerifier as ChangeMultisigEthSignerVerifier} from "./add_eth_signer
 /// @author critesjosh
 /// @notice Use this contract with PrivateToken.sol to use the non-default private/public key pairs
 
-contract UsingAccountControllers {
+contract AccountController {
     struct MultisigParams {
         address[] ethSigners;
         uint256 threshold;
+    }
+
+    enum AccountType {
+        Vanilla,
+        EthSigner,
+        Multisig,
+        erc4337Account
     }
 
     /// @notice Mapping of packed public key to eth signer address
@@ -25,6 +32,12 @@ contract UsingAccountControllers {
     /// @notice Mapping of packed public key to multisig params
     mapping(bytes32 packedPublicKey => MultisigParams signers)
         public multisigEthSigners;
+
+    function getMultisigEthSigners(
+        bytes32 packedPublicKey
+    ) public view returns (MultisigParams memory) {
+        return multisigEthSigners[packedPublicKey];
+    }
 
     /// @notice Mapping of packed public key to nonce to prevent replay attacks when changing eth signers
     mapping(bytes32 packedPublicKey => uint256 otherNonce) public otherNonce;
@@ -270,5 +283,19 @@ contract UsingAccountControllers {
             multisigEthSigners[_packedPublicKey].threshold,
             _threshold
         );
+    }
+
+    function getAccountType(
+        bytes32 _packedPublicKey
+    ) public returns (AccountType) {
+        if (ethSigner[_packedPublicKey] != address(0x0)) {
+            return AccountType.EthSigner;
+        } else if (erc4337Controller[_packedPublicKey] != address(0x0)) {
+            return AccountType.erc4337Account;
+        } else if (multisigEthSigners[_packedPublicKey].threshold != 0) {
+            return AccountType.Multisig;
+        } else {
+            return AccountType.Vanilla;
+        }
     }
 }

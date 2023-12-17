@@ -16,7 +16,8 @@ import {UltraVerifier as LockVerifier} from "./lock/plonk_vk.sol";
 import {IERC20} from "./IERC20.sol";
 import {IERC165} from "./IERC165.sol";
 import {ERC165Checker} from "./ERC165Checker.sol";
-import {UsingAccountControllers} from "./UsingAccountControllers.sol";
+import {AccountController} from "./AccountController.sol";
+import {TransferVerifyLib} from "./TransferVerifyLib.sol";
 
 /**
  * @dev Implementation of PrivateToken.
@@ -24,7 +25,7 @@ import {UsingAccountControllers} from "./UsingAccountControllers.sol";
  * Balances are encrypted to each owner's public key, according to the registered keys inside the PublicKeyInfrastructure.
  * Because we use Exponential ElGamal encryption, each EncryptedAmount is a pair of points on Baby Jubjub (C1,C2) = ((C1x,C1y),(C2x,C2y)).
  */
-contract PrivateToken is UsingAccountControllers {
+contract PrivateToken {
     using ERC165Checker for address;
 
     struct EncryptedAmount {
@@ -57,7 +58,10 @@ contract PrivateToken is UsingAccountControllers {
         uint40 fee;
     }
 
-    //
+    /// @notice The prime field that the circuit is constructed over. This is used to make message hashes fit in 1 field element
+    uint256 BJJ_PRIME =
+        21888242871839275222246405745257275088548364400416034343698204186575808495617;
+
     // struct PublicKey {
     //     // We could pack those in a single uint256 to save storage costs (for e.g using circomlibjs library to pack points on BabyJubjub)
     //     uint256 X;
@@ -74,6 +78,8 @@ contract PrivateToken is UsingAccountControllers {
     WithdrawEthSignerVerifier public WITHDRAW_ETH_SIGNER_VERIFIER;
     WithdrawMultisigVerifier public WITHDRAW_MULTISIG_VERIFIER;
     LockVerifier public LOCK_VERIFIER;
+    AccountController public ACCOUNT_CONTROLLER;
+    address public transferVerifyLib;
 
     uint40 public totalSupply;
 
@@ -171,16 +177,8 @@ contract PrivateToken is UsingAccountControllers {
         address _lockVerifier,
         address _token,
         uint256 _decimals,
-        address _addEthSignerVerifier,
-        address _changeEthSignerVerfier,
-        address _changeMultisigEthSignerVerifier
-    )
-        UsingAccountControllers(
-            _addEthSignerVerifier,
-            _changeEthSignerVerfier,
-            _changeMultisigEthSignerVerifier
-        )
-    {
+        address _accountController
+    ) {
         PROCESS_DEPOSIT_VERIFIER = ProcessDepositVerifier(
             _processDepositVerifier
         );
@@ -190,6 +188,8 @@ contract PrivateToken is UsingAccountControllers {
         TRANSFER_VERIFIER = TransferVerifier(_transferVerifier);
         WITHDRAW_VERIFIER = WithdrawVerifier(_withdrawVerifier);
         LOCK_VERIFIER = LockVerifier(_lockVerifier);
+        ACCOUNT_CONTROLLER = AccountController(_accountController);
+
         token = IERC20(_token);
         uint256 sourceDecimals = _decimals;
         try token.decimals() returns (uint256 returnedDecimals) {
@@ -197,6 +197,7 @@ contract PrivateToken is UsingAccountControllers {
         } catch {
             // do nothing
         }
+
         SOURCE_TOKEN_DECIMALS = sourceDecimals;
     }
 
@@ -296,14 +297,22 @@ contract PrivateToken is UsingAccountControllers {
 
     // stack to deep so storing local variables in a struct
     // https://medium.com/1milliondevs/compilererror-stack-too-deep-try-removing-local-variables-solved-a6bcecc16231
-    struct transferLocals {
+    struct TransferLocals {
         uint256 txNonce;
         address lockedByAddress;
         EncryptedAmount oldBalance;
         EncryptedAmount receiverBalance;
         uint256 transferCount;
-        bool zeroBalance;
-        bytes32[] publicInputs;
+        bytes32 to;
+        bytes32 from;
+        uint40 processFee;
+        uint40 relayFee;
+        EncryptedAmount amountToSend;
+        EncryptedAmount senderNewBalance;
+        PrivateToken privateToken;
+        AccountController accountController;
+        bytes proof;
+        // bytes32[] publicInputs;
     }
 
     function transfer(
@@ -316,7 +325,7 @@ contract PrivateToken is UsingAccountControllers {
         EncryptedAmount calldata _senderNewBalance,
         bytes memory _proof_transfer
     ) public {
-        transferLocals memory local;
+        TransferLocals memory local;
         local.txNonce = checkAndUpdateNonce(_from, _senderNewBalance);
         local.lockedByAddress = lockedTo[_from];
         require(
@@ -326,128 +335,158 @@ contract PrivateToken is UsingAccountControllers {
         );
         local.oldBalance = balances[_from];
         local.receiverBalance = balances[_to];
-        local.zeroBalance = (local.receiverBalance.C1x == 0 &&
-            local.receiverBalance.C2x == 0 &&
-            local.receiverBalance.C1y == 0 &&
-            local.receiverBalance.C2y == 0);
-        if (local.zeroBalance) {
-            // no fee required if a new account
-            _processFee = 0;
-            balances[_to] = _amountToSend;
-        } else {
-            local.transferCount = pendingTransferCounts[_to];
-            allPendingTransfersMapping[_to][
-                local.transferCount
-            ] = PendingTransfer(_amountToSend, _processFee, block.timestamp);
-            pendingTransferCounts[_to] += 1;
+        {
+            bool zeroBalance = (local.receiverBalance.C1x == 0 &&
+                local.receiverBalance.C2x == 0 &&
+                local.receiverBalance.C1y == 0 &&
+                local.receiverBalance.C2y == 0);
+            if (zeroBalance) {
+                // no fee required if a new account
+                _processFee = 0;
+                balances[_to] = _amountToSend;
+            } else {
+                local.transferCount = pendingTransferCounts[_to];
+                allPendingTransfersMapping[_to][
+                    local.transferCount
+                ] = PendingTransfer(
+                    _amountToSend,
+                    _processFee,
+                    block.timestamp
+                );
+                pendingTransferCounts[_to] += 1;
+            }
         }
-        balances[_from] = _senderNewBalance;
-        emit Transfer(_from, _to, _amountToSend);
-        if (_relayFee != 0) {
-            token.transfer(
-                _relayFeeRecipient,
-                _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)
-            );
+        {
+            balances[_from] = _senderNewBalance;
+            emit Transfer(_from, _to, _amountToSend);
+            if (_relayFee != 0) {
+                token.transfer(
+                    _relayFeeRecipient,
+                    _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)
+                );
+            }
         }
 
         // this makes sure the signature cannot be reused
-        bytes32 messageHash = keccak256(
-            abi.encodePacked(address(this), _from, _to, local.txNonce)
+        // bytes32 messageHash = keccak256(
+        //     abi.encodePacked(address(this), _from, _to, local.txNonce)
+        // );
+        local.senderNewBalance = _senderNewBalance;
+        local.privateToken = PrivateToken(address(this));
+        local.accountController = ACCOUNT_CONTROLLER;
+        local.proof = _proof_transfer;
+        TransferVerifyLib.verifyTransfer(
+            local
+            // _from,
+            // _to,
+            // PrivateToken(address(this)),
+            // _processFee,
+            // _relayFee,
+            // _amountToSend,
+            // _senderNewBalance,
+            // AccountController(address(ACCOUNT_CONTROLLER)),
+            // _proof_transfer
         );
-        uint256 messageHashModulus = uint256(messageHash) % BJJ_PRIME;
+        // uint256 messageHashModulus = uint256(messageHash) % BJJ_PRIME;
+        // uint256 toModulus = uint256(_to) % BJJ_PRIME;
+        // uint256 fromModulus = uint256(_from) % BJJ_PRIME;
 
-        if (ethSigner[_from] != address(0)) {
-            // use the transfer_eth_signer circuit
-            local.publicInputs = new bytes32[](81);
-            local = _stageCommonTransferInputs(
-                local,
-                _from,
-                _to,
-                _processFee,
-                _relayFee,
-                _amountToSend,
-                _senderNewBalance
-            );
-            local.publicInputs[79] = bytes32(
-                uint256(uint160(ethSigner[_from]))
-            );
-            local.publicInputs[80] = bytes32(messageHashModulus);
+        // if (ethSigner[_from] != address(0)) {
+        //     // use the transfer_eth_signer circuit
+        //     local.publicInputs = new bytes32[](18);
+        //     local = _stageCommonTransferInputs(
+        //         local,
+        //         fromModulus,
+        //         toModulus,
+        //         _processFee,
+        //         _relayFee,
+        //         _amountToSend,
+        //         _senderNewBalance
+        //     );
+        //     local.publicInputs[16] = bytes32(
+        //         uint256(uint160(ethSigner[_from]))
+        //     );
+        //     local.publicInputs[17] = bytes32(messageHashModulus);
 
-            require(
-                TRANSFER_ETH_SIGNER_VERIFIER.verify(
-                    _proof_transfer,
-                    local.publicInputs
-                ),
-                "Eth signer transfer proof is invalid"
-            );
-        } else if (erc4337Controller[_from] != address(0)) {
-            local.publicInputs = new bytes32[](80);
-            local = _stageCommonTransferInputs(
-                local,
-                _from,
-                _to,
-                _processFee,
-                _relayFee,
-                _amountToSend,
-                _senderNewBalance
-            );
-            // msg.sender should be 4337 account address
-            local.publicInputs[79] = bytes32(uint256(uint160(msg.sender)));
+        //     require(
+        //         TRANSFER_ETH_SIGNER_VERIFIER.verify(
+        //             _proof_transfer,
+        //             local.publicInputs
+        //         ),
+        //         "Eth signer transfer proof is invalid"
+        //     );
+        // } else if (erc4337Controller[_from] != address(0)) {
+        //     local.publicInputs = new bytes32[](17);
+        //     local = _stageCommonTransferInputs(
+        //         local,
+        //         fromModulus,
+        //         toModulus,
+        //         _processFee,
+        //         _relayFee,
+        //         _amountToSend,
+        //         _senderNewBalance
+        //     );
+        //     // msg.sender should be 4337 account address
+        //     local.publicInputs[16] = bytes32(uint256(uint160(msg.sender)));
 
-            require(
-                TRANSFER_4337_VERIFIER.verify(
-                    _proof_transfer,
-                    local.publicInputs
-                ),
-                "4337 Transfer proof is invalid"
-            );
-        } else if (multisigEthSigners[_from].threshold != 0) {
-            local.publicInputs = new bytes32[](90);
-            local = _stageCommonTransferInputs(
-                local,
-                _from,
-                _to,
-                _processFee,
-                _relayFee,
-                _amountToSend,
-                _senderNewBalance
-            );
-            address[] memory signers = multisigEthSigners[_from].ethSigners;
-            for (uint8 i = 0; i < signers.length; i++) {
-                local.publicInputs[79 + i] = bytes32(
-                    uint256(uint160(signers[i]))
-                );
-            }
-            local.publicInputs[79 + signers.length] = bytes32(
-                uint256(multisigEthSigners[_from].threshold)
-            );
-            local.publicInputs[79 + signers.length + 1] = bytes32(
-                messageHashModulus
-            );
-
-            require(
-                TRANSFER_MULTISIG_VERIFIER.verify(
-                    _proof_transfer,
-                    local.publicInputs
-                ),
-                "Multisig Transfer proof is invalid"
-            );
-        } else {
-            local.publicInputs = new bytes32[](79);
-            local = _stageCommonTransferInputs(
-                local,
-                _from,
-                _to,
-                _processFee,
-                _relayFee,
-                _amountToSend,
-                _senderNewBalance
-            );
-            require(
-                TRANSFER_VERIFIER.verify(_proof_transfer, local.publicInputs),
-                "Transfer proof is invalid"
-            );
-        }
+        //     require(
+        //         TRANSFER_4337_VERIFIER.verify(
+        //             _proof_transfer,
+        //             local.publicInputs
+        //         ),
+        //         "4337 Transfer proof is invalid"
+        //     );
+        // } else if (multisigEthSigners[_from].threshold != 0) {
+        //     local.publicInputs = new bytes32[](28);
+        //     local = _stageCommonTransferInputs(
+        //         local,
+        //         fromModulus,
+        //         toModulus,
+        //         _processFee,
+        //         _relayFee,
+        //         _amountToSend,
+        //         _senderNewBalance
+        //     );
+        //     address[] memory signers = multisigEthSigners[_from].ethSigners;
+        //     for (uint8 i = 0; i < signers.length; i++) {
+        //         local.publicInputs[79 + i] = bytes32(
+        //             uint256(uint160(signers[i]))
+        //         );
+        //     }
+        //     // local.publicInputs[79 + signers.length] = bytes32(
+        //     //     uint256(multisigEthSigners[_from].threshold)
+        //     // );
+        //     // local.publicInputs[79 + signers.length + 1] = bytes32(
+        //     //     messageHashModulus
+        //     // );
+        //     local.publicInputs = _getAndAddMultisigSigners(
+        //         local.publicInputs,
+        //         _from,
+        //         messageHashModulus
+        //     );
+        //     require(
+        //         TRANSFER_MULTISIG_VERIFIER.verify(
+        //             _proof_transfer,
+        //             local.publicInputs
+        //         ),
+        //         "Multisig Transfer proof is invalid"
+        //     );
+        // } else {
+        //     local.publicInputs = new bytes32[](79);
+        //     local = _stageCommonTransferInputs(
+        //         local,
+        //         fromModulus,
+        //         toModulus,
+        //         _processFee,
+        //         _relayFee,
+        //         _amountToSend,
+        //         _senderNewBalance
+        //     );
+        //     require(
+        //         TRANSFER_VERIFIER.verify(_proof_transfer, local.publicInputs),
+        //         "Transfer proof is invalid"
+        //     );
+        // }
     }
 
     /**
@@ -509,86 +548,86 @@ contract PrivateToken is UsingAccountControllers {
             abi.encodePacked(address(this), _from, _to, txNonce)
         );
         uint256 messageHashModulus = uint256(messageHash) % BJJ_PRIME;
-
-        if (ethSigner[_from] != address(0)) {
-            bytes32[] memory publicInputs = new bytes32[](45);
-            publicInputs = _stageCommonWithdrawInputs(
-                _from,
-                _amount,
-                _relayFee,
-                oldEncryptedAmount,
-                _newEncryptedAmount,
-                publicInputs,
-                txNonce
-            );
-            publicInputs[publicInputs.length + 1] = bytes32(
-                uint256(uint160(ethSigner[_from]))
-            );
-            publicInputs[publicInputs.length + 2] = bytes32(messageHashModulus);
-            require(
-                WITHDRAW_ETH_SIGNER_VERIFIER.verify(
-                    _withdraw_proof,
-                    publicInputs
-                ),
-                "Withdraw proof is invalid"
-            );
-        } else if (erc4337Controller[_from] != address(0)) {
-            bytes32[] memory publicInputs = new bytes32[](44);
-            publicInputs = _stageCommonWithdrawInputs(
-                _from,
-                _amount,
-                _relayFee,
-                oldEncryptedAmount,
-                _newEncryptedAmount,
-                publicInputs,
-                txNonce
-            );
-            publicInputs[publicInputs.length + 1] = bytes32(
-                uint256(uint160(msg.sender))
-            );
-            require(
-                WITHDRAW_4337_VERIFIER.verify(_withdraw_proof, publicInputs),
-                "Withdraw proof is invalid"
-            );
-        } else if (multisigEthSigners[_from].threshold != 0) {
-            bytes32[] memory publicInputs = new bytes32[](55);
-            publicInputs = _stageCommonWithdrawInputs(
-                _from,
-                _amount,
-                _relayFee,
-                oldEncryptedAmount,
-                _newEncryptedAmount,
-                publicInputs,
-                txNonce
-            );
-            publicInputs = _getAndAddMultisigSigners(
-                publicInputs,
-                _from,
-                messageHashModulus
-            );
-            require(
-                WITHDRAW_MULTISIG_VERIFIER.verify(
-                    _withdraw_proof,
-                    publicInputs
-                ),
-                "Withdraw proof is invalid"
-            );
-        } else {
-            bytes32[] memory publicInputs = new bytes32[](43);
-            publicInputs = _stageCommonWithdrawInputs(
-                _from,
-                _amount,
-                _relayFee,
-                oldEncryptedAmount,
-                _newEncryptedAmount,
-                publicInputs,
-                txNonce
-            );
-            require(
-                WITHDRAW_VERIFIER.verify(_withdraw_proof, publicInputs),
-                "Withdraw proof is invalid"
-            );
-        }
+        uint256 fromModulus = uint256(_from) % BJJ_PRIME;
+        // if (ethSigner[_from] != address(0)) {
+        //     bytes32[] memory publicInputs = new bytes32[](14);
+        //     publicInputs = _stageCommonWithdrawInputs(
+        //         fromModulus,
+        //         _amount,
+        //         _relayFee,
+        //         oldEncryptedAmount,
+        //         _newEncryptedAmount,
+        //         publicInputs,
+        //         txNonce
+        //     );
+        //     publicInputs[publicInputs.length + 1] = bytes32(
+        //         uint256(uint160(ethSigner[_from]))
+        //     );
+        //     publicInputs[publicInputs.length + 2] = bytes32(messageHashModulus);
+        //     require(
+        //         WITHDRAW_ETH_SIGNER_VERIFIER.verify(
+        //             _withdraw_proof,
+        //             publicInputs
+        //         ),
+        //         "Withdraw proof is invalid"
+        //     );
+        // } else if (erc4337Controller[_from] != address(0)) {
+        //     bytes32[] memory publicInputs = new bytes32[](13);
+        //     publicInputs = _stageCommonWithdrawInputs(
+        //         fromModulus,
+        //         _amount,
+        //         _relayFee,
+        //         oldEncryptedAmount,
+        //         _newEncryptedAmount,
+        //         publicInputs,
+        //         txNonce
+        //     );
+        //     publicInputs[publicInputs.length + 1] = bytes32(
+        //         uint256(uint160(msg.sender))
+        //     );
+        //     require(
+        //         WITHDRAW_4337_VERIFIER.verify(_withdraw_proof, publicInputs),
+        //         "Withdraw proof is invalid"
+        //     );
+        // } else if (multisigEthSigners[_from].threshold != 0) {
+        //     bytes32[] memory publicInputs = new bytes32[](22);
+        //     publicInputs = _stageCommonWithdrawInputs(
+        //         fromModulus,
+        //         _amount,
+        //         _relayFee,
+        //         oldEncryptedAmount,
+        //         _newEncryptedAmount,
+        //         publicInputs,
+        //         txNonce
+        //     );
+        //     publicInputs = _getAndAddMultisigSigners(
+        //         publicInputs,
+        //         _from,
+        //         messageHashModulus
+        //     );
+        //     require(
+        //         WITHDRAW_MULTISIG_VERIFIER.verify(
+        //             _withdraw_proof,
+        //             publicInputs
+        //         ),
+        //         "Withdraw proof is invalid"
+        //     );
+        // } else {
+        //     bytes32[] memory publicInputs = new bytes32[](12);
+        //     publicInputs = _stageCommonWithdrawInputs(
+        //         fromModulus,
+        //         _amount,
+        //         _relayFee,
+        //         oldEncryptedAmount,
+        //         _newEncryptedAmount,
+        //         publicInputs,
+        //         txNonce
+        //     );
+        //     require(
+        //         WITHDRAW_VERIFIER.verify(_withdraw_proof, publicInputs),
+        //         "Withdraw proof is invalid"
+        //     );
+        // }
     }
 
     /**
@@ -642,21 +681,23 @@ contract PrivateToken is UsingAccountControllers {
             totalFees += userPendingDepositsArray[i].fee;
         }
 
-        bytes32[] memory publicInputs = new bytes32[](41);
-        for (uint8 i = 0; i < 32; i++) {
-            // Noir takes an array of 32 bytes32 as public inputs
-            bytes1 aByte = bytes1((_recipient << (i * 8)));
-            publicInputs[i] = bytes32(uint256(uint8(aByte)));
-        }
-        publicInputs[32] = bytes32(totalAmount);
-        publicInputs[33] = bytes32(oldBalance.C1x);
-        publicInputs[34] = bytes32(oldBalance.C1y);
-        publicInputs[35] = bytes32(oldBalance.C2x);
-        publicInputs[36] = bytes32(oldBalance.C2y);
-        publicInputs[37] = bytes32(_newBalance.C1x);
-        publicInputs[38] = bytes32(_newBalance.C1y);
-        publicInputs[39] = bytes32(_newBalance.C2x);
-        publicInputs[40] = bytes32(_newBalance.C2y);
+        uint256 recipientModulus = uint256(_recipient) % BJJ_PRIME;
+        bytes32[] memory publicInputs = new bytes32[](10);
+        // for (uint8 i = 0; i < 32; i++) {
+        //     // Noir takes an array of 32 bytes32 as public inputs
+        //     bytes1 aByte = bytes1((_recipient << (i * 8)));
+        //     publicInputs[i] = bytes32(uint256(uint8(aByte)));
+        // }
+        publicInputs[0] = bytes32(recipientModulus);
+        publicInputs[1] = bytes32(totalAmount);
+        publicInputs[2] = bytes32(oldBalance.C1x);
+        publicInputs[3] = bytes32(oldBalance.C1y);
+        publicInputs[4] = bytes32(oldBalance.C2x);
+        publicInputs[5] = bytes32(oldBalance.C2y);
+        publicInputs[6] = bytes32(_newBalance.C1x);
+        publicInputs[7] = bytes32(_newBalance.C1y);
+        publicInputs[8] = bytes32(_newBalance.C2x);
+        publicInputs[9] = bytes32(_newBalance.C2y);
 
         require(
             PROCESS_DEPOSIT_VERIFIER.verify(_proof, publicInputs),
@@ -842,45 +883,47 @@ contract PrivateToken is UsingAccountControllers {
         return txNonce;
     }
 
-    function _stageCommonTransferInputs(
-        transferLocals memory local,
-        bytes32 _from,
-        bytes32 _to,
-        uint40 _processFee,
-        uint40 _relayFee,
-        EncryptedAmount memory _amountToSend,
-        EncryptedAmount memory _senderNewBalance
-    ) internal pure returns (transferLocals memory) {
-        for (uint8 i = 0; i < 32; i++) {
-            // Noir takes an array of 32 bytes32 as public inputs
-            bytes1 aByte = bytes1((_from << (i * 8)));
-            local.publicInputs[i] = bytes32(uint256(uint8(aByte)));
-        }
-        for (uint8 i = 0; i < 32; i++) {
-            bytes1 aByte = bytes1((_to << (i * 8)));
-            local.publicInputs[i + 32] = bytes32(uint256(uint8(aByte)));
-        }
-        local.publicInputs[64] = bytes32(uint256(_processFee));
-        local.publicInputs[65] = bytes32(uint256(_relayFee));
-        // this nonce should be unique because it uses the randomness calculated in the encrypted balance
-        local.publicInputs[66] = bytes32(local.txNonce);
-        local.publicInputs[67] = bytes32(local.oldBalance.C1x);
-        local.publicInputs[68] = bytes32(local.oldBalance.C1y);
-        local.publicInputs[69] = bytes32(local.oldBalance.C2x);
-        local.publicInputs[70] = bytes32(local.oldBalance.C2y);
-        local.publicInputs[71] = bytes32(_amountToSend.C1x);
-        local.publicInputs[72] = bytes32(_amountToSend.C1y);
-        local.publicInputs[73] = bytes32(_amountToSend.C2x);
-        local.publicInputs[74] = bytes32(_amountToSend.C2y);
-        local.publicInputs[75] = bytes32(_senderNewBalance.C1x);
-        local.publicInputs[76] = bytes32(_senderNewBalance.C1y);
-        local.publicInputs[77] = bytes32(_senderNewBalance.C2x);
-        local.publicInputs[78] = bytes32(_senderNewBalance.C2y);
-        return local;
-    }
+    // function _stageCommonTransferInputs(
+    //     transferLocals memory local,
+    //     uint256 _fromModulus,
+    //     uint256 _toModulus,
+    //     uint40 _processFee,
+    //     uint40 _relayFee,
+    //     EncryptedAmount memory _amountToSend,
+    //     EncryptedAmount memory _senderNewBalance
+    // ) internal pure returns (transferLocals memory) {
+    //     // for (uint8 i = 0; i < 32; i++) {
+    //     //     // Noir takes an array of 32 bytes32 as public inputs
+    //     //     bytes1 aByte = bytes1((_from << (i * 8)));
+    //     //     local.publicInputs[i] = bytes32(uint256(uint8(aByte)));
+    //     // }
+    //     // for (uint8 i = 0; i < 32; i++) {
+    //     //     bytes1 aByte = bytes1((_to << (i * 8)));
+    //     //     local.publicInputs[i + 32] = bytes32(uint256(uint8(aByte)));
+    //     // }
+    //     local.publicInputs[0] = bytes32(_fromModulus);
+    //     local.publicInputs[1] = bytes32(_toModulus);
+    //     local.publicInputs[2] = bytes32(uint256(_processFee));
+    //     local.publicInputs[3] = bytes32(uint256(_relayFee));
+    //     // this nonce should be unique because it uses the randomness calculated in the encrypted balance
+    //     local.publicInputs[4] = bytes32(local.txNonce);
+    //     local.publicInputs[5] = bytes32(local.oldBalance.C1x);
+    //     local.publicInputs[6] = bytes32(local.oldBalance.C1y);
+    //     local.publicInputs[7] = bytes32(local.oldBalance.C2x);
+    //     local.publicInputs[8] = bytes32(local.oldBalance.C2y);
+    //     local.publicInputs[9] = bytes32(_amountToSend.C1x);
+    //     local.publicInputs[10] = bytes32(_amountToSend.C1y);
+    //     local.publicInputs[11] = bytes32(_amountToSend.C2x);
+    //     local.publicInputs[12] = bytes32(_amountToSend.C2y);
+    //     local.publicInputs[13] = bytes32(_senderNewBalance.C1x);
+    //     local.publicInputs[14] = bytes32(_senderNewBalance.C1y);
+    //     local.publicInputs[15] = bytes32(_senderNewBalance.C2x);
+    //     local.publicInputs[16] = bytes32(_senderNewBalance.C2y);
+    //     return local;
+    // }
 
     function _stageCommonWithdrawInputs(
-        bytes32 _from,
+        uint256 _fromModulus,
         uint40 _amount,
         uint40 _relayFee,
         EncryptedAmount memory _oldEncryptedAmount,
@@ -888,39 +931,40 @@ contract PrivateToken is UsingAccountControllers {
         bytes32[] memory publicInputs,
         uint256 _txNonce
     ) internal pure returns (bytes32[] memory) {
-        for (uint8 i = 0; i < 32; i++) {
-            // Noir takes an array of 32 bytes32 as public inputs
-            bytes1 aByte = bytes1((_from << (i * 8)));
-            publicInputs[i] = bytes32(uint256(uint8(aByte)));
-        }
-        publicInputs[32] = bytes32(_txNonce);
-        publicInputs[33] = bytes32(uint256(_amount));
-        publicInputs[34] = bytes32(uint256(_relayFee));
-        publicInputs[35] = bytes32(_oldEncryptedAmount.C1x);
-        publicInputs[36] = bytes32(_oldEncryptedAmount.C1y);
-        publicInputs[37] = bytes32(_oldEncryptedAmount.C2x);
-        publicInputs[38] = bytes32(_oldEncryptedAmount.C2y);
-        publicInputs[39] = bytes32(_newEncryptedAmount.C1x);
-        publicInputs[40] = bytes32(_newEncryptedAmount.C1y);
-        publicInputs[41] = bytes32(_newEncryptedAmount.C2x);
-        publicInputs[42] = bytes32(_newEncryptedAmount.C2y);
+        // for (uint8 i = 0; i < 32; i++) {
+        //     // Noir takes an array of 32 bytes32 as public inputs
+        //     bytes1 aByte = bytes1((_from << (i * 8)));
+        //     publicInputs[i] = bytes32(uint256(uint8(aByte)));
+        // }
+        publicInputs[0] = bytes32(_fromModulus);
+        publicInputs[1] = bytes32(_txNonce);
+        publicInputs[2] = bytes32(uint256(_amount));
+        publicInputs[3] = bytes32(uint256(_relayFee));
+        publicInputs[4] = bytes32(_oldEncryptedAmount.C1x);
+        publicInputs[5] = bytes32(_oldEncryptedAmount.C1y);
+        publicInputs[6] = bytes32(_oldEncryptedAmount.C2x);
+        publicInputs[7] = bytes32(_oldEncryptedAmount.C2y);
+        publicInputs[8] = bytes32(_newEncryptedAmount.C1x);
+        publicInputs[9] = bytes32(_newEncryptedAmount.C1y);
+        publicInputs[10] = bytes32(_newEncryptedAmount.C2x);
+        publicInputs[11] = bytes32(_newEncryptedAmount.C2y);
         return publicInputs;
     }
 
-    function _getAndAddMultisigSigners(
-        bytes32[] memory publicInputs,
-        bytes32 _from,
-        uint256 messageHashModulus
-    ) internal view returns (bytes32[] memory) {
-        uint256 length = publicInputs.length;
-        address[] memory signers = multisigEthSigners[_from].ethSigners;
-        for (uint8 i = 0; i < signers.length; i++) {
-            publicInputs[length + i] = bytes32(uint256(uint160(signers[i])));
-        }
-        publicInputs[length + signers.length] = bytes32(
-            uint256(multisigEthSigners[_from].threshold)
-        );
-        publicInputs[length + signers.length + 1] = bytes32(messageHashModulus);
-        return publicInputs;
-    }
+    // function _getAndAddMultisigSigners(
+    //     bytes32[] memory publicInputs,
+    //     bytes32 _from,
+    //     uint256 messageHashModulus
+    // ) internal view returns (bytes32[] memory) {
+    //     uint256 length = publicInputs.length;
+    //     address[] memory signers = multisigEthSigners[_from].ethSigners;
+    //     for (uint8 i = 0; i < signers.length; i++) {
+    //         publicInputs[length + i] = bytes32(uint256(uint160(signers[i])));
+    //     }
+    //     publicInputs[length + signers.length] = bytes32(
+    //         uint256(multisigEthSigners[_from].threshold)
+    //     );
+    //     publicInputs[length + signers.length + 1] = bytes32(messageHashModulus);
+    //     return publicInputs;
+    // }
 }

@@ -59,6 +59,8 @@ let balanceAfterProcessDeposit: EncryptedBalance;
 describe("Private Token integration testing", async function () {
   this.beforeAll(async () => {
     const { privateToken, token } = await setup();
+
+    console.log("private token", privateToken.address);
     privateTokenAddress = privateToken.address;
     tokenAddress = token.address;
     await babyjub.init();
@@ -650,6 +652,14 @@ async function setup() {
     "contracts/change_multi_eth_signers/plonk_vk.sol:UltraVerifier",
     []
   );
+  const { contract: accountController } = await deploy("AccountController", [
+    addEthSigners.address,
+    changeEthSigner.address,
+    changeMultiEthSigners.address,
+  ]);
+
+  const { contract: transferVerifyLib } = await deploy("TransferVerifyLib", []);
+
   const { contract: privateTokenFactory } = await deploy(
     "PrivateTokenFactory",
     [
@@ -658,11 +668,10 @@ async function setup() {
       transferVerifier.address,
       withdrawVerifier.address,
       lockVerifier.address,
-      addEthSigners.address,
-      changeEthSigner.address,
-      changeMultiEthSigners.address,
+      accountController.address,
     ]
   );
+
   await privateTokenFactory.write.deploy([token.address]);
   const logs = await publicClient.getContractEvents({
     address: privateTokenFactory.address,
@@ -675,6 +684,18 @@ async function setup() {
     "PrivateToken",
     privateTokenAddress
   );
+
+  // const { contract: privateToken } = await deploy("PrivateToken", [
+  //   pendingDepositVerifier.address,
+  //   pendingTransferVerifier.address,
+  //   transferVerifier.address,
+  //   withdrawVerifier.address,
+  //   lockVerifier.address,
+  //   token.address,
+  //   await token.read.decimals(),
+  //   accountController.address,
+  // ]);
+
   privateToken.write.initOtherVerifiers([
     transfer4337Verifier.address,
     transferEthSignerVerifier.address,
