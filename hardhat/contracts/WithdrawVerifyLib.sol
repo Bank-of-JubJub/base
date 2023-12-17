@@ -2,7 +2,7 @@
 pragma solidity 0.8.20;
 
 // Define your library here
-library TransferVerifyLib {
+library WithdrawVerifyLib {
     // Example of a library function
     function myFunction(uint x) internal pure returns (uint) {
         // Your code here
