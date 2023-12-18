@@ -37,6 +37,7 @@ import {
   encryptedValueToEncryptedBalance,
   fromRprLe,
   getC1PointFromEncryptedBalance,
+  getC2PointFromEncryptedBalance,
   getDecryptedValue,
   getEncryptedValue,
   getNonce,
@@ -172,6 +173,7 @@ describe("Private Token integration testing", async function () {
       newClearBalance,
       true
     );
+
     const encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
 
     await transfer(
@@ -347,10 +349,10 @@ async function processPendingDeposit(
     amount_sum: Number(convertedAmount) - depositProcessFee,
     packed_public_key: Array.from(toBytes(account1.packedPublicKey)),
     packed_public_key_modulus: fromRprLe(account1.packedPublicKey),
-    old_enc_balance_1: getC1PointFromEncryptedBalance(startingBalance, true),
-    old_enc_balance_2: getC1PointFromEncryptedBalance(startingBalance, false),
-    new_enc_balance_1: getC1PointFromEncryptedBalance(newBalance, true),
-    new_enc_balance_2: getC1PointFromEncryptedBalance(newBalance, false),
+    old_enc_balance_1: getC1PointFromEncryptedBalance(startingBalance),
+    old_enc_balance_2: getC2PointFromEncryptedBalance(startingBalance),
+    new_enc_balance_1: getC1PointFromEncryptedBalance(newBalance),
+    new_enc_balance_2: getC2PointFromEncryptedBalance(newBalance),
   };
 
   if (processDepositProof == undefined) {
@@ -420,19 +422,11 @@ async function transfer(
       x: toHex(encOldBalance[2], { size: 32 }),
       y: toHex(encOldBalance[3], { size: 32 }),
     },
-    encrypted_amount_1: getC1PointFromEncryptedBalance(encryptedAmount, true),
-    encrypted_amount_2: getC1PointFromEncryptedBalance(encryptedAmount, false),
-    new_balance_encrypted_1: getC1PointFromEncryptedBalance(
-      encNewBalance,
-      true
-    ),
-    new_balance_encrypted_2: getC1PointFromEncryptedBalance(
-      encNewBalance,
-      false
-    ),
+    encrypted_amount_1: getC1PointFromEncryptedBalance(encryptedAmount),
+    encrypted_amount_2: getC2PointFromEncryptedBalance(encryptedAmount),
+    new_balance_encrypted_1: getC1PointFromEncryptedBalance(encNewBalance),
+    new_balance_encrypted_2: getC2PointFromEncryptedBalance(encNewBalance),
   };
-
-  console.log(proofInputs);
 
   const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
 
@@ -441,7 +435,7 @@ async function transfer(
     await runNargoProve("transfer", "Test.toml");
     transferProof = await getTransferProof();
 
-    await privateToken.write.transfer([
+    let hash = await privateToken.write.transfer([
       to.packedPublicKey,
       from.packedPublicKey,
       processFee,
