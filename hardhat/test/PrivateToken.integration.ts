@@ -673,6 +673,14 @@ async function setup() {
     accountController.address,
   ]);
 
+  const { contract: allWithdrawVerifier } = await deploy("WithdrawVerify", [
+    withdrawVerifier.address,
+    withdraw4337Verifier.address,
+    withdrawEthSignerVerifier.address,
+    withdrawMultisigVerifier.address,
+    accountController.address,
+  ]);
+
   // const { contract: privateTokenFactory } = await deploy(
   //   "PrivateTokenFactory",
   //   [
@@ -702,18 +710,12 @@ async function setup() {
     pendingDepositVerifier.address,
     pendingTransferVerifier.address,
     allTransferVerifier.address,
-    withdrawVerifier.address,
+    allWithdrawVerifier.address,
     lockVerifier.address,
     token.address,
     await token.read.decimals(),
-    accountController.address,
   ]);
 
-  privateToken.write.initOtherVerifiers([
-    withdraw4337Verifier.address,
-    withdrawEthSignerVerifier.address,
-    withdrawMultisigVerifier.address,
-  ]);
   return {
     publicClient,
     pendingDepositVerifier,

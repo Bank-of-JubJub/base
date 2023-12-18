@@ -15,6 +15,7 @@ contract PrivateTokenFactory {
 
     event Deployed(address indexed token);
 
+    // TODO: update to use the the all transfer and all withdraw verifiers
     constructor(
         address _pendingDepositVerifier,
         address _pendingTransferVerifier,
@@ -41,8 +42,7 @@ contract PrivateTokenFactory {
             withdrawVerifier,
             lockVerifier,
             _token,
-            18,
-            accountController
+            18
         );
         emit Deployed(address(newToken));
     }

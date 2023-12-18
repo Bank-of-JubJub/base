@@ -14,6 +14,7 @@ import {IERC165} from "./IERC165.sol";
 import {ERC165Checker} from "./ERC165Checker.sol";
 import {AccountController} from "./AccountController.sol";
 import {TransferVerify} from "./TransferVerify.sol";
+import {WithdrawVerify} from "./WithdrawVerify.sol";
 
 /**
  * @dev Implementation of PrivateToken.
@@ -65,13 +66,13 @@ contract PrivateToken {
     // } // The Public Key should be a point on Baby JubJub elliptic curve : checks must be done offchain before registering to ensure that X<p and Y<p and (X,Y) is on the curve
     ProcessDepositVerifier public PROCESS_DEPOSIT_VERIFIER;
     ProcessTransferVerifier public PROCESS_TRANSFER_VERIFIER;
-    WithdrawVerifier public WITHDRAW_VERIFIER;
-    Withdraw4337Verifier public WITHDRAW_4337_VERIFIER;
-    WithdrawEthSignerVerifier public WITHDRAW_ETH_SIGNER_VERIFIER;
-    WithdrawMultisigVerifier public WITHDRAW_MULTISIG_VERIFIER;
+    // WithdrawVerifier public WITHDRAW_VERIFIER;
+    // Withdraw4337Verifier public WITHDRAW_4337_VERIFIER;
+    // WithdrawEthSignerVerifier public WITHDRAW_ETH_SIGNER_VERIFIER;
+    // WithdrawMultisigVerifier public WITHDRAW_MULTISIG_VERIFIER;
     LockVerifier public LOCK_VERIFIER;
-    AccountController public ACCOUNT_CONTROLLER;
     address public allTransferVerifier;
+    address public allWithdrawVerifier;
 
     uint40 public totalSupply;
 
@@ -156,7 +157,7 @@ contract PrivateToken {
      * @param _processDepositVerifier address of the processDepositVerifier contract
      * @param _processTransferVerifier address of the processTransferVerifier contract
      * @param _allTransferVerifier address of the contract that verifies all of the transfers
-     * @param _withdrawVerifier address of the withdrawVerifier contract
+     * @param _allWithdrawVerifier address of the withdrawVerifier contract
      * @param _lockVerifier address of the lockVerifier contract
      * @param _token - ERC20 token address
      */
@@ -165,11 +166,10 @@ contract PrivateToken {
         address _processDepositVerifier,
         address _processTransferVerifier,
         address _allTransferVerifier,
-        address _withdrawVerifier,
+        address _allWithdrawVerifier,
         address _lockVerifier,
         address _token,
-        uint256 _decimals,
-        address _accountController
+        uint256 _decimals
     ) {
         PROCESS_DEPOSIT_VERIFIER = ProcessDepositVerifier(
             _processDepositVerifier
@@ -178,9 +178,8 @@ contract PrivateToken {
             _processTransferVerifier
         );
         allTransferVerifier = _allTransferVerifier;
-        WITHDRAW_VERIFIER = WithdrawVerifier(_withdrawVerifier);
+        allWithdrawVerifier = _allWithdrawVerifier;
         LOCK_VERIFIER = LockVerifier(_lockVerifier);
-        ACCOUNT_CONTROLLER = AccountController(_accountController);
 
         token = IERC20(_token);
         uint256 sourceDecimals = _decimals;
@@ -191,22 +190,6 @@ contract PrivateToken {
         }
 
         SOURCE_TOKEN_DECIMALS = sourceDecimals;
-    }
-
-    // TODO: protect this so it can only be called once
-    // needed to break this out of the constructor because the constructor got too big
-    function initOtherVerifiers(
-        address _withdraw4337Verifier,
-        address _withdrawEthSignerVerifier,
-        address _withdrawMultisigVerifier
-    ) public {
-        WITHDRAW_4337_VERIFIER = Withdraw4337Verifier(_withdraw4337Verifier);
-        WITHDRAW_ETH_SIGNER_VERIFIER = WithdrawEthSignerVerifier(
-            _withdrawEthSignerVerifier
-        );
-        WITHDRAW_MULTISIG_VERIFIER = WithdrawMultisigVerifier(
-            _withdrawMultisigVerifier
-        );
     }
 
     // potentially mitigate DDoS attacks against relayers with RLNs
@@ -370,6 +353,18 @@ contract PrivateToken {
 
     // TODO: update withdraw function to have validational conditional on the type of accounts, 4337, eth signer, multisig
 
+    struct WithdrawLocals {
+        uint256 txNonce;
+        address lockedToAddress;
+        EncryptedAmount oldBalance;
+        EncryptedAmount newBalance;
+        uint256 amount;
+        uint256 relayFee;
+        bytes32 to;
+        bytes32 from;
+        bytes proof;
+    }
+
     function withdraw(
         bytes32 _from,
         address _to,
@@ -379,15 +374,16 @@ contract PrivateToken {
         bytes memory _withdraw_proof,
         EncryptedAmount memory _newEncryptedAmount
     ) public {
-        uint256 txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
-        address lockedToAddress = lockedTo[_from];
+        WithdrawLocals memory local;
+        local.txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
+        local.lockedToAddress = lockedTo[_from];
         require(
-            lockedToAddress == address(0) || lockedToAddress == msg.sender,
+            local.lockedToAddress == address(0) ||
+                local.lockedToAddress == msg.sender,
             "account is locked to another account"
         );
         // TODO: fee
-        EncryptedAmount memory oldEncryptedAmount = balances[_from];
-        // calculate the new total encrypted supply offchain, replace existing value (not an increment)
+        local.oldBalance = balances[_from];
         balances[_from] = _newEncryptedAmount;
         totalSupply -= _amount;
         if (_relayFee != 0) {
@@ -396,102 +392,25 @@ contract PrivateToken {
                 uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
             );
         }
-        uint256 convertedAmount = _amount *
-            10 ** (SOURCE_TOKEN_DECIMALS - decimals);
-        token.transfer(_to, convertedAmount);
-        emit Withdraw(
-            _from,
-            _to,
-            convertedAmount,
-            _relayFeeRecipient,
-            _relayFee
-        );
-
-        // this makes sure the signature cannot be reused
-        bytes32 messageHash = keccak256(
-            abi.encodePacked(address(this), _from, _to, txNonce)
-        );
-        uint256 messageHashModulus = uint256(messageHash) % BJJ_PRIME;
-        uint256 fromModulus = uint256(_from) % BJJ_PRIME;
-        // if (ethSigner[_from] != address(0)) {
-        //     bytes32[] memory publicInputs = new bytes32[](14);
-        //     publicInputs = _stageCommonWithdrawInputs(
-        //         fromModulus,
-        //         _amount,
-        //         _relayFee,
-        //         oldEncryptedAmount,
-        //         _newEncryptedAmount,
-        //         publicInputs,
-        //         txNonce
-        //     );
-        //     publicInputs[publicInputs.length + 1] = bytes32(
-        //         uint256(uint160(ethSigner[_from]))
-        //     );
-        //     publicInputs[publicInputs.length + 2] = bytes32(messageHashModulus);
-        //     require(
-        //         WITHDRAW_ETH_SIGNER_VERIFIER.verify(
-        //             _withdraw_proof,
-        //             publicInputs
-        //         ),
-        //         "Withdraw proof is invalid"
-        //     );
-        // } else if (erc4337Controller[_from] != address(0)) {
-        //     bytes32[] memory publicInputs = new bytes32[](13);
-        //     publicInputs = _stageCommonWithdrawInputs(
-        //         fromModulus,
-        //         _amount,
-        //         _relayFee,
-        //         oldEncryptedAmount,
-        //         _newEncryptedAmount,
-        //         publicInputs,
-        //         txNonce
-        //     );
-        //     publicInputs[publicInputs.length + 1] = bytes32(
-        //         uint256(uint160(msg.sender))
-        //     );
-        //     require(
-        //         WITHDRAW_4337_VERIFIER.verify(_withdraw_proof, publicInputs),
-        //         "Withdraw proof is invalid"
-        //     );
-        // } else if (multisigEthSigners[_from].threshold != 0) {
-        //     bytes32[] memory publicInputs = new bytes32[](22);
-        //     publicInputs = _stageCommonWithdrawInputs(
-        //         fromModulus,
-        //         _amount,
-        //         _relayFee,
-        //         oldEncryptedAmount,
-        //         _newEncryptedAmount,
-        //         publicInputs,
-        //         txNonce
-        //     );
-        //     publicInputs = _getAndAddMultisigSigners(
-        //         publicInputs,
-        //         _from,
-        //         messageHashModulus
-        //     );
-        //     require(
-        //         WITHDRAW_MULTISIG_VERIFIER.verify(
-        //             _withdraw_proof,
-        //             publicInputs
-        //         ),
-        //         "Withdraw proof is invalid"
-        //     );
-        // } else {
-        //     bytes32[] memory publicInputs = new bytes32[](12);
-        //     publicInputs = _stageCommonWithdrawInputs(
-        //         fromModulus,
-        //         _amount,
-        //         _relayFee,
-        //         oldEncryptedAmount,
-        //         _newEncryptedAmount,
-        //         publicInputs,
-        //         txNonce
-        //     );
-        //     require(
-        //         WITHDRAW_VERIFIER.verify(_withdraw_proof, publicInputs),
-        //         "Withdraw proof is invalid"
-        //     );
-        // }
+        {
+            uint256 convertedAmount = _amount *
+                10 ** (SOURCE_TOKEN_DECIMALS - decimals);
+            token.transfer(_to, convertedAmount);
+            emit Withdraw(
+                _from,
+                _to,
+                convertedAmount,
+                _relayFeeRecipient,
+                _relayFee
+            );
+        }
+        local.to = bytes32(uint256(uint160(_to)));
+        local.from = _from;
+        local.relayFee = _relayFee;
+        local.amount = _amount;
+        local.proof = _withdraw_proof;
+        local.newBalance = _newEncryptedAmount;
+        WithdrawVerify(allWithdrawVerifier).verifyWithdraw(local);
     }
 
     /**
@@ -547,12 +466,6 @@ contract PrivateToken {
 
         uint256 recipientModulus = fromRprLe(_recipient);
         bytes32[] memory publicInputs = new bytes32[](10);
-        // for (uint8 i = 0; i < 32; i++) {
-        //     // Noir takes an array of 32 bytes32 as public inputs
-        //     bytes1 aByte = bytes1((_recipient << (i * 8)));
-        //     publicInputs[i] = bytes32(uint256(uint8(aByte)));
-        // }
-        // console.log("recipientModulus", recipientModulus);
         publicInputs[0] = bytes32(recipientModulus);
         publicInputs[1] = bytes32(totalAmount);
         publicInputs[2] = bytes32(oldBalance.C1x);
@@ -752,35 +665,6 @@ contract PrivateToken {
         require(nonce[_from][txNonce] == false, "nonce is not unique");
         nonce[_from][txNonce] = true;
         return txNonce;
-    }
-
-    function _stageCommonWithdrawInputs(
-        uint256 _fromModulus,
-        uint40 _amount,
-        uint40 _relayFee,
-        EncryptedAmount memory _oldEncryptedAmount,
-        EncryptedAmount memory _newEncryptedAmount,
-        bytes32[] memory publicInputs,
-        uint256 _txNonce
-    ) internal pure returns (bytes32[] memory) {
-        // for (uint8 i = 0; i < 32; i++) {
-        //     // Noir takes an array of 32 bytes32 as public inputs
-        //     bytes1 aByte = bytes1((_from << (i * 8)));
-        //     publicInputs[i] = bytes32(uint256(uint8(aByte)));
-        // }
-        publicInputs[0] = bytes32(_fromModulus);
-        publicInputs[1] = bytes32(_txNonce);
-        publicInputs[2] = bytes32(uint256(_amount));
-        publicInputs[3] = bytes32(uint256(_relayFee));
-        publicInputs[4] = bytes32(_oldEncryptedAmount.C1x);
-        publicInputs[5] = bytes32(_oldEncryptedAmount.C1y);
-        publicInputs[6] = bytes32(_oldEncryptedAmount.C2x);
-        publicInputs[7] = bytes32(_oldEncryptedAmount.C2y);
-        publicInputs[8] = bytes32(_newEncryptedAmount.C1x);
-        publicInputs[9] = bytes32(_newEncryptedAmount.C1y);
-        publicInputs[10] = bytes32(_newEncryptedAmount.C2x);
-        publicInputs[11] = bytes32(_newEncryptedAmount.C2y);
-        return publicInputs;
     }
 
     function fromRprLe(bytes32 publicKey) internal view returns (uint256) {
