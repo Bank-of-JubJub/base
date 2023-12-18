@@ -131,7 +131,7 @@ export function pointObjectsToEncryptedBalance(pointobject: {
 
 export function getC1PointFromEncryptedBalance(
   encBalance: EncryptedBalance,
-  isC1: boolean
+  isC1: boolean = true
 ) {
   if (isC1) {
     return {
@@ -144,6 +144,12 @@ export function getC1PointFromEncryptedBalance(
       y: toHex(encBalance.C2y, { size: 32 }),
     };
   }
+}
+export function getC2PointFromEncryptedBalance(encBalance: EncryptedBalance) {
+  return {
+    x: toHex(encBalance.C2x, { size: 32 }),
+    y: toHex(encBalance.C2y, { size: 32 }),
+  };
 }
 
 export function encryptedValueToEncryptedBalance(encValue: EncryptedAmount) {
