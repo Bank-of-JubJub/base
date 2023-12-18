@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 import {UltraVerifier as ProcessDepositVerifier} from "./process_pending_deposits/plonk_vk.sol";
 import {UltraVerifier as ProcessTransferVerifier} from "./process_pending_transfers/plonk_vk.sol";
 import {UltraVerifier as WithdrawVerifier} from "./withdraw/plonk_vk.sol";
@@ -317,155 +317,40 @@ contract PrivateToken {
         );
         local.oldBalance = balances[_from];
         local.receiverBalance = balances[_to];
-        {
-            bool zeroBalance = (local.receiverBalance.C1x == 0 &&
-                local.receiverBalance.C2x == 0 &&
-                local.receiverBalance.C1y == 0 &&
-                local.receiverBalance.C2y == 0);
-            if (zeroBalance) {
-                // no fee required if a new account
-                _processFee = 0;
-                balances[_to] = _amountToSend;
-            } else {
-                local.transferCount = pendingTransferCounts[_to];
-                allPendingTransfersMapping[_to][
-                    local.transferCount
-                ] = PendingTransfer(
-                    _amountToSend,
-                    _processFee,
-                    block.timestamp
-                );
-                pendingTransferCounts[_to] += 1;
-            }
-        }
-        {
-            balances[_from] = _senderNewBalance;
-            emit Transfer(_from, _to, _amountToSend);
-            if (_relayFee != 0) {
-                token.transfer(
-                    _relayFeeRecipient,
-                    _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)
-                );
-            }
+        bool zeroBalance = (local.receiverBalance.C1x == 0 &&
+            local.receiverBalance.C2x == 0 &&
+            local.receiverBalance.C1y == 0 &&
+            local.receiverBalance.C2y == 0);
+        if (zeroBalance) {
+            // no fee required if a new account
+            _processFee = 0;
+            balances[_to] = _amountToSend;
+        } else {
+            local.transferCount = pendingTransferCounts[_to];
+            allPendingTransfersMapping[_to][
+                local.transferCount
+            ] = PendingTransfer(_amountToSend, _processFee, block.timestamp);
+            pendingTransferCounts[_to] += 1;
         }
 
-        // this makes sure the signature cannot be reused
-        // bytes32 messageHash = keccak256(
-        //     abi.encodePacked(address(this), _from, _to, local.txNonce)
-        // );
+        balances[_from] = _senderNewBalance;
+        emit Transfer(_from, _to, _amountToSend);
+        if (_relayFee != 0) {
+            token.transfer(
+                _relayFeeRecipient,
+                _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)
+            );
+        }
+
+        local.to = _to;
+        local.from = _from;
+        local.relayFee = _relayFee;
+        local.processFee = _processFee;
         local.senderNewBalance = _senderNewBalance;
+        local.amountToSend = _amountToSend;
         local.privateToken = PrivateToken(address(this));
         local.proof = _proof_transfer;
         TransferVerify(allTransferVerifier).verifyTransfer(local);
-        // _from,
-        // _to,
-        // PrivateToken(address(this)),
-        // _processFee,
-        // _relayFee,
-        // _amountToSend,
-        // _senderNewBalance,
-        // AccountController(address(ACCOUNT_CONTROLLER)),
-        // _proof_transfer
-        // uint256 messageHashModulus = uint256(messageHash) % BJJ_PRIME;
-        // uint256 toModulus = uint256(_to) % BJJ_PRIME;
-        // uint256 fromModulus = uint256(_from) % BJJ_PRIME;
-
-        // if (ethSigner[_from] != address(0)) {
-        //     // use the transfer_eth_signer circuit
-        //     local.publicInputs = new bytes32[](18);
-        //     local = _stageCommonTransferInputs(
-        //         local,
-        //         fromModulus,
-        //         toModulus,
-        //         _processFee,
-        //         _relayFee,
-        //         _amountToSend,
-        //         _senderNewBalance
-        //     );
-        //     local.publicInputs[16] = bytes32(
-        //         uint256(uint160(ethSigner[_from]))
-        //     );
-        //     local.publicInputs[17] = bytes32(messageHashModulus);
-
-        //     require(
-        //         TRANSFER_ETH_SIGNER_VERIFIER.verify(
-        //             _proof_transfer,
-        //             local.publicInputs
-        //         ),
-        //         "Eth signer transfer proof is invalid"
-        //     );
-        // } else if (erc4337Controller[_from] != address(0)) {
-        //     local.publicInputs = new bytes32[](17);
-        //     local = _stageCommonTransferInputs(
-        //         local,
-        //         fromModulus,
-        //         toModulus,
-        //         _processFee,
-        //         _relayFee,
-        //         _amountToSend,
-        //         _senderNewBalance
-        //     );
-        //     // msg.sender should be 4337 account address
-        //     local.publicInputs[16] = bytes32(uint256(uint160(msg.sender)));
-
-        //     require(
-        //         TRANSFER_4337_VERIFIER.verify(
-        //             _proof_transfer,
-        //             local.publicInputs
-        //         ),
-        //         "4337 Transfer proof is invalid"
-        //     );
-        // } else if (multisigEthSigners[_from].threshold != 0) {
-        //     local.publicInputs = new bytes32[](28);
-        //     local = _stageCommonTransferInputs(
-        //         local,
-        //         fromModulus,
-        //         toModulus,
-        //         _processFee,
-        //         _relayFee,
-        //         _amountToSend,
-        //         _senderNewBalance
-        //     );
-        //     address[] memory signers = multisigEthSigners[_from].ethSigners;
-        //     for (uint8 i = 0; i < signers.length; i++) {
-        //         local.publicInputs[79 + i] = bytes32(
-        //             uint256(uint160(signers[i]))
-        //         );
-        //     }
-        //     // local.publicInputs[79 + signers.length] = bytes32(
-        //     //     uint256(multisigEthSigners[_from].threshold)
-        //     // );
-        //     // local.publicInputs[79 + signers.length + 1] = bytes32(
-        //     //     messageHashModulus
-        //     // );
-        //     local.publicInputs = _getAndAddMultisigSigners(
-        //         local.publicInputs,
-        //         _from,
-        //         messageHashModulus
-        //     );
-        //     require(
-        //         TRANSFER_MULTISIG_VERIFIER.verify(
-        //             _proof_transfer,
-        //             local.publicInputs
-        //         ),
-        //         "Multisig Transfer proof is invalid"
-        //     );
-        // } else {
-        //     local.publicInputs = new bytes32[](79);
-        //     local = _stageCommonTransferInputs(
-        //         local,
-        //         fromModulus,
-        //         toModulus,
-        //         _processFee,
-        //         _relayFee,
-        //         _amountToSend,
-        //         _senderNewBalance
-        //     );
-        //     require(
-        //         TRANSFER_VERIFIER.verify(_proof_transfer, local.publicInputs),
-        //         "Transfer proof is invalid"
-        //     );
-        // }
     }
 
     /**
@@ -797,41 +682,47 @@ contract PrivateToken {
      * @param _proof - proof to verify with the ProcessPendingTransfers circuit
      * @param _newEncryptedAmount - the new encrypted balance of the sender after the fee
      */
-    // function lock(
-    //     bytes32 _from,
-    //     address _lockToContract,
-    //     uint40 _relayFee,
-    //     address _relayFeeRecipient,
-    //     bytes memory _proof,
-    //     EncryptedAmount memory _newEncryptedAmount
-    // ) public {
-    //     uint256 txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
-    //     require(lockedTo[_from] == address(0), "account is already locked");
-    //     // figure out actual function signature, this is just a placeholder
-    //     require(_lockToContract.supportsInterface(0x80ac58cd), "contract does not implement unlock");
-    //     lockedTo[_from] = _lockToContract;
-    //     EncryptedAmount memory oldEncryptedAmount = balances[_from];
+    function lock(
+        bytes32 _from,
+        address _lockToContract,
+        uint40 _relayFee,
+        address _relayFeeRecipient,
+        bytes memory _proof,
+        EncryptedAmount memory _newEncryptedAmount
+    ) public {
+        uint256 txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
+        require(lockedTo[_from] == address(0), "account is already locked");
+        // figure out actual function signature, this is just a placeholder
+        require(
+            _lockToContract.supportsInterface(0x80ac58cd),
+            "contract does not implement unlock"
+        );
+        lockedTo[_from] = _lockToContract;
+        EncryptedAmount memory oldEncryptedAmount = balances[_from];
 
-    //     bytes32[] memory publicInputs = new bytes32[](12);
-    //     // this nonce should be unique because it uses the randomness calculated in the encrypted balance
-    //     publicInputs[0] = bytes32(txNonce);
-    //     publicInputs[1] = bytes32(_from);
-    //     publicInputs[2] = bytes32(uint256(uint160(_lockToContract)));
-    //     publicInputs[3] = bytes32(uint256(_relayFee));
-    //     publicInputs[4] = bytes32(oldEncryptedAmount.C1x);
-    //     publicInputs[5] = bytes32(oldEncryptedAmount.C1y);
-    //     publicInputs[6] = bytes32(oldEncryptedAmount.C2x);
-    //     publicInputs[7] = bytes32(oldEncryptedAmount.C2y);
-    //     publicInputs[8] = bytes32(_newEncryptedAmount.C1x);
-    //     publicInputs[9] = bytes32(_newEncryptedAmount.C1y);
-    //     publicInputs[10] = bytes32(_newEncryptedAmount.C2x);
-    //     publicInputs[11] = bytes32(_newEncryptedAmount.C2y);
-    //     LOCK_VERIFIER.verify(_proof, publicInputs);
-    //     if (_relayFee != 0) {
-    //         token.transfer(_relayFeeRecipient, uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)));
-    //     }
-    //     emit Lock(_from, _lockToContract, _relayFee, _relayFeeRecipient);
-    // }
+        bytes32[] memory publicInputs = new bytes32[](12);
+        // this nonce should be unique because it uses the randomness calculated in the encrypted balance
+        publicInputs[0] = bytes32(txNonce);
+        publicInputs[1] = bytes32(_from);
+        publicInputs[2] = bytes32(uint256(uint160(_lockToContract)));
+        publicInputs[3] = bytes32(uint256(_relayFee));
+        publicInputs[4] = bytes32(oldEncryptedAmount.C1x);
+        publicInputs[5] = bytes32(oldEncryptedAmount.C1y);
+        publicInputs[6] = bytes32(oldEncryptedAmount.C2x);
+        publicInputs[7] = bytes32(oldEncryptedAmount.C2y);
+        publicInputs[8] = bytes32(_newEncryptedAmount.C1x);
+        publicInputs[9] = bytes32(_newEncryptedAmount.C1y);
+        publicInputs[10] = bytes32(_newEncryptedAmount.C2x);
+        publicInputs[11] = bytes32(_newEncryptedAmount.C2y);
+        LOCK_VERIFIER.verify(_proof, publicInputs);
+        if (_relayFee != 0) {
+            token.transfer(
+                _relayFeeRecipient,
+                uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
+            );
+        }
+        emit Lock(_from, _lockToContract, _relayFee, _relayFeeRecipient);
+    }
 
     /**
      * @notice unlocks an account locked by a contract. This function must be called by the
@@ -841,12 +732,12 @@ contract PrivateToken {
      * @param publicKey - the packed public key of the account to unlock
      */
 
-    // function unlock(bytes32 publicKey) public {
-    //     address unlockedFrom = lockedTo[publicKey];
-    //     require(msg.sender == unlockedFrom, "wrong sender");
-    //     emit Unlock(publicKey, unlockedFrom);
-    //     lockedTo[publicKey] = address(0);
-    // }
+    function unlock(bytes32 publicKey) public {
+        address unlockedFrom = lockedTo[publicKey];
+        require(msg.sender == unlockedFrom, "wrong sender");
+        emit Unlock(publicKey, unlockedFrom);
+        lockedTo[publicKey] = address(0);
+    }
 
     ///////////////////////
     // Utility functions //
@@ -862,45 +753,6 @@ contract PrivateToken {
         nonce[_from][txNonce] = true;
         return txNonce;
     }
-
-    // function _stageCommonTransferInputs(
-    //     transferLocals memory local,
-    //     uint256 _fromModulus,
-    //     uint256 _toModulus,
-    //     uint40 _processFee,
-    //     uint40 _relayFee,
-    //     EncryptedAmount memory _amountToSend,
-    //     EncryptedAmount memory _senderNewBalance
-    // ) internal pure returns (transferLocals memory) {
-    //     // for (uint8 i = 0; i < 32; i++) {
-    //     //     // Noir takes an array of 32 bytes32 as public inputs
-    //     //     bytes1 aByte = bytes1((_from << (i * 8)));
-    //     //     local.publicInputs[i] = bytes32(uint256(uint8(aByte)));
-    //     // }
-    //     // for (uint8 i = 0; i < 32; i++) {
-    //     //     bytes1 aByte = bytes1((_to << (i * 8)));
-    //     //     local.publicInputs[i + 32] = bytes32(uint256(uint8(aByte)));
-    //     // }
-    //     local.publicInputs[0] = bytes32(_fromModulus);
-    //     local.publicInputs[1] = bytes32(_toModulus);
-    //     local.publicInputs[2] = bytes32(uint256(_processFee));
-    //     local.publicInputs[3] = bytes32(uint256(_relayFee));
-    //     // this nonce should be unique because it uses the randomness calculated in the encrypted balance
-    //     local.publicInputs[4] = bytes32(local.txNonce);
-    //     local.publicInputs[5] = bytes32(local.oldBalance.C1x);
-    //     local.publicInputs[6] = bytes32(local.oldBalance.C1y);
-    //     local.publicInputs[7] = bytes32(local.oldBalance.C2x);
-    //     local.publicInputs[8] = bytes32(local.oldBalance.C2y);
-    //     local.publicInputs[9] = bytes32(_amountToSend.C1x);
-    //     local.publicInputs[10] = bytes32(_amountToSend.C1y);
-    //     local.publicInputs[11] = bytes32(_amountToSend.C2x);
-    //     local.publicInputs[12] = bytes32(_amountToSend.C2y);
-    //     local.publicInputs[13] = bytes32(_senderNewBalance.C1x);
-    //     local.publicInputs[14] = bytes32(_senderNewBalance.C1y);
-    //     local.publicInputs[15] = bytes32(_senderNewBalance.C2x);
-    //     local.publicInputs[16] = bytes32(_senderNewBalance.C2y);
-    //     return local;
-    // }
 
     function _stageCommonWithdrawInputs(
         uint256 _fromModulus,
@@ -931,22 +783,6 @@ contract PrivateToken {
         return publicInputs;
     }
 
-    // function _getAndAddMultisigSigners(
-    //     bytes32[] memory publicInputs,
-    //     bytes32 _from,
-    //     uint256 messageHashModulus
-    // ) internal view returns (bytes32[] memory) {
-    //     uint256 length = publicInputs.length;
-    //     address[] memory signers = multisigEthSigners[_from].ethSigners;
-    //     for (uint8 i = 0; i < signers.length; i++) {
-    //         publicInputs[length + i] = bytes32(uint256(uint160(signers[i])));
-    //     }
-    //     publicInputs[length + signers.length] = bytes32(
-    //         uint256(multisigEthSigners[_from].threshold)
-    //     );
-    //     publicInputs[length + signers.length + 1] = bytes32(messageHashModulus);
-    //     return publicInputs;
-    // }
     function fromRprLe(bytes32 publicKey) internal view returns (uint256) {
         uint256 y = 0;
         uint256 v = 1;

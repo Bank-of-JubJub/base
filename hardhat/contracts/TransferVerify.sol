@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+import "hardhat/console.sol";
 import {UltraVerifier as TransferVerifier} from "./transfer/plonk_vk.sol";
 import {UltraVerifier as Transfer4337Verifier} from "./transfer/plonk_vk.sol";
 import {UltraVerifier as TransferEthSignerVerifier} from "./transfer/plonk_vk.sol";
@@ -53,14 +54,6 @@ contract TransferVerify {
         PrivateToken.TransferLocals memory inputs
     ) external {
         LocalVars memory local;
-
-        (
-            local.oldBalanceC1x,
-            local.oldBalanceC1y,
-            local.oldBalanceC2x,
-            local.oldBalanceC2y
-        ) = inputs.privateToken.balances(inputs.from);
-
         local.messageHash = keccak256(
             abi.encodePacked(
                 address(this),
@@ -80,15 +73,11 @@ contract TransferVerify {
         ) {
             // use the transfer_eth_signer circuit
             local.publicInputs = new bytes32[](18);
-            {
-                local.publicInputs = _stageCommonTransferInputs(local, inputs);
-            }
-            {
-                local.publicInputs[16] = bytes32(
-                    uint256(uint160(accountController.ethSigner(inputs.from)))
-                );
-                local.publicInputs[17] = bytes32(local.messageHashModulus);
-            }
+            local.publicInputs = _stageCommonTransferInputs(local, inputs);
+            local.publicInputs[16] = bytes32(
+                uint256(uint160(accountController.ethSigner(inputs.from)))
+            );
+            local.publicInputs[17] = bytes32(local.messageHashModulus);
             require(
                 TransferEthSignerVerifier(transferEthSignerVerifier).verify(
                     inputs.proof,
@@ -101,9 +90,7 @@ contract TransferVerify {
             AccountController.AccountType.erc4337Account
         ) {
             local.publicInputs = new bytes32[](17);
-            {
-                local.publicInputs = _stageCommonTransferInputs(local, inputs);
-            }
+            local.publicInputs = _stageCommonTransferInputs(local, inputs);
             // msg.sender should be 4337 account address
             local.publicInputs[16] = bytes32(uint256(uint160(msg.sender)));
 
@@ -118,25 +105,16 @@ contract TransferVerify {
             local.senderAccountType == AccountController.AccountType.Multisig
         ) {
             local.publicInputs = new bytes32[](28);
-            {
-                local.publicInputs = _stageCommonTransferInputs(local, inputs);
-            }
-            {
-                AccountController.MultisigParams
-                    memory params = accountController.getMultisigEthSigners(
-                        inputs.from
-                    );
-                for (uint8 i = 0; i < params.ethSigners.length; i++) {
-                    local.publicInputs[17 + i] = bytes32(
-                        uint256(uint160(params.ethSigners[i]))
-                    );
-                }
-                // local.publicInputs[79 + signers.length] = bytes32(
-                //     uint256(multisigEthSigners[_from].threshold)
-                // );
-                // local.publicInputs[79 + signers.length + 1] = bytes32(
-                //     messageHashModulus
-                // );
+
+            local.publicInputs = _stageCommonTransferInputs(local, inputs);
+
+            AccountController.MultisigParams memory params = accountController
+                .getMultisigEthSigners(inputs.from);
+            for (uint8 i = 0; i < params.ethSigners.length; i++) {
+                local.publicInputs[17 + i] = bytes32(
+                    uint256(uint160(params.ethSigners[i]))
+                );
+
                 uint256 length = local.publicInputs.length;
                 for (uint8 i = 0; i < params.ethSigners.length; i++) {
                     local.publicInputs[length + i] = bytes32(
@@ -159,9 +137,7 @@ contract TransferVerify {
             );
         } else {
             local.publicInputs = new bytes32[](17);
-            {
-                local.publicInputs = _stageCommonTransferInputs(local, inputs);
-            }
+            local.publicInputs = _stageCommonTransferInputs(local, inputs);
             require(
                 TransferVerifier(transferVerifier).verify(
                     inputs.proof,
@@ -175,17 +151,17 @@ contract TransferVerify {
     function _stageCommonTransferInputs(
         LocalVars memory local,
         PrivateToken.TransferLocals memory inputs
-    ) internal pure returns (bytes32[] memory) {
+    ) internal view returns (bytes32[] memory) {
         local.publicInputs[0] = bytes32(local.fromModulus);
         local.publicInputs[1] = bytes32(local.toModulus);
         local.publicInputs[2] = bytes32(uint256(inputs.processFee));
         local.publicInputs[3] = bytes32(uint256(inputs.relayFee));
         // this nonce should be unique because it uses the randomness calculated in the encrypted balance
         local.publicInputs[4] = bytes32(inputs.txNonce);
-        local.publicInputs[5] = bytes32(local.oldBalanceC1x);
-        local.publicInputs[6] = bytes32(local.oldBalanceC1y);
-        local.publicInputs[7] = bytes32(local.oldBalanceC2x);
-        local.publicInputs[8] = bytes32(local.oldBalanceC2y);
+        local.publicInputs[5] = bytes32(inputs.oldBalance.C1x);
+        local.publicInputs[6] = bytes32(inputs.oldBalance.C1y);
+        local.publicInputs[7] = bytes32(inputs.oldBalance.C2x);
+        local.publicInputs[8] = bytes32(inputs.oldBalance.C2y);
         local.publicInputs[9] = bytes32(inputs.amountToSend.C1x);
         local.publicInputs[10] = bytes32(inputs.amountToSend.C1y);
         local.publicInputs[11] = bytes32(inputs.amountToSend.C2x);
