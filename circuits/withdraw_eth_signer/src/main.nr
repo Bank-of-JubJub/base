@@ -29,8 +29,9 @@ fn main(
     signature: [u8; 64],
     hashed_message: pub [u8;32],
     nonce_priv: Field,
+    packed_public_key: [u8;32],
     // Public Inputs
-    packed_public_key: pub [Field;32],
+    packed_public_key_modulus: pub Field,
     nonce: pub Field,
     value: pub u40,
     relay_fee: pub u40,
@@ -42,6 +43,8 @@ fn main(
     hashed_message_modulus: pub Field // hash of the message to be signed
 ) {
     let public_key = utils::assert_private_key_matches_packed(private_key, packed_public_key);
+    assert(packed_public_key_modulus == bjj::from_rpr_le(packed_public_key));
+
     assert(value + relay_fee <= balance_old_clear);
 
     utils::assert_correct_clear_balance(
@@ -81,10 +84,8 @@ fn test_withdraw() {
     // // public values
     let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
     let packed_public_key = bjj::pack_point(public_key);
-    let mut packed_public_key_Field: [Field;32] = [0; 32];
-    for i in 0..32 {
-        packed_public_key_Field[i] = packed_public_key[i] as Field;
-    }
+    let packed_public_key_modulus = bjj::from_rpr_le(packed_public_key);
+
     let value: u40 = 100;
 
     // the message being encrypted, should be a u40
@@ -125,7 +126,8 @@ fn test_withdraw() {
         signature,
         hashed_message,
         nonce,
-        packed_public_key_Field,
+        packed_public_key,
+        packed_public_key_modulus,
         nonce,
         value,
         relay_fee,

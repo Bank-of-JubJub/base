@@ -1,4 +1,10 @@
-import { keccak256, encodeAbiParameters, toBytes, bytesToBigInt } from "viem";
+import {
+  keccak256,
+  encodeAbiParameters,
+  toBytes,
+  bytesToBigInt,
+  toHex,
+} from "viem";
 import { BJJ_PRIME } from "./constants.ts";
 import BabyJubJubUtils, { PointObject } from "./babyJubJubUtils";
 import {
@@ -11,7 +17,11 @@ import { spawn } from "child_process";
 const babyjub = new BabyJubJubUtils();
 babyjub.init();
 
-export function getEncryptedValue(packedPublicKey: string, amount: number) {
+export function getEncryptedValue(
+  packedPublicKey: string,
+  amount: number,
+  isTest: boolean = false
+) {
   const publicKey = babyjub.unpackPoint(toBytes(packedPublicKey));
 
   const publicKeyObject = {
@@ -19,7 +29,7 @@ export function getEncryptedValue(packedPublicKey: string, amount: number) {
     y: bytesToBigInt(publicKey[1]),
   };
 
-  return babyjub.exp_elgamal_encrypt(publicKeyObject, amount);
+  return babyjub.exp_elgamal_encrypt(publicKeyObject, amount, isTest);
 }
 
 export async function getDecryptedValue(
@@ -121,19 +131,25 @@ export function pointObjectsToEncryptedBalance(pointobject: {
 
 export function getC1PointFromEncryptedBalance(
   encBalance: EncryptedBalance,
-  isC1: boolean
+  isC1: boolean = true
 ) {
   if (isC1) {
     return {
-      x: "0x" + encBalance.C1x.toString(16),
-      y: "0x" + encBalance.C1y.toString(16),
+      x: toHex(encBalance.C1x, { size: 32 }),
+      y: toHex(encBalance.C1y, { size: 32 }),
     };
   } else {
     return {
-      x: "0x" + encBalance.C2x.toString(16),
-      y: "0x" + encBalance.C2y.toString(16),
+      x: toHex(encBalance.C2x, { size: 32 }),
+      y: toHex(encBalance.C2y, { size: 32 }),
     };
   }
+}
+export function getC2PointFromEncryptedBalance(encBalance: EncryptedBalance) {
+  return {
+    x: toHex(encBalance.C2x, { size: 32 }),
+    y: toHex(encBalance.C2y, { size: 32 }),
+  };
 }
 
 export function encryptedValueToEncryptedBalance(encValue: EncryptedAmount) {
@@ -171,4 +187,18 @@ export function getNonce(encryptedAmount: {
       )
     ) % BJJ_PRIME
   );
+}
+
+export function delay(time: number) {
+  return new Promise((resolve) => setTimeout(resolve, time));
+}
+
+export function fromRprLe(publicKey: `0x${string}`): string {
+  let y = BigInt(0);
+  let v = BigInt(1);
+  for (let i = 0; i < 32; i++) {
+    y += (BigInt(toBytes(publicKey)[i]) * v) % BJJ_PRIME;
+    v *= BigInt(256);
+  }
+  return toHex(y, { size: 32 });
 }

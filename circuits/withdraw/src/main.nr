@@ -21,8 +21,9 @@ fn main(
         after calling bjj_exp_elgamal_decrypt with his private key */
     balance_old_clear: u40,
     nonce_private: Field,
+    packed_public_key: [u8;32],
     // Public Inputs
-    packed_public_key: pub [Field;32],
+    packed_public_key_modulus: pub Field,
     nonce: pub Field,
     value: pub u40,
     relay_fee: pub u40,
@@ -32,6 +33,7 @@ fn main(
     balance_new_encrypted_2: pub Gaffine
 ) {
     let public_key = utils::assert_private_key_matches_packed(private_key, packed_public_key);
+    assert(packed_public_key_modulus == bjj::from_rpr_le(packed_public_key));
     assert(value + relay_fee <= balance_old_clear);
     utils::assert_correct_clear_balance(
         private_key,
@@ -65,10 +67,8 @@ fn test_withdraw() {
     // // public values
     let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
     let packed_public_key = bjj::pack_point(public_key);
-    let mut packed_public_key_Field: [Field;32] = [0; 32];
-    for i in 0..32 {
-        packed_public_key_Field[i] = packed_public_key[i] as Field;
-    }
+    let packed_public_key_modulus = bjj::from_rpr_le(packed_public_key);
+
     let value: u40 = 100;
 
     // the message being encrypted, should be a u40
@@ -85,7 +85,8 @@ fn test_withdraw() {
         randomness,
         balance,
         nonce,
-        packed_public_key_Field,
+        packed_public_key,
+        packed_public_key_modulus,
         nonce,
         value,
         relay_fee,

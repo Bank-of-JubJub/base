@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import BabyJubJubUtils from "./babyJubJubUtils";
-import { hexToUint8Array, getEncryptedValue } from "./utils";
+import { getEncryptedValue } from "./utils";
 import { EncryptedBalance, EncryptedBalanceArray } from "./types";
 
 const babyjub = new BabyJubJubUtils();
