@@ -105,7 +105,6 @@ contract TransferVerify {
             local.senderAccountType == AccountController.AccountType.Multisig
         ) {
             local.publicInputs = new bytes32[](28);
-
             local.publicInputs = _stageCommonTransferInputs(local, inputs);
 
             AccountController.MultisigParams memory params = accountController
