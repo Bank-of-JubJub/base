@@ -5,7 +5,9 @@ import {
   delay,
   encryptedBalanceArrayToEncryptedBalance,
   encryptedValueToEncryptedBalance,
+  fromRprLe,
   getC1PointFromEncryptedBalance,
+  getC2PointFromEncryptedBalance,
   getEncryptedValue,
 } from "../utils/utils";
 import { EncryptedBalance } from "../utils/types";
@@ -71,21 +73,18 @@ async function main() {
     C2y: C2.y,
   } as EncryptedBalance;
 
-  //   const randomness =
-  //     "0x" + (bytesToBigInt(crypto.randomBytes(32)) % BJJ_PRIME).toString(16);
   const proofInputs = {
     randomness,
     amount_sum: params.amount - processFee,
     packed_public_key: Array.from(toBytes(params.to)),
-    old_enc_balance_1: getC1PointFromEncryptedBalance(balance, true),
-    old_enc_balance_2: getC1PointFromEncryptedBalance(balance, false),
+    packed_public_key_modulus: fromRprLe(params.to),
+    old_enc_balance_1: getC1PointFromEncryptedBalance(balance),
+    old_enc_balance_2: getC2PointFromEncryptedBalance(balance),
     new_enc_balance_1: getC1PointFromEncryptedBalance(
-      balanceAfterProcessDeposit,
-      true
+      balanceAfterProcessDeposit
     ),
-    new_enc_balance_2: getC1PointFromEncryptedBalance(
-      balanceAfterProcessDeposit,
-      false
+    new_enc_balance_2: getC2PointFromEncryptedBalance(
+      balanceAfterProcessDeposit
     ),
   };
 
@@ -112,6 +111,9 @@ async function main() {
 
   const receipt = await publicClient.getTransactionReceipt({ hash });
   console.log(receipt);
+
+  let newBalance = await privateToken.read.balances([params.to]);
+  console.log("new balance", newBalance);
 }
 
 main().catch((error) => {
