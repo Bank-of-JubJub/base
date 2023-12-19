@@ -10,6 +10,11 @@ dotenv.config({ path: "../.env" });
 async function main() {
   // const babyjub = new BabyJubJubUtils();
   // await babyjub.init();
+  // const privateKey =
+  //   "0x0175d9d391887f8c3e5c42fd79ea6aab91f7414c8fe08ee2406ef526521ad77b";
+  // let pubkey = babyjub.privateToPublicKey(privateKey);
+  // let packed = babyjub.packPublicKey([toBytes(pubkey.x), toBytes(pubkey.y)]);
+  // console.log("packed", toHex(packed));
 }
 
 main();
