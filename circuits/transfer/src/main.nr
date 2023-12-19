@@ -15,7 +15,8 @@ has enough balance) and correctness of encrypted new balances of sender.
 */
 fn main(
     private_key: Field,
-    randomness: Field,
+    randomness1: Field,
+    randomness2: Field,
     value: u40,
     /* Balance_old_me_clear is the clear (i.e decrypted) balance of sender 
         this is computed offchain by solving the DLP with babygiant algorithm, 
@@ -72,12 +73,12 @@ fn main(
         value,
         relay_fee,
         process_fee,
-        randomness
+        randomness1
     );
     utils::assert_correct_recipient_balance(
         recipient_pub_key,
         value,
-        randomness,
+        randomness2,
         encrypted_amount_1,
         encrypted_amount_2
     );
@@ -141,6 +142,7 @@ fn test_transfer() {
     // std::println(encrypted_amount.1);
     main(
         private_key,
+        randomness,
         randomness,
         value,
         old_balance,
