@@ -92,51 +92,30 @@ async function main() {
       changeMultiEthSigners.address,
     ]);
 
-    const privateTokenFactory = await deployAndSave("PrivateTokenFactory", [
-      pendingDepositVerifier.address,
-      pendingTransferVerifier.address,
+    const allTransferVerifier = await deployAndSave("TransferVerify", [
       transferVerifier.address,
-      withdrawVerifier.address,
-      lockVerifier.address,
-      accountController.address,
-    ]);
-
-    const txHash = await privateTokenFactory.write.deploy([token.address]);
-    await delay(10000);
-
-    const receipt = await publicClient.getTransactionReceipt({
-      hash: txHash,
-    });
-
-    const logs = await publicClient.getContractEvents({
-      address: privateTokenFactory.address,
-      abi: privateTokenFactory.abi,
-      blockHash: receipt.blockHash,
-    });
-
-    // @ts-ignore
-    let privateTokenAddress = logs[0].args.token;
-
-    saveDeploymentData("PrivateToken", {
-      address: privateTokenAddress as `0x${string}`,
-      abi: (await hre.artifacts.readArtifact("PrivateToken")).abi,
-      network: hre.network.name,
-      chainId: hre.network.config.chainId,
-      bytecode: (await hre.artifacts.readArtifact("PrivateToken")).bytecode,
-      receipt,
-    });
-
-    const privateToken = await hre.viem.getContractAt(
-      "PrivateToken",
-      privateTokenAddress
-    );
-    privateToken.write.initOtherVerifiers([
       transfer4337Verifier.address,
       transferEthSignerVerifier.address,
       transferMultisigVerifier.address,
+      accountController.address,
+    ]);
+
+    const allWithdrawVerifier = await deployAndSave("WithdrawVerify", [
+      withdrawVerifier.address,
       withdraw4337Verifier.address,
       withdrawEthSignerVerifier.address,
       withdrawMultisigVerifier.address,
+      accountController.address,
+    ]);
+
+    const privateToken = await deployAndSave("PrivateToken", [
+      pendingDepositVerifier.address,
+      pendingTransferVerifier.address,
+      allTransferVerifier.address,
+      allWithdrawVerifier.address,
+      lockVerifier.address,
+      token.address,
+      await token.read.decimals(),
     ]);
 
     console.log(
@@ -188,7 +167,7 @@ async function deployAndSave(name: string, constructorArgs: any[]) {
 
   console.log(`${name} contract deployed`);
 
-  // await delay(20000);
+  await delay(20000);
 
   const receipt = await publicClient.getTransactionReceipt({ hash });
 
