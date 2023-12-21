@@ -14,7 +14,7 @@
     "./scripts",
     "./test/*",
     "./artifacts",
-    "../utils",
+    "./utils",
     "../circuits/",
     "utils/generateNargoProof.ts"
   ],
