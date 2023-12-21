@@ -16,22 +16,15 @@ import { createAndWriteToml } from "../../createToml";
 import { bytesToBigInt, toBytes, toHex } from "viem";
 import { getProcessDepositProof } from "../utils/config";
 import { runNargoProve } from "../utils/generateNargoProof";
-import { send } from "process";
-import crypto from "crypto";
-import { BJJ_PRIME, random } from "../utils/constants";
 dotenv.config({ path: "../.env" });
 const babyjub = new BabyJubJubUtils();
 
-// bytes memory _proof,
-// uint256[] memory _txsToProcess,
-// address _feeRecipient,
-// bytes32 _recipient,
-// EncryptedAmount calldata _zeroBalance,
-// EncryptedAmount calldata _newBalance
 const params = {
   to: process.env.BOJ_PACKED_PUBLIC_KEY as `0x${string}`,
   amount: 10 * 10 ** 2,
 };
+
+// THIS ONLY WORKS FOR 1 tx right now
 
 async function main() {
   await babyjub.init();
@@ -91,12 +84,6 @@ async function main() {
   createAndWriteToml("process_pending_deposits", proofInputs);
   await runNargoProve("process_pending_deposits", "Test.toml");
   const processDepositProof = await getProcessDepositProof();
-  // bytes memory _proof,
-  // uint256[] memory _txsToProcess,
-  // address _feeRecipient,
-  // bytes32 _recipient,
-  // EncryptedAmount calldata _zeroBalance,
-  // EncryptedAmount calldata _newBalance
 
   const hash = await privateToken.write.processPendingDeposit([
     processDepositProof,
