@@ -19,29 +19,21 @@ import { createAndWriteToml } from "../../createToml";
 import { toBytes, toHex } from "viem";
 dotenv.config({ path: "../.env" });
 
-// bytes32 _to,
-// bytes32 _from,
-// uint40 _processFee,
-// uint40 _relayFee,
-// address _relayFeeRecipient,
-// EncryptedAmount calldata _amountToSend,
-// EncryptedAmount calldata _senderNewBalance,
-// bytes memory _proof_transfer
 const params = {
   to: "0xdc9f9fdb746d0f07b004cc4316e3495a58570b90661499f8a6a6696ff4156baa" as `0x${string}`,
   from: process.env.BOJ_PACKED_PUBLIC_KEY as `0x${string}`,
-  amount: 5,
-  processFee: 1,
-  relayFee: 2,
+  amount: 1,
+  processFee: 0,
+  relayFee: 0,
 };
 
 async function main() {
   const publicClient = await hre.viem.getPublicClient();
-  const [sender, relayFeeRecipient] = await hre.viem.getWalletClients();
+  const [sender] = await hre.viem.getWalletClients();
 
   const bojAccount = {
     packedPublicKey: params.from,
-    privateKey: process.env.BOJ_PACKED_PUBLIC_KEY,
+    privateKey: process.env.BOJ_PRIVATE_KEY,
   } as BojAccount;
 
   const network = hre.network.name;
@@ -68,8 +60,6 @@ async function main() {
   const preClearBalance = Number(
     await getDecryptedValue(bojAccount, preBalance)
   );
-
-  console.log(preClearBalance);
 
   const newClearBalance =
     preClearBalance - params.amount - params.relayFee - params.processFee;
@@ -109,9 +99,6 @@ async function main() {
   };
 
   createAndWriteToml("transfer", proofInputs);
-
-  console.log("generating proof");
-
   await runNargoProve("transfer", "Test.toml");
   const proof = await getTransferProof();
 
@@ -120,7 +107,7 @@ async function main() {
     params.from,
     params.processFee,
     params.relayFee,
-    relayFeeRecipient.account.address,
+    sender.account.address, // relay fee recipient
     sendAmount,
     encNewBalance,
     proof,
