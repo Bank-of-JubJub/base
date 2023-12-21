@@ -2,6 +2,7 @@ import "hardhat-gas-reporter";
 import "hardhat-deploy";
 import "@nomicfoundation/hardhat-viem";
 import "solidity-docgen";
+import "@nomicfoundation/hardhat-verify";
 require("dotenv").config();
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -63,7 +64,28 @@ module.exports = {
       accounts: [process.env.PRIVATE_KEY || "0".repeat(64)],
     },
   },
-
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: {
+      mainnet: "YOUR_ETHERSCAN_API_KEY",
+      optimisticEthereum: "YOUR_OPTIMISTIC_ETHERSCAN_API_KEY",
+      arbitrumSepolia: process.env.ETHERSCAN_ARBITRUM_API_KEY,
+    },
+    customChains: [
+      {
+        network: "arbitrumSepolia",
+        chainId: 421614,
+        urls: {
+          apiURL: "https://api-sepolia.arbiscan.io/api",
+          browserURL: "https://sepolia.arbiscan.io/",
+        },
+      },
+    ],
+  },
+  sourcify: {
+    enabled: true,
+  },
   namedAccounts: {
     deployer: {
       default: 0, // here this will by default take the first account as deployer
