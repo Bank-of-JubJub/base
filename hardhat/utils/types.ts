@@ -5,7 +5,17 @@ export type EncryptedBalance = {
   C2x: bigint;
   C2y: bigint;
 };
-export type EncryptedAmount = {
+export type PointObjects = {
+  C1: {
+    x: bigint;
+    y: bigint;
+  };
+  C2: {
+    x: bigint;
+    y: bigint;
+  };
+};
+export type PointObjectsWithRandomness = {
   C1: {
     x: bigint;
     y: bigint;
