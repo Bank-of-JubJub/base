@@ -22,9 +22,7 @@ import {
   BJJ_PRIME,
 } from "../utils/constants.ts";
 
-import {
-  TransferCoordinator
-} from "../utils/TransferCoordinator.ts"
+import { TransferCoordinator } from "../coordinators/TransferCoordinator.ts";
 
 import {
   getTransferProof,
@@ -155,10 +153,11 @@ describe("Private Token integration testing", async function () {
       transferProcessFee,
       transferRelayFee,
       sender.account.address,
-      true)
-    await coordinator.init()
+      true
+    );
+    await coordinator.init();
     await coordinator.generateProof();
-    await coordinator.sendTransfer();
+    const hash = await coordinator.sendTransfer();
 
     let sender_balance = await privateToken.read.balances([
       account1.packedPublicKey,
