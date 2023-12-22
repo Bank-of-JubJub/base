@@ -29,7 +29,11 @@ export function getEncryptedValue(
     y: bytesToBigInt(publicKey[1]),
   };
 
-  return babyjub.exp_elgamal_encrypt(publicKeyObject, amount, isTest);
+  return babyjub.exp_elgamal_encrypt(
+    publicKeyObject,
+    amount,
+    isTest
+  ) as EncryptedAmount;
 }
 
 export async function getDecryptedValue(
