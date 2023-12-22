@@ -23,6 +23,10 @@ import {
 } from "../utils/constants.ts";
 
 import {
+  TransferCoordinator
+} from "../utils/TransferCoordinator.ts"
+
+import {
   getTransferProof,
   getProcessDepositProof,
   getProcessTransfersProof,
@@ -141,50 +145,20 @@ describe("Private Token integration testing", async function () {
 
   it("should perform transfers", async function () {
     const { privateToken } = await getContracts();
+    const [sender] = await hre.viem.getWalletClients();
 
-    let processFee = transferProcessFee;
-    const preBalance = await privateToken.read.balances([
-      account1.packedPublicKey,
-    ]);
-    const preBalanceRecipient = await privateToken.read.balances([
-      account2.packedPublicKey,
-    ]);
-
-    // zero out process fee if sending to new account
-    if (
-      preBalanceRecipient[0] == BigInt(0) &&
-      preBalanceRecipient[1] == BigInt(0)
-    ) {
-      processFee = 0;
-    }
-
-    const preClearBalance = await getDecryptedValue(account1, preBalance);
-    const newClearBalance =
-      Number(preClearBalance) - transferAmount - transferRelayFee - processFee;
-
-    const encryptedAmount = getEncryptedValue(
-      account2.packedPublicKey,
+    let coordinator = new TransferCoordinator(
       transferAmount,
-      true
-    );
-    const encAmountToSend = encryptedValueToEncryptedBalance(encryptedAmount);
-    const unfmtEncNewBalance = getEncryptedValue(
-      account1.packedPublicKey,
-      newClearBalance,
-      true
-    );
-
-    const encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
-
-    await transfer(
-      account2, // to
-      account1, // from
-      encAmountToSend,
-      encNewBalance,
-      Number(preClearBalance),
-      processFee,
-      transferRelayFee
-    );
+      privateToken,
+      account2.packedPublicKey,
+      account1,
+      transferProcessFee,
+      transferRelayFee,
+      sender.account.address,
+      true)
+    await coordinator.init()
+    await coordinator.generateProof();
+    await coordinator.sendTransfer();
 
     let sender_balance = await privateToken.read.balances([
       account1.packedPublicKey,
@@ -193,18 +167,17 @@ describe("Private Token integration testing", async function () {
       account2.packedPublicKey,
     ]);
 
-    expect(recipient_balance[0] == encAmountToSend.C1x);
-    expect(recipient_balance[1] == encAmountToSend.C1y);
-    expect(recipient_balance[2] == encAmountToSend.C2x);
-    expect(recipient_balance[3] == encAmountToSend.C2y);
-    expect(sender_balance[0] == encNewBalance.C1x);
-    expect(sender_balance[1] == encNewBalance.C1y);
-    expect(sender_balance[2] == encNewBalance.C2x);
-    expect(sender_balance[3] == encNewBalance.C2y);
-
     // check token balance of the relayer
     // check that transfer event was emitted
     // check that nonce was correctly updated
+    const senderDecryptedBalance = await getDecryptedValue(
+      account1,
+      sender_balance
+    );
+    expect(
+      Number(senderDecryptedBalance) == transferAmount,
+      "sender decrypted balances should match"
+    );
 
     const recipientDecryptedBalance = await getDecryptedValue(
       account2,
@@ -212,7 +185,7 @@ describe("Private Token integration testing", async function () {
     );
     expect(
       Number(recipientDecryptedBalance) == transferAmount,
-      "decrypted balances should match"
+      "recipient decrypted balances should match"
     );
   });
 
