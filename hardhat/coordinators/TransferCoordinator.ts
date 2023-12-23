@@ -136,9 +136,6 @@ export class TransferCoordinator {
       ),
     };
 
-    console.log("Creating toml file");
-    console.log(proofInputs);
-
     createAndWriteToml("transfer", proofInputs);
     await runNargoProve("transfer", "Test.toml");
     this.proof = await getTransferProof();
