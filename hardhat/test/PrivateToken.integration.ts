@@ -23,6 +23,7 @@ import {
 } from "../utils/constants.ts";
 
 import { TransferCoordinator } from "../coordinators/TransferCoordinator.ts";
+import { ProcessDepositCoordinator } from "../coordinators/ProcessDepositCoordinator.ts";
 
 import {
   getTransferProof,
@@ -57,9 +58,6 @@ let transferProof: `0x${string}`;
 
 let privateTokenAddress: `0x${string}`;
 let tokenAddress: `0x${string}`;
-
-let encryptedZero: EncryptedBalance;
-let balanceAfterProcessDeposit: EncryptedBalance;
 
 describe("Private Token integration testing", async function () {
   this.beforeAll(async () => {
@@ -105,40 +103,22 @@ describe("Private Token integration testing", async function () {
   it("should process pending deposits", async function () {
     await deposit();
     const { privateToken } = await getContracts();
+    const [sender] = await hre.viem.getWalletClients();
 
-    const processAmount = 999;
-
-    const startingAmount = getEncryptedValue(account1.packedPublicKey, 0, true);
-    encryptedZero = encryptedValueToEncryptedBalance(startingAmount);
-    const amount = getEncryptedValue(
+    const coordinator = new ProcessDepositCoordinator(
+      privateToken,
       account1.packedPublicKey,
-      processAmount,
-      true
+      sender.account.address
+      //  [0n]
     );
-    const C1 = babyjub.add_points(startingAmount.C1, amount.C1);
-    const C2 = babyjub.add_points(startingAmount.C2, amount.C2);
-    balanceAfterProcessDeposit = {
-      C1x: C1.x,
-      C1y: C1.y,
-      C2x: C2.x,
-      C2y: C2.y,
-    } as EncryptedBalance;
-
-    await processPendingDeposit(
-      [0n], // txs (indexes) to process
-      encryptedZero,
-      balanceAfterProcessDeposit
-    );
+    await coordinator.init();
+    await coordinator.generateProof();
+    await coordinator.sendProcessDeposit();
 
     let balance = await privateToken.read.balances([account1.packedPublicKey]);
 
-    expect(balance[0] == balanceAfterProcessDeposit.C1x);
-    expect(balance[1] == balanceAfterProcessDeposit.C1y);
-    expect(balance[2] == balanceAfterProcessDeposit.C2x);
-    expect(balance[3] == balanceAfterProcessDeposit.C2y);
-
     const decryptedBalance = await getDecryptedValue(account1, balance);
-    expect(decryptedBalance == BigInt(processAmount));
+    expect(decryptedBalance == BigInt(999));
   });
 
   it("should perform transfers", async function () {
