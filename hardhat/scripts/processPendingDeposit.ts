@@ -12,10 +12,7 @@ import {
 } from "../utils/utils";
 import { EncryptedBalance } from "../utils/types";
 import BabyJubJubUtils from "../utils/babyJubJubUtils";
-import { createAndWriteToml } from "../../createToml";
-import { bytesToBigInt, toBytes, toHex } from "viem";
-import { getProcessDepositProof } from "../utils/config";
-import { runNargoProve } from "../utils/generateNargoProof";
+import { ProcessDepositCoordinator } from "../coordinators/ProcessDepositCoordinator";
 dotenv.config({ path: "../.env" });
 const babyjub = new BabyJubJubUtils();
 
@@ -37,64 +34,16 @@ async function main() {
     privateTokenData[network].address
   );
 
-  let count = await privateToken.read.pendingDepositCounts([params.to]);
-
-  // TODO: process multiple pending deposits
-  let pending = await privateToken.read.allPendingDepositsMapping([
+  const coordinator = new ProcessDepositCoordinator(
+    privateToken,
     params.to,
-    0n,
-  ]);
-  const processFee = pending[1];
+    sender.account.address
+  );
+  await coordinator.init();
+  await coordinator.generateProof();
+  const hash = await coordinator.sendProcessDeposit();
 
-  let balanceArray = await privateToken.read.balances([params.to]);
-  let balance = encryptedBalanceArrayToEncryptedBalance(balanceArray);
-
-  // if balance == 0
-  if (balanceArray[0] == 0n && balanceArray[1] == 0n) {
-    const startingAmount = getEncryptedValue(params.to, 0);
-    balance = encryptedValueToEncryptedBalance(startingAmount);
-  }
-
-  const amount = getEncryptedValue(params.to, params.amount);
-  const randomness = toHex(amount.randomness);
-  const C1 = babyjub.add_points({ x: balance.C1x, y: balance.C1y }, amount.C1);
-  const C2 = babyjub.add_points({ x: balance.C2x, y: balance.C2y }, amount.C2);
-  const balanceAfterProcessDeposit = {
-    C1x: C1.x,
-    C1y: C1.y,
-    C2x: C2.x,
-    C2y: C2.y,
-  } as EncryptedBalance;
-
-  const proofInputs = {
-    randomness,
-    amount_sum: params.amount - processFee,
-    packed_public_key: Array.from(toBytes(params.to)),
-    packed_public_key_modulus: fromRprLe(params.to),
-    old_enc_balance_1: getC1PointFromEncryptedBalance(balance),
-    old_enc_balance_2: getC2PointFromEncryptedBalance(balance),
-    new_enc_balance_1: getC1PointFromEncryptedBalance(
-      balanceAfterProcessDeposit
-    ),
-    new_enc_balance_2: getC2PointFromEncryptedBalance(
-      balanceAfterProcessDeposit
-    ),
-  };
-
-  createAndWriteToml("process_pending_deposits", proofInputs);
-  await runNargoProve("process_pending_deposits", "Test.toml");
-  const processDepositProof = await getProcessDepositProof();
-
-  const hash = await privateToken.write.processPendingDeposit([
-    processDepositProof,
-    [0n],
-    sender.account.address,
-    params.to,
-    balance,
-    balanceAfterProcessDeposit,
-  ]);
-
-  await delay(5000);
+  await delay(15000);
 
   const receipt = await publicClient.getTransactionReceipt({ hash });
   console.log(receipt);
