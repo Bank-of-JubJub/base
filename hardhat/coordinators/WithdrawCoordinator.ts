@@ -1,29 +1,16 @@
-import {
-  BojAccount,
-  EncryptedBalance,
-  PointObject,
-  PointObjectHex,
-  PointObjects,
-  PointObjectsWithRandomness,
-} from "../utils/types";
+import { BojAccount, EncryptedBalance } from "../utils/types";
 import { isAddress, toBytes, toHex } from "viem";
 import {
   encryptedBalanceArrayToEncryptedBalance,
-  encryptedBalanceArrayToPointObjects,
-  encryptedBalanceToPointObjects,
   encryptedValueToEncryptedBalance,
   fromRprLe,
   getDecryptedValue,
   getEncryptedValue,
   getNonce,
-  pointObjectsToEncryptedBalance,
 } from "../utils/utils";
 import { createAndWriteToml } from "../../createToml";
 import { runNargoProve } from "../utils/generateNargoProof";
-import { getProcessTransfersProof, getWithdrawProof } from "../utils/config";
-import BabyJubJubUtils from "../utils/babyJubJubUtils";
-import { MAX_TXS_TO_PROCESS } from "../utils/constants";
-import { sign } from "viem/_types/accounts/utils/sign";
+import { getWithdrawProof } from "../utils/config";
 
 export class WithdrawCoordinator {
   private proof: string | null;
