@@ -170,6 +170,7 @@ describe("Private Token integration testing", async function () {
 
   it("should process pending transfers", async () => {
     const { privateToken } = await getContracts();
+    const [sender] = await hre.viem.getWalletClients();
 
     const encryptedAmount = getEncryptedValue(
       account2.packedPublicKey,
@@ -196,15 +197,20 @@ describe("Private Token integration testing", async function () {
         true
       );
       encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
-      await transfer(
-        account2, // to
-        account1, // from
-        encAmountToSend,
-        encNewBalance,
-        Number(preClearBalance),
+
+      let coordinator = new TransferCoordinator(
+        transferAmount,
+        privateToken,
+        account2.packedPublicKey,
+        account1,
         transferProcessFee,
-        transferRelayFee
+        transferRelayFee,
+        sender.account.address,
+        true
       );
+      await coordinator.init();
+      await coordinator.generateProof();
+      const hash = await coordinator.sendTransfer();
     }
 
     await processPendingTransfer();
@@ -286,121 +292,6 @@ async function deposit() {
     account1.packedPublicKey,
     depositProcessFee,
   ]);
-}
-
-async function processPendingDeposit(
-  txsToProcess: any,
-  startingBalance: EncryptedBalance,
-  newBalance: EncryptedBalance
-) {
-  await deposit();
-  const { privateToken, token } = await getContracts();
-
-  const proofInputs = {
-    randomness: random,
-    amount_sum: Number(convertedAmount) - depositProcessFee,
-    packed_public_key: Array.from(toBytes(account1.packedPublicKey)),
-    packed_public_key_modulus: fromRprLe(account1.packedPublicKey),
-    old_enc_balance_1: getC1PointFromEncryptedBalance(startingBalance),
-    old_enc_balance_2: getC2PointFromEncryptedBalance(startingBalance),
-    new_enc_balance_1: getC1PointFromEncryptedBalance(newBalance),
-    new_enc_balance_2: getC2PointFromEncryptedBalance(newBalance),
-  };
-
-  if (processDepositProof == undefined) {
-    createAndWriteToml("process_pending_deposits", proofInputs);
-    await runNargoProve("process_pending_deposits", "Test.toml");
-    processDepositProof = await getProcessDepositProof();
-  }
-
-  await privateToken.write.processPendingDeposit([
-    processDepositProof,
-    txsToProcess,
-    processFeeRecipient,
-    account1.packedPublicKey,
-    startingBalance,
-    newBalance,
-  ]);
-}
-
-async function transfer(
-  to: BojAccount,
-  from: BojAccount,
-  encryptedAmount: EncryptedBalance,
-  encNewBalance: EncryptedBalance,
-  clearOldBalance: number,
-  processFee: number,
-  relayFee: number
-) {
-  const { privateToken } = await getContracts();
-  const [walletClient0, walletClient1] = await viem.getWalletClients();
-
-  const encOldBalance = await privateToken.read.balances([
-    from.packedPublicKey,
-  ]);
-
-  const recipientBalance = await privateToken.read.balances([
-    to.packedPublicKey,
-  ]);
-
-  // if recipient balance == 0, process fee should be 0, per the smart contract
-  if (
-    recipientBalance[0] == 0n &&
-    recipientBalance[1] == 0n &&
-    recipientBalance[2] == 0n &&
-    recipientBalance[3] == 0n
-  ) {
-    processFee = 0;
-  }
-
-  const proofInputs = {
-    balance_old_me_clear: clearOldBalance,
-    private_key: account1.privateKey,
-    value: transferAmount,
-    randomness1: random,
-    randomness2: random,
-    sender_pub_key: Array.from(toBytes(from.packedPublicKey)),
-    recipient_pub_key: Array.from(toBytes(to.packedPublicKey)),
-    sender_pub_key_modulus: fromRprLe(from.packedPublicKey),
-    recipient_pub_key_modulus: fromRprLe(to.packedPublicKey),
-    process_fee: processFee,
-    relay_fee: relayFee,
-    nonce_private: toHex(getNonce(encNewBalance), { size: 32 }),
-    nonce: toHex(getNonce(encNewBalance), { size: 32 }),
-    old_balance_encrypted_1: {
-      x: toHex(encOldBalance[0], { size: 32 }),
-      y: toHex(encOldBalance[1], { size: 32 }),
-    },
-    old_balance_encrypted_2: {
-      x: toHex(encOldBalance[2], { size: 32 }),
-      y: toHex(encOldBalance[3], { size: 32 }),
-    },
-    encrypted_amount_1: getC1PointFromEncryptedBalance(encryptedAmount),
-    encrypted_amount_2: getC2PointFromEncryptedBalance(encryptedAmount),
-    new_balance_encrypted_1: getC1PointFromEncryptedBalance(encNewBalance),
-    new_balance_encrypted_2: getC2PointFromEncryptedBalance(encNewBalance),
-  };
-
-  const relayFeeRecipient = walletClient1.account.address as `0x${string}`;
-
-  try {
-    createAndWriteToml("transfer", proofInputs);
-    await runNargoProve("transfer", "Test.toml");
-    transferProof = await getTransferProof();
-
-    let hash = await privateToken.write.transfer([
-      to.packedPublicKey,
-      from.packedPublicKey,
-      processFee,
-      transferRelayFee,
-      relayFeeRecipient,
-      encryptedAmount,
-      encNewBalance,
-      transferProof,
-    ]);
-  } catch (e) {
-    console.log(e);
-  }
 }
 
 async function processPendingTransfer() {
