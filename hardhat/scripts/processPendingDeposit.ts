@@ -1,16 +1,7 @@
 import hre from "hardhat";
 import dotenv from "dotenv";
 import { readDeploymentData } from "./saveDeploy";
-import {
-  delay,
-  encryptedBalanceArrayToEncryptedBalance,
-  encryptedValueToEncryptedBalance,
-  fromRprLe,
-  getC1PointFromEncryptedBalance,
-  getC2PointFromEncryptedBalance,
-  getEncryptedValue,
-} from "../utils/utils";
-import { EncryptedBalance } from "../utils/types";
+import { delay } from "../utils/utils";
 import BabyJubJubUtils from "../utils/babyJubJubUtils";
 import { ProcessDepositCoordinator } from "../coordinators/ProcessDepositCoordinator";
 dotenv.config({ path: "../.env" });
