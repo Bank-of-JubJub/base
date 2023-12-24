@@ -24,6 +24,7 @@ import {
 
 import { TransferCoordinator } from "../coordinators/TransferCoordinator.ts";
 import { ProcessDepositCoordinator } from "../coordinators/ProcessDepositCoordinator.ts";
+import { ProcessTransferCoordinator } from "../coordinators/ProcessTransferCoordinator.ts";
 
 import {
   getTransferProof,
@@ -171,6 +172,7 @@ describe("Private Token integration testing", async function () {
   it("should process pending transfers", async () => {
     const { privateToken } = await getContracts();
     const [sender] = await hre.viem.getWalletClients();
+    const numTransfers = 2;
 
     const encryptedAmount = getEncryptedValue(
       account2.packedPublicKey,
@@ -180,49 +182,62 @@ describe("Private Token integration testing", async function () {
     const encAmountToSend = encryptedValueToEncryptedBalance(encryptedAmount);
     let encNewBalance;
 
+    let transferCoordinator = new TransferCoordinator(
+      transferAmount,
+      privateToken,
+      account2.packedPublicKey,
+      account1,
+      transferProcessFee,
+      transferRelayFee,
+      sender.account.address,
+      true
+    );
+
     // Do a few transfers to stage them in pending
-    for (let i = 0; i < 2; i++) {
-      const preClearBalance = await getDecryptedValue(
-        account1,
-        await privateToken.read.balances([account1.packedPublicKey])
-      );
+    for (let i = 0; i < numTransfers; i++) {
+      // const preClearBalance = await getDecryptedValue(
+      //   account1,
+      //   await privateToken.read.balances([account1.packedPublicKey])
+      // );
 
-      let newClearBalance =
-        Number(preClearBalance) -
-        (transferAmount + transferProcessFee + transferRelayFee);
+      // let newClearBalance =
+      //   Number(preClearBalance) -
+      //   (transferAmount + transferProcessFee + transferRelayFee);
 
-      let unfmtEncNewBalance = getEncryptedValue(
-        account1.packedPublicKey,
-        newClearBalance,
-        true
-      );
-      encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
+      // let unfmtEncNewBalance = getEncryptedValue(
+      //   account1.packedPublicKey,
+      //   newClearBalance,
+      //   true
+      // );
+      // encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
 
-      let coordinator = new TransferCoordinator(
-        transferAmount,
-        privateToken,
-        account2.packedPublicKey,
-        account1,
-        transferProcessFee,
-        transferRelayFee,
-        sender.account.address,
-        true
-      );
-      await coordinator.init();
-      await coordinator.generateProof();
-      const hash = await coordinator.sendTransfer();
+      await transferCoordinator.init();
+      await transferCoordinator.generateProof();
+      const hash = await transferCoordinator.sendTransfer();
     }
 
-    await processPendingTransfer();
+    const processTransferCoordinator = new ProcessTransferCoordinator(
+      privateToken,
+      account2.packedPublicKey,
+      sender.account.address,
+      0n
+    );
+    await processTransferCoordinator.init();
+    await processTransferCoordinator.generateProof();
+    await processTransferCoordinator.sendProcessTransfer();
+    // await processPendingTransfer();
 
     let balance = (await privateToken.read.balances([
       account2.packedPublicKey,
     ])) as EncryptedBalanceArray;
-
-    expect(balance[0] == encNewBalance!.C1x);
-    expect(balance[1] == encNewBalance!.C1y);
-    expect(balance[2] == encNewBalance!.C2x);
-    expect(balance[3] == encNewBalance!.C2y);
+    const recipientDecryptedBalance = await getDecryptedValue(
+      account2,
+      balance
+    );
+    expect(
+      recipientDecryptedBalance == BigInt(transferAmount * numTransfers),
+      "decrypted balance should be the number of transfers * transfer amount"
+    );
   });
 
   it("should do withdrawals", async () => {
@@ -291,95 +306,6 @@ async function deposit() {
     depositAmount,
     account1.packedPublicKey,
     depositProcessFee,
-  ]);
-}
-
-async function processPendingTransfer() {
-  const { privateToken } = await getContracts();
-
-  let oldBalanceArray = await privateToken.read.balances([
-    account2.packedPublicKey,
-  ]);
-  const oldEncryptedBalance =
-    encryptedBalanceArrayToPointObjects(oldBalanceArray);
-  const pendingTransferCount = await privateToken.read.pendingTransferCounts([
-    account2.packedPublicKey,
-  ]);
-
-  let balanceAfterProcessTransfer = oldEncryptedBalance;
-  let encryptedValues = [];
-  // pass indexes to contract to lookup and process
-  let txIndexes = [];
-
-  for (let i = 0; i <= Number(pendingTransferCount) - 1; i++) {
-    let pendingTransfer = await privateToken.read.allPendingTransfersMapping([
-      account2.packedPublicKey,
-      BigInt(i),
-    ]);
-    txIndexes.push(i);
-    // value will be 0 if it has been deleted or never set, skip this iteration
-    if (pendingTransfer[0].C1x == BigInt(0)) {
-      console.log(
-        "pending transfer is empty. It has been deleted or never set."
-      );
-      continue;
-    }
-    const amount = encryptedBalanceToPointObjects(pendingTransfer[0]);
-
-    encryptedValues.push({
-      x: toHex(amount.C1.x, { size: 32 }),
-      y: toHex(amount.C1.y, { size: 32 }),
-    });
-    encryptedValues.push({
-      x: toHex(amount.C2.x, { size: 32 }),
-      y: toHex(amount.C2.y, { size: 32 }),
-    });
-
-    const C1 = babyjub.add_points(balanceAfterProcessTransfer.C1, amount.C1);
-    const C2 = babyjub.add_points(balanceAfterProcessTransfer.C2, amount.C2);
-    balanceAfterProcessTransfer = { C1, C2 };
-
-    if (encryptedValues.length == MAX_TXS_TO_PROCESS * 2) break;
-  }
-  for (let i = encryptedValues.length; i < MAX_TXS_TO_PROCESS * 2; i++) {
-    encryptedValues.push({
-      x: "0x0",
-      y: "0x0",
-    });
-  }
-
-  let newBalance = pointObjectsToEncryptedBalance(balanceAfterProcessTransfer);
-
-  const proofInputs = {
-    balance_old_to_encrypted_1: {
-      x: toHex(oldBalanceArray[0], { size: 32 }),
-      y: toHex(oldBalanceArray[1], { size: 32 }),
-    },
-    balance_old_to_encrypted_2: {
-      x: toHex(oldBalanceArray[2], { size: 32 }),
-      y: toHex(oldBalanceArray[3], { size: 32 }),
-    },
-    balance_new_to_encrypted_1: {
-      x: toHex(newBalance.C1x, { size: 32 }),
-      y: toHex(newBalance.C1y, { size: 32 }),
-    },
-    balance_new_to_encrypted_2: {
-      x: toHex(newBalance.C2x, { size: 32 }),
-      y: toHex(newBalance.C2y, { size: 32 }),
-    },
-    encrypted_values: encryptedValues,
-  };
-
-  createAndWriteToml("process_pending_transfers", proofInputs);
-  await runNargoProve("process_pending_transfers", "Test.toml");
-  const processTransfersProof = await getProcessTransfersProof();
-
-  await privateToken.write.processPendingTransfer([
-    processTransfersProof,
-    txIndexes,
-    processFeeRecipient,
-    account2.packedPublicKey,
-    newBalance,
   ]);
 }
 
