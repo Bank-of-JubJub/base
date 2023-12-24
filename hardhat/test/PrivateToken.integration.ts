@@ -615,34 +615,12 @@ async function setup() {
     "contracts/transfer/plonk_vk.sol:UltraVerifier",
     []
   );
-  const { contract: transfer4337Verifier } = await deploy(
-    "contracts/transfer_4337/plonk_vk.sol:UltraVerifier",
-    []
-  );
-  const { contract: transferEthSignerVerifier } = await deploy(
-    "contracts/transfer_eth_signer/plonk_vk.sol:UltraVerifier",
-    []
-  );
-  const { contract: transferMultisigVerifier } = await deploy(
-    "contracts/transfer_multisig/plonk_vk.sol:UltraVerifier",
-    []
-  );
+
   const { contract: withdrawVerifier } = await deploy(
     "contracts/withdraw/plonk_vk.sol:UltraVerifier",
     []
   );
-  const { contract: withdraw4337Verifier } = await deploy(
-    "contracts/withdraw_4337/plonk_vk.sol:UltraVerifier",
-    []
-  );
-  const { contract: withdrawEthSignerVerifier } = await deploy(
-    "contracts/withdraw_eth_signer/plonk_vk.sol:UltraVerifier",
-    []
-  );
-  const { contract: withdrawMultisigVerifier } = await deploy(
-    "contracts/withdraw_multisig/plonk_vk.sol:UltraVerifier",
-    []
-  );
+
   const { contract: lockVerifier } = await deploy(
     "contracts/lock/plonk_vk.sol:UltraVerifier",
     []
@@ -655,29 +633,18 @@ async function setup() {
     "contracts/change_eth_signer/plonk_vk.sol:UltraVerifier",
     []
   );
-  const { contract: changeMultiEthSigners } = await deploy(
-    "contracts/change_multi_eth_signers/plonk_vk.sol:UltraVerifier",
-    []
-  );
+
   const { contract: accountController } = await deploy("AccountController", [
     addEthSigners.address,
-    changeEthSigner.address,
-    changeMultiEthSigners.address,
   ]);
 
   const { contract: allTransferVerifier } = await deploy("TransferVerify", [
     transferVerifier.address,
-    transfer4337Verifier.address,
-    transferEthSignerVerifier.address,
-    transferMultisigVerifier.address,
     accountController.address,
   ]);
 
   const { contract: allWithdrawVerifier } = await deploy("WithdrawVerify", [
     withdrawVerifier.address,
-    withdraw4337Verifier.address,
-    withdrawEthSignerVerifier.address,
-    withdrawMultisigVerifier.address,
     accountController.address,
   ]);
 
