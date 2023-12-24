@@ -629,10 +629,6 @@ async function setup() {
     "contracts/add_eth_signers/plonk_vk.sol:UltraVerifier",
     []
   );
-  const { contract: changeEthSigner } = await deploy(
-    "contracts/change_eth_signer/plonk_vk.sol:UltraVerifier",
-    []
-  );
 
   const { contract: accountController } = await deploy("AccountController", [
     addEthSigners.address,
@@ -647,31 +643,6 @@ async function setup() {
     withdrawVerifier.address,
     accountController.address,
   ]);
-
-  // const { contract: privateTokenFactory } = await deploy(
-  //   "PrivateTokenFactory",
-  //   [
-  //     pendingDepositVerifier.address,
-  //     pendingTransferVerifier.address,
-  //     transferVerifier.address,
-  //     withdrawVerifier.address,
-  //     lockVerifier.address,
-  //     accountController.address,
-  //   ]
-  // );
-
-  // await privateTokenFactory.write.deploy([token.address]);
-  // const logs = await publicClient.getContractEvents({
-  //   address: privateTokenFactory.address,
-  //   abi: privateTokenFactory.abi,
-  //   eventName: "Deployed",
-  // });
-  // // @ts-ignore
-  // let privateTokenAddress = logs[0].args.token;
-  // const privateToken = await viem.getContractAt(
-  //   "PrivateToken",
-  //   privateTokenAddress
-  // );
 
   const { contract: privateToken } = await deploy("PrivateToken", [
     pendingDepositVerifier.address,
