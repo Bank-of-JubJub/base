@@ -5,16 +5,8 @@ LOCATIONS=(
     "process_pending_deposits"
     "process_pending_transfers"
     "transfer"
-    "transfer_eth_signer"
-    "transfer_4337"
-    "transfer_multisig"
     "withdraw"
-    "withdraw_eth_signer"
-    "withdraw_4337"
-    "withdraw_multisig"
     "add_eth_signers"
-    "change_eth_signer"
-    "change_multi_eth_signers"
 )
 
 DEST_PATH="hardhat/contracts/"

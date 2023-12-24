@@ -3,9 +3,6 @@ pragma solidity 0.8.20;
 
 import "hardhat/console.sol";
 import {UltraVerifier as TransferVerifier} from "./transfer/plonk_vk.sol";
-import {UltraVerifier as Transfer4337Verifier} from "./transfer/plonk_vk.sol";
-import {UltraVerifier as TransferEthSignerVerifier} from "./transfer/plonk_vk.sol";
-import {UltraVerifier as TransferMultisigVerifier} from "./transfer/plonk_vk.sol";
 import "./PrivateToken.sol";
 import "./AccountController.sol";
 
@@ -13,7 +10,6 @@ contract TransferVerify {
     struct LocalVars {
         uint256 fromModulus;
         uint256 toModulus;
-        uint256 messageHashModulus;
         uint256 BJJ_PRIME;
         bytes32 messageHash;
         bytes32[] publicInputs;
@@ -21,136 +17,49 @@ contract TransferVerify {
         uint256 oldBalanceC1y;
         uint256 oldBalanceC2x;
         uint256 oldBalanceC2y;
-        AccountController.AccountType senderAccountType;
     }
 
     TransferVerifier public transferVerifier;
-    Transfer4337Verifier public transfer4337Verifier;
-    TransferEthSignerVerifier public transferEthSignerVerifier;
-    TransferMultisigVerifier public transferMultisigVerifier;
     AccountController public accountController;
     uint256 BJJ_PRIME =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
-    constructor(
-        address _transferVerifier,
-        address _transfer4337Verifier,
-        address _transferEthSignerVerifier,
-        address _transferMultisigVerifier,
-        address _accountController
-    ) {
+    constructor(address _transferVerifier, address _accountController) {
         transferVerifier = TransferVerifier(_transferVerifier);
-        transfer4337Verifier = Transfer4337Verifier(_transfer4337Verifier);
-        transferEthSignerVerifier = TransferEthSignerVerifier(
-            _transferEthSignerVerifier
-        );
-        transferMultisigVerifier = TransferMultisigVerifier(
-            _transferMultisigVerifier
-        );
         accountController = AccountController(_accountController);
     }
 
     function verifyTransfer(
         PrivateToken.TransferLocals memory inputs
-    ) external {
+    ) external view {
         LocalVars memory local;
-        local.messageHash = keccak256(
-            abi.encodePacked(
-                address(this),
-                inputs.from,
-                inputs.to,
-                inputs.txNonce
-            )
-        );
-        local.messageHashModulus = fromRprLe(local.messageHash);
+
         local.toModulus = fromRprLe(inputs.to);
         local.fromModulus = fromRprLe(inputs.from);
 
-        local.senderAccountType = accountController.getAccountType(inputs.from);
-
-        if (
-            local.senderAccountType == AccountController.AccountType.EthSigner
-        ) {
-            // use the transfer_eth_signer circuit
-            local.publicInputs = new bytes32[](18);
-            local.publicInputs = _stageCommonTransferInputs(local, inputs);
-            local.publicInputs[16] = bytes32(
-                uint256(uint160(accountController.ethSigner(inputs.from)))
-            );
-            local.publicInputs[17] = bytes32(local.messageHashModulus);
+        address controller = accountController.ethController(inputs.from);
+        if (controller != address(0x0)) {
             require(
-                TransferEthSignerVerifier(transferEthSignerVerifier).verify(
-                    inputs.proof,
-                    local.publicInputs
-                ),
-                "Eth signer transfer proof is invalid"
-            );
-        } else if (
-            local.senderAccountType ==
-            AccountController.AccountType.erc4337Account
-        ) {
-            local.publicInputs = new bytes32[](17);
-            local.publicInputs = _stageCommonTransferInputs(local, inputs);
-            // msg.sender should be 4337 account address
-            local.publicInputs[16] = bytes32(uint256(uint160(msg.sender)));
-
-            require(
-                Transfer4337Verifier(transfer4337Verifier).verify(
-                    inputs.proof,
-                    local.publicInputs
-                ),
-                "4337 Transfer proof is invalid"
-            );
-        } else if (
-            local.senderAccountType == AccountController.AccountType.Multisig
-        ) {
-            local.publicInputs = new bytes32[](28);
-            local.publicInputs = _stageCommonTransferInputs(local, inputs);
-
-            AccountController.MultisigParams memory params = accountController
-                .getMultisigEthSigners(inputs.from);
-            for (uint8 i = 0; i < params.ethSigners.length; i++) {
-                local.publicInputs[17 + i] = bytes32(
-                    uint256(uint160(params.ethSigners[i]))
-                );
-
-                uint256 length = local.publicInputs.length;
-                for (uint8 i = 0; i < params.ethSigners.length; i++) {
-                    local.publicInputs[length + i] = bytes32(
-                        uint256(uint160(params.ethSigners[i]))
-                    );
-                }
-                local.publicInputs[length + params.ethSigners.length] = bytes32(
-                    uint256(params.threshold)
-                );
-                local.publicInputs[
-                    length + params.ethSigners.length + 1
-                ] = bytes32(local.messageHashModulus);
-            }
-            require(
-                TransferMultisigVerifier(transferMultisigVerifier).verify(
-                    inputs.proof,
-                    local.publicInputs
-                ),
-                "Multisig Transfer proof is invalid"
-            );
-        } else {
-            local.publicInputs = new bytes32[](17);
-            local.publicInputs = _stageCommonTransferInputs(local, inputs);
-            require(
-                TransferVerifier(transferVerifier).verify(
-                    inputs.proof,
-                    local.publicInputs
-                ),
-                "Transfer proof is invalid"
+                msg.sender == controller,
+                "Transfer must be sent from the eth controller"
             );
         }
+
+        local.publicInputs = new bytes32[](17);
+        local.publicInputs = _stageCommonTransferInputs(local, inputs);
+        require(
+            TransferVerifier(transferVerifier).verify(
+                inputs.proof,
+                local.publicInputs
+            ),
+            "Transfer proof is invalid"
+        );
     }
 
     function _stageCommonTransferInputs(
         LocalVars memory local,
         PrivateToken.TransferLocals memory inputs
-    ) internal view returns (bytes32[] memory) {
+    ) internal pure returns (bytes32[] memory) {
         local.publicInputs[0] = bytes32(local.fromModulus);
         local.publicInputs[1] = bytes32(local.toModulus);
         local.publicInputs[2] = bytes32(uint256(inputs.processFee));
