@@ -31,38 +31,8 @@ async function main() {
       []
     );
 
-    const transfer4337Verifier = await deployAndSave(
-      "contracts/transfer_4337/plonk_vk.sol:UltraVerifier",
-      []
-    );
-
-    const transferEthSignerVerifier = await deployAndSave(
-      "contracts/transfer_eth_signer/plonk_vk.sol:UltraVerifier",
-      []
-    );
-
-    const transferMultisigVerifier = await deployAndSave(
-      "contracts/transfer_multisig/plonk_vk.sol:UltraVerifier",
-      []
-    );
-
     const withdrawVerifier = await deployAndSave(
       "contracts/withdraw/plonk_vk.sol:UltraVerifier",
-      []
-    );
-
-    const withdraw4337Verifier = await deployAndSave(
-      "contracts/withdraw_4337/plonk_vk.sol:UltraVerifier",
-      []
-    );
-
-    const withdrawEthSignerVerifier = await deployAndSave(
-      "contracts/withdraw_eth_signer/plonk_vk.sol:UltraVerifier",
-      []
-    );
-
-    const withdrawMultisigVerifier = await deployAndSave(
-      "contracts/withdraw_multisig/plonk_vk.sol:UltraVerifier",
       []
     );
 
@@ -76,35 +46,17 @@ async function main() {
       []
     );
 
-    const changeEthSigner = await deployAndSave(
-      "contracts/change_eth_signer/plonk_vk.sol:UltraVerifier",
-      []
-    );
-
-    const changeMultiEthSigners = await deployAndSave(
-      "contracts/change_multi_eth_signers/plonk_vk.sol:UltraVerifier",
-      []
-    );
-
     const accountController = await deployAndSave("AccountController", [
       addEthSigners.address,
-      changeEthSigner.address,
-      changeMultiEthSigners.address,
     ]);
 
     const allTransferVerifier = await deployAndSave("TransferVerify", [
       transferVerifier.address,
-      transfer4337Verifier.address,
-      transferEthSignerVerifier.address,
-      transferMultisigVerifier.address,
       accountController.address,
     ]);
 
     const allWithdrawVerifier = await deployAndSave("WithdrawVerify", [
       withdrawVerifier.address,
-      withdraw4337Verifier.address,
-      withdrawEthSignerVerifier.address,
-      withdrawMultisigVerifier.address,
       accountController.address,
     ]);
 
