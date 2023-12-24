@@ -10,7 +10,6 @@ import { runNargoProve } from "../utils/generateNargoProof.ts";
 import {
   account1,
   account2,
-  processFeeRecipient,
   transferProcessFee,
   transferRelayFee,
   depositAmount,
@@ -18,34 +17,21 @@ import {
   random,
   transferAmount,
   withdrawAddress,
-  MAX_TXS_TO_PROCESS,
-  BJJ_PRIME,
 } from "../utils/constants.ts";
 
 import { TransferCoordinator } from "../coordinators/TransferCoordinator.ts";
 import { ProcessDepositCoordinator } from "../coordinators/ProcessDepositCoordinator.ts";
 import { ProcessTransferCoordinator } from "../coordinators/ProcessTransferCoordinator.ts";
 
-import {
-  getTransferProof,
-  getProcessDepositProof,
-  getProcessTransfersProof,
-  getWithdrawProof,
-  getProcessTransferInputs,
-} from "../utils/config.ts";
-import { TomlKeyValue, createAndWriteToml } from "../../createToml.ts";
+import { getWithdrawProof } from "../utils/config.ts";
+import { createAndWriteToml } from "../../createToml.ts";
 import {
   encryptedBalanceArrayToEncryptedBalance,
-  encryptedBalanceArrayToPointObjects,
-  encryptedBalanceToPointObjects,
   encryptedValueToEncryptedBalance,
   fromRprLe,
-  getC1PointFromEncryptedBalance,
-  getC2PointFromEncryptedBalance,
   getDecryptedValue,
   getEncryptedValue,
   getNonce,
-  pointObjectsToEncryptedBalance,
 } from "../utils/utils.ts";
 import { Address, hexToBigInt, toBytes, toHex } from "viem";
 
@@ -54,8 +40,6 @@ const viem = hre.viem;
 const babyjub = new BabyJubJubUtils();
 
 let convertedAmount: bigint;
-let processDepositProof: `0x${string}`;
-let transferProof: `0x${string}`;
 
 let privateTokenAddress: `0x${string}`;
 let tokenAddress: `0x${string}`;
@@ -174,14 +158,6 @@ describe("Private Token integration testing", async function () {
     const [sender] = await hre.viem.getWalletClients();
     const numTransfers = 2;
 
-    const encryptedAmount = getEncryptedValue(
-      account2.packedPublicKey,
-      transferAmount,
-      true
-    );
-    const encAmountToSend = encryptedValueToEncryptedBalance(encryptedAmount);
-    let encNewBalance;
-
     let transferCoordinator = new TransferCoordinator(
       transferAmount,
       privateToken,
@@ -195,22 +171,6 @@ describe("Private Token integration testing", async function () {
 
     // Do a few transfers to stage them in pending
     for (let i = 0; i < numTransfers; i++) {
-      // const preClearBalance = await getDecryptedValue(
-      //   account1,
-      //   await privateToken.read.balances([account1.packedPublicKey])
-      // );
-
-      // let newClearBalance =
-      //   Number(preClearBalance) -
-      //   (transferAmount + transferProcessFee + transferRelayFee);
-
-      // let unfmtEncNewBalance = getEncryptedValue(
-      //   account1.packedPublicKey,
-      //   newClearBalance,
-      //   true
-      // );
-      // encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
-
       await transferCoordinator.init();
       await transferCoordinator.generateProof();
       const hash = await transferCoordinator.sendTransfer();
@@ -225,7 +185,6 @@ describe("Private Token integration testing", async function () {
     await processTransferCoordinator.init();
     await processTransferCoordinator.generateProof();
     await processTransferCoordinator.sendProcessTransfer();
-    // await processPendingTransfer();
 
     let balance = (await privateToken.read.balances([
       account2.packedPublicKey,
