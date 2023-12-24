@@ -22,6 +22,7 @@ import {
 import { TransferCoordinator } from "../coordinators/TransferCoordinator.ts";
 import { ProcessDepositCoordinator } from "../coordinators/ProcessDepositCoordinator.ts";
 import { ProcessTransferCoordinator } from "../coordinators/ProcessTransferCoordinator.ts";
+import { WithdrawCoordinator } from "../coordinators/WithdrawCoordinator.ts";
 
 import { getWithdrawProof } from "../utils/config.ts";
 import { createAndWriteToml } from "../../createToml.ts";
@@ -200,48 +201,34 @@ describe("Private Token integration testing", async function () {
   });
 
   it("should do withdrawals", async () => {
-    const withdrawAmount = 7;
-    const withdrawRelayFee = 3;
+    const withdrawAmount = 7n;
+    const withdrawRelayFee = 3n;
     const withdrawRelayRecipient = "0xdebe940f35737EDb9a9Ad2bB938A955F9b7892e3";
+    const [sender] = await hre.viem.getWalletClients();
 
-    const { privateToken, token } = await getContracts();
-    const unfmtEncOldBalance = await privateToken.read.balances([
-      account1.packedPublicKey,
-    ]);
-    const encOldBalance =
-      encryptedBalanceArrayToEncryptedBalance(unfmtEncOldBalance);
+    const { privateToken } = await getContracts();
 
-    const clearOldBalance = await getDecryptedValue(
-      account1,
-      unfmtEncOldBalance
-    );
-    const newBalanceClear =
-      Number(clearOldBalance) - withdrawRelayFee - withdrawAmount;
-
-    const unfmtEncNewBalance = getEncryptedValue(
-      account1.packedPublicKey,
-      newBalanceClear,
-      true
-    );
-    const encNewBalance = encryptedValueToEncryptedBalance(unfmtEncNewBalance);
-
-    await withdraw(
-      withdrawAddress,
+    const withdrawCoordinator = new WithdrawCoordinator(
+      privateToken,
+      sender.account.address,
       account1,
       withdrawAmount,
       withdrawRelayFee,
-      withdrawRelayRecipient,
-      encOldBalance,
-      encNewBalance,
-      Number(clearOldBalance)
+      withdrawRelayRecipient
     );
+
+    await withdrawCoordinator.init();
+    await withdrawCoordinator.generateProof();
+    await withdrawCoordinator.sendWithdraw();
+
     console.log("TODO: finish withdraw test");
 
     const postBalance = await privateToken.read.balances([
       account1.packedPublicKey,
     ]);
     const decryptedBalance = await getDecryptedValue(account1, postBalance);
-    expect(Number(decryptedBalance) == newBalanceClear);
+    console.log("decrypted balance after withdraw", decryptedBalance);
+    // expect(Number(decryptedBalance) == newBalanceClear);
 
     // check erc20 token balance of withdrawer and relayer
   });
@@ -266,66 +253,6 @@ async function deposit() {
     account1.packedPublicKey,
     depositProcessFee,
   ]);
-}
-
-async function withdraw(
-  to: Address,
-  from: BojAccount,
-  amount: number,
-  relayFee: number,
-  relayFeeRecipient: Address,
-  encOldBalance: EncryptedBalance,
-  encNewBalance: EncryptedBalance,
-  clearOldBalance: number
-) {
-  const { privateToken, token } = await getContracts();
-  const [walletClient0, walletClient1] = await viem.getWalletClients();
-
-  const proofInputs = {
-    private_key: account1.privateKey,
-    randomness: random,
-    balance_old_clear: Number(clearOldBalance),
-    packed_public_key: Array.from(toBytes(account1.packedPublicKey)),
-    packed_public_key_modulus: fromRprLe(account1.packedPublicKey),
-    nonce_private: toHex(getNonce(encNewBalance), { size: 32 }),
-    nonce: toHex(getNonce(encNewBalance), { size: 32 }),
-    value: amount,
-    relay_fee: relayFee,
-    balance_old_encrypted_1: {
-      x: toHex(encOldBalance.C1x, { size: 32 }),
-      y: toHex(encOldBalance.C1y, { size: 32 }),
-    },
-    balance_old_encrypted_2: {
-      x: toHex(encOldBalance.C2x, { size: 32 }),
-      y: toHex(encOldBalance.C2y, { size: 32 }),
-    },
-    balance_new_encrypted_1: {
-      x: toHex(encNewBalance.C1x, { size: 32 }),
-      y: toHex(encNewBalance.C1y, { size: 32 }),
-    },
-    balance_new_encrypted_2: {
-      x: toHex(encNewBalance.C2x, { size: 32 }),
-      y: toHex(encNewBalance.C2y, { size: 32 }),
-    },
-  };
-
-  try {
-    createAndWriteToml("withdraw", proofInputs);
-    await runNargoProve("withdraw", "Test.toml");
-    const withdrawProof = await getWithdrawProof();
-
-    await privateToken.write.withdraw([
-      from.packedPublicKey,
-      to,
-      amount,
-      relayFee,
-      relayFeeRecipient,
-      withdrawProof,
-      encNewBalance,
-    ]);
-  } catch (e) {
-    console.log(e);
-  }
 }
 
 async function setup() {

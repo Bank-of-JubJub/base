@@ -4,7 +4,7 @@ import {
   PointObjects,
   PointObjectsWithRandomness,
 } from "../utils/types";
-import { toBytes, toHex } from "viem";
+import { isAddress, toBytes, toHex } from "viem";
 import {
   encryptedBalanceArrayToEncryptedBalance,
   encryptedValueToEncryptedBalance,
@@ -36,7 +36,6 @@ export class ProcessDepositCoordinator {
     to: `0x${string}`,
     relayFeeRecipient: `0x${string}`,
     minFeeToProcess: number = 0
-    //  txsToProcess: bigint[]
   ) {
     this.relayFeeRecipient = relayFeeRecipient;
     this.to = to;
@@ -49,6 +48,9 @@ export class ProcessDepositCoordinator {
     this.startingAmount = null;
     this.proof = null;
     this.minFeeToProcess = minFeeToProcess;
+    if (!isAddress(relayFeeRecipient)) {
+      throw new Error("Invalid address");
+    }
   }
 
   public async init() {
