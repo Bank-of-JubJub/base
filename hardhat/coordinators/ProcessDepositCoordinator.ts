@@ -29,11 +29,13 @@ export class ProcessDepositCoordinator {
   private encryptedAmount: PointObjectsWithRandomness | null;
   private totalAmount: number;
   private startingAmount: EncryptedBalance | null;
+  private minFeeToProcess: number;
 
   constructor(
     privateToken: any,
     to: `0x${string}`,
-    relayFeeRecipient: `0x${string}`
+    relayFeeRecipient: `0x${string}`,
+    minFeeToProcess: number = 0
     //  txsToProcess: bigint[]
   ) {
     this.relayFeeRecipient = relayFeeRecipient;
@@ -46,6 +48,7 @@ export class ProcessDepositCoordinator {
     this.totalAmount = 0;
     this.startingAmount = null;
     this.proof = null;
+    this.minFeeToProcess = minFeeToProcess;
   }
 
   public async init() {
@@ -78,7 +81,7 @@ export class ProcessDepositCoordinator {
         BigInt(i),
       ]);
       const processFee = pending[1];
-      if (processFee > 0n) {
+      if (processFee >= this.minFeeToProcess && pending[0] > BigInt(0)) {
         this.txsToProcess.push(BigInt(i));
       }
       if (this.txsToProcess.length == 4) break;
