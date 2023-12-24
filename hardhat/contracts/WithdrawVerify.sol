@@ -3,36 +3,17 @@ pragma solidity 0.8.20;
 
 import "hardhat/console.sol";
 import {UltraVerifier as WithdrawVerifier} from "./withdraw/plonk_vk.sol";
-import {UltraVerifier as Withdraw4337Verifier} from "./withdraw_4337/plonk_vk.sol";
-import {UltraVerifier as WithdrawEthSignerVerifier} from "./withdraw_eth_signer/plonk_vk.sol";
-import {UltraVerifier as WithdrawMultisigVerifier} from "./withdraw_multisig/plonk_vk.sol";
 import "./PrivateToken.sol";
 import "./AccountController.sol";
 
 contract WithdrawVerify {
     WithdrawVerifier public withdrawVerifier;
-    Withdraw4337Verifier public withdraw4337Verifier;
-    WithdrawEthSignerVerifier public withdrawEthSignerVerifier;
-    WithdrawMultisigVerifier public withdrawMultisigVerifier;
     AccountController public accountController;
     uint256 BJJ_PRIME =
         21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
-    constructor(
-        address _withdrawVerifier,
-        address _withdraw4337Verifier,
-        address _withdrawEthSignerVerifier,
-        address _withdrawMultisigVerifier,
-        address _accountController
-    ) {
+    constructor(address _withdrawVerifier, address _accountController) {
         withdrawVerifier = WithdrawVerifier(_withdrawVerifier);
-        withdraw4337Verifier = Withdraw4337Verifier(_withdraw4337Verifier);
-        withdrawEthSignerVerifier = WithdrawEthSignerVerifier(
-            _withdrawEthSignerVerifier
-        );
-        withdrawMultisigVerifier = WithdrawMultisigVerifier(
-            _withdrawMultisigVerifier
-        );
         accountController = AccountController(_accountController);
     }
 
@@ -40,98 +21,29 @@ contract WithdrawVerify {
         bytes32 messageHash;
         uint256 messageHashModulus;
         uint256 fromModulus;
-        AccountController.AccountType senderAccountType;
         bytes32[] publicInputs;
     }
 
     function verifyWithdraw(
         PrivateToken.WithdrawLocals memory inputs // bytes32 inputs.from, // address _to, // uint256 _txNonce, // uint256 _amount, // uint256 _relayFee, // PrivateToken.EncryptedAmount memory _oldEncryptedAmount, // PrivateToken.EncryptedAmount memory _newEncryptedAmount, // bytes memory _withdraw_proof
-    ) external {
+    ) external view {
         Locals memory local;
-        local.messageHash = keccak256(
-            abi.encodePacked(
-                address(this),
-                inputs.from,
-                inputs.to,
-                inputs.txNonce
-            )
-        );
-        local.messageHashModulus = fromRprLe(local.messageHash);
-        local.fromModulus = fromRprLe(inputs.from);
-        AccountController.AccountType senderAccountType = accountController
-            .getAccountType(inputs.from);
-
-        if (
-            local.senderAccountType == AccountController.AccountType.EthSigner
-        ) {
-            local.publicInputs = new bytes32[](14);
-            local.publicInputs = _stageCommonWithdrawInputs(local, inputs);
-            local.publicInputs[local.publicInputs.length + 1] = bytes32(
-                uint256(uint160(accountController.ethSigner(inputs.from)))
-            );
-            local.publicInputs[local.publicInputs.length + 2] = bytes32(
-                local.messageHashModulus
-            );
+        address controller = accountController.ethController(inputs.from);
+        if (controller != address(0x0)) {
             require(
-                withdrawEthSignerVerifier.verify(
-                    inputs.proof,
-                    local.publicInputs
-                ),
-                "Withdraw proof is invalid"
-            );
-        } else if (
-            local.senderAccountType ==
-            AccountController.AccountType.erc4337Account
-        ) {
-            local.publicInputs = new bytes32[](13);
-            local.publicInputs = _stageCommonWithdrawInputs(local, inputs);
-            local.publicInputs[local.publicInputs.length + 1] = bytes32(
-                uint256(uint160(msg.sender))
-            );
-            require(
-                withdraw4337Verifier.verify(inputs.proof, local.publicInputs),
-                "Withdraw proof is invalid"
-            );
-        } else if (
-            senderAccountType == AccountController.AccountType.Multisig
-        ) {
-            bytes32[] memory publicInputs = new bytes32[](22);
-            publicInputs = _stageCommonWithdrawInputs(local, inputs);
-            AccountController.MultisigParams memory params = accountController
-                .getMultisigEthSigners(inputs.from);
-            for (uint8 i = 0; i < params.ethSigners.length; i++) {
-                local.publicInputs[17 + i] = bytes32(
-                    uint256(uint160(params.ethSigners[i]))
-                );
-
-                uint256 length = publicInputs.length;
-                for (uint8 i = 0; i < params.ethSigners.length; i++) {
-                    local.publicInputs[length + i] = bytes32(
-                        uint256(uint160(params.ethSigners[i]))
-                    );
-                }
-                local.publicInputs[length + params.ethSigners.length] = bytes32(
-                    uint256(params.threshold)
-                );
-                local.publicInputs[
-                    length + params.ethSigners.length + 1
-                ] = bytes32(local.messageHashModulus);
-            }
-            require(
-                withdrawMultisigVerifier.verify(
-                    inputs.proof,
-                    local.publicInputs
-                ),
-                "Withdraw proof is invalid"
-            );
-        } else {
-            local.publicInputs = new bytes32[](12);
-            local.publicInputs = _stageCommonWithdrawInputs(local, inputs);
-            require(
-                withdrawVerifier.verify(inputs.proof, local.publicInputs),
-                "Withdraw proof is invalid"
+                msg.sender == controller,
+                "Transfer must be sent from the eth controller"
             );
         }
+
+        local.fromModulus = fromRprLe(inputs.from);
+
+        local.publicInputs = new bytes32[](12);
+        local.publicInputs = _stageCommonWithdrawInputs(local, inputs);
+        require(
+            withdrawVerifier.verify(inputs.proof, local.publicInputs),
+            "Withdraw proof is invalid"
+        );
     }
 
     function _stageCommonWithdrawInputs(
