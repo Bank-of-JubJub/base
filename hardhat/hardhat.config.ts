@@ -87,7 +87,7 @@ module.exports = {
         network: "alfajores",
         chainId: 421614,
         urls: {
-          apiURL: "https://alfajores.celoscan.io/api",
+          apiURL: "https://api-alfajores.celoscan.io/api",
           browserURL: "https://alfajores.celoscan.io/",
         },
       },
