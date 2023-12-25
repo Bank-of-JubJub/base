@@ -70,10 +70,8 @@ describe("Private Token integration testing", async function () {
     const [sender] = await hre.viem.getWalletClients();
 
     const coordinator = new ProcessDepositCoordinator(
-      privateToken,
       account1.packedPublicKey,
       sender.account.address
-      //  [0n]
     );
     await coordinator.init();
     await coordinator.generateProof();
