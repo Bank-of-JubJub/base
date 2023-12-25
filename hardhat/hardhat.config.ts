@@ -40,11 +40,6 @@ module.exports = {
       url: process.env.SEPOLIA_RPC_URL || "",
       accounts: [process.env.PRIVATE_KEY || "0".repeat(64)],
       saveDeployments: true,
-      verify: {
-        etherscan: {
-          apiKey: process.env.ETHERSCAN_API_KEY || "",
-        },
-      },
     },
     arbitrumSepolia: {
       chainId: 421614,
@@ -68,7 +63,8 @@ module.exports = {
     // Your API key for Etherscan
     // Obtain one at https://etherscan.io/
     apiKey: {
-      mainnet: "YOUR_ETHERSCAN_API_KEY",
+      mainnet: process.env.ETHERSCAN_API_KEY,
+      sepolia: process.env.ETHERSCAN_API_KEY,
       optimisticEthereum: "YOUR_OPTIMISTIC_ETHERSCAN_API_KEY",
       arbitrumSepolia: process.env.ETHERSCAN_ARBITRUM_API_KEY,
     },
