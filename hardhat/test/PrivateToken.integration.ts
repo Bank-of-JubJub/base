@@ -188,7 +188,6 @@ describe("Private Token integration testing", async function () {
     );
 
     const withdrawCoordinator = new WithdrawCoordinator(
-      privateToken,
       sender.account.address,
       account1,
       withdrawAmount,
@@ -236,13 +235,6 @@ async function deposit() {
     account1.packedPublicKey,
     depositProcessFee,
   ]);
-}
-
-// A deployment function to set up the initial state
-async function deploy(name: string, constructorArgs: any[]) {
-  const contract = await hre.viem.deployContract(name, constructorArgs);
-
-  return { contract };
 }
 
 async function getContracts() {

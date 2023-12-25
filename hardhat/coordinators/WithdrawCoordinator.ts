@@ -32,7 +32,6 @@ export class WithdrawCoordinator {
   private encOldBalance: EncryptedBalance;
 
   constructor(
-    privateToken: any,
     to: `0x${string}`,
     from: BojAccount,
     amount: number,
@@ -50,7 +49,6 @@ export class WithdrawCoordinator {
     this.from = from;
     this.relayFee = relayFee;
     this.relayFeeRecipient = relayFeeRecipient;
-    this.privateToken = privateToken;
     this.proof = null;
     this.isTest = isTest;
     this.randomness = BigInt(0);

@@ -1,6 +1,5 @@
 import hre from "hardhat";
 import dotenv from "dotenv";
-import { readDeploymentData } from "./saveDeploy";
 import { delay } from "../utils/utils";
 import { BojAccount } from "../utils/types";
 import { hexToBigInt, toBytes, toHex } from "viem";
