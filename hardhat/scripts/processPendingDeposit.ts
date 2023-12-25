@@ -18,15 +18,8 @@ async function main() {
   await babyjub.init();
   const publicClient = await hre.viem.getPublicClient();
   const [sender] = await hre.viem.getWalletClients();
-  const network = hre.network.name;
-  const { data: privateTokenData } = readDeploymentData("PrivateToken");
-  let privateToken = await hre.viem.getContractAt(
-    "PrivateToken",
-    privateTokenData[network].address
-  );
 
   const coordinator = new ProcessDepositCoordinator(
-    privateToken,
     params.to,
     sender.account.address
   );
