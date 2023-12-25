@@ -58,6 +58,11 @@ module.exports = {
       url: "https://rpc.chiadochain.net",
       accounts: [process.env.PRIVATE_KEY || "0".repeat(64)],
     },
+    alfajores: {
+      chainId: 44787,
+      url: "https://alfajores-forno.celo-testnet.org",
+      accounts: [process.env.PRIVATE_KEY || "0".repeat(64)],
+    }
   },
   etherscan: {
     // Your API key for Etherscan
@@ -67,14 +72,23 @@ module.exports = {
       sepolia: process.env.ETHERSCAN_API_KEY,
       optimisticEthereum: "YOUR_OPTIMISTIC_ETHERSCAN_API_KEY",
       arbitrumSepolia: process.env.ETHERSCAN_ARBITRUM_API_KEY,
+      alfajores: process.env.ETHERSCAN_CELO_API_KEY
     },
     customChains: [
       {
         network: "arbitrumSepolia",
-        chainId: 421614,
+        chainId: 44787,
         urls: {
           apiURL: "https://api-sepolia.arbiscan.io/api",
           browserURL: "https://sepolia.arbiscan.io/",
+        },
+      },
+      {
+        network: "alfajores",
+        chainId: 421614,
+        urls: {
+          apiURL: "https://alfajores.celoscan.io/api",
+          browserURL: "https://alfajores.celoscan.io/",
         },
       },
     ],
