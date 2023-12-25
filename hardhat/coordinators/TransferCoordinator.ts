@@ -1,4 +1,8 @@
-import { BojAccount, EncryptedBalance } from "../utils/types";
+import {
+  BojAccount,
+  EncryptedBalance,
+  EncryptedBalanceArray,
+} from "../utils/types";
 import { toBytes, toHex } from "viem";
 import {
   encryptedValueToEncryptedBalance,
@@ -62,13 +66,10 @@ export class TransferCoordinator {
 
     this.encryptedOldBalance = (await privateToken.read.balances([
       this.from.packedPublicKey,
-    ])) as [bigint, bigint, bigint, bigint];
-    this.recipientBalance = (await privateToken.read.balances([this.to])) as [
-      bigint,
-      bigint,
-      bigint,
-      bigint
-    ];
+    ])) as EncryptedBalanceArray;
+    this.recipientBalance = (await privateToken.read.balances([
+      this.to,
+    ])) as EncryptedBalanceArray;
 
     if (
       this.recipientBalance[0] == 0n &&

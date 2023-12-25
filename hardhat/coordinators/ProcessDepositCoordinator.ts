@@ -31,7 +31,6 @@ export class ProcessDepositCoordinator {
   private minFeeToProcess: number;
 
   constructor(
-    privateToken: any,
     to: `0x${string}`,
     relayFeeRecipient: `0x${string}`,
     minFeeToProcess: number = 0
