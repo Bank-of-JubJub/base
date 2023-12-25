@@ -1,9 +1,14 @@
-import { BojAccount, EncryptedBalance } from "../utils/types";
+import {
+  BojAccount,
+  EncryptedBalance,
+  EncryptedBalanceArray,
+} from "../utils/types";
 import { isAddress, toBytes, toHex } from "viem";
 import {
   encryptedBalanceArrayToEncryptedBalance,
   encryptedValueToEncryptedBalance,
   fromRprLe,
+  getContract,
   getDecryptedValue,
   getEncryptedValue,
   getNonce,
@@ -13,16 +18,16 @@ import { runNargoProve } from "../utils/generateNargoProof";
 import { getWithdrawProof } from "../utils/config";
 
 export class WithdrawCoordinator {
-  private proof: string | null;
+  private proof: `0x${string}` | null;
   private privateToken: any;
   private from: BojAccount;
   private to: `0x${string}`;
-  private relayFee: bigint;
+  private relayFee: number;
   private relayFeeRecipient: `0x${string}`;
-  private amount: bigint;
+  private amount: number;
   private isTest: boolean;
   private randomness: bigint;
-  private clearOldBalance: bigint;
+  private clearOldBalance: number;
   private encNewBalance: EncryptedBalance;
   private encOldBalance: EncryptedBalance;
 
@@ -30,8 +35,8 @@ export class WithdrawCoordinator {
     privateToken: any,
     to: `0x${string}`,
     from: BojAccount,
-    amount: bigint,
-    relayFee: bigint,
+    amount: number,
+    relayFee: number,
     relayFeeRecipient: `0x${string}`,
     isTest: boolean = false
   ) {
@@ -49,7 +54,7 @@ export class WithdrawCoordinator {
     this.proof = null;
     this.isTest = isTest;
     this.randomness = BigInt(0);
-    this.clearOldBalance = BigInt(0);
+    this.clearOldBalance = 0;
     this.amount = amount;
     this.encNewBalance = {
       C1x: BigInt(0),
@@ -66,16 +71,16 @@ export class WithdrawCoordinator {
   }
 
   public async init() {
-    const unfmtEncOldBalance = await this.privateToken.read.balances([
+    const privateToken = await getContract("PrivateToken");
+    const unfmtEncOldBalance = (await privateToken.read.balances([
       this.from.packedPublicKey,
-    ]);
+    ])) as EncryptedBalanceArray;
     this.encOldBalance =
       encryptedBalanceArrayToEncryptedBalance(unfmtEncOldBalance);
 
-    this.clearOldBalance = (await getDecryptedValue(
-      this.from,
-      unfmtEncOldBalance
-    )) as bigint;
+    this.clearOldBalance = Number(
+      await getDecryptedValue(this.from, unfmtEncOldBalance)
+    );
     const newBalanceClear = this.clearOldBalance - this.relayFee - this.amount;
 
     const unfmtEncNewBalance = getEncryptedValue(
@@ -121,13 +126,14 @@ export class WithdrawCoordinator {
   }
 
   public async sendWithdraw() {
-    const hash = await this.privateToken.write.withdraw([
+    const privateToken = await getContract("PrivateToken");
+    const hash = await privateToken.write.withdraw([
       this.from.packedPublicKey,
       this.to,
       this.amount,
       this.relayFee,
       this.relayFeeRecipient,
-      this.proof,
+      this.proof!,
       this.encNewBalance,
     ]);
 

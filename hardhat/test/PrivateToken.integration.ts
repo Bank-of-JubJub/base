@@ -1,12 +1,7 @@
 import { assert, expect } from "chai";
 import hre from "hardhat";
 import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
-import {
-  EncryptedBalanceArray,
-  EncryptedBalance,
-  BojAccount,
-} from "../utils/types.ts";
-import { runNargoProve } from "../utils/generateNargoProof.ts";
+import { EncryptedBalanceArray } from "../utils/types.ts";
 import {
   account1,
   account2,
@@ -14,32 +9,17 @@ import {
   transferRelayFee,
   depositAmount,
   depositProcessFee,
-  random,
   transferAmount,
-  withdrawAddress,
 } from "../utils/constants.ts";
-
 import { TransferCoordinator } from "../coordinators/TransferCoordinator.ts";
 import { ProcessDepositCoordinator } from "../coordinators/ProcessDepositCoordinator.ts";
 import { ProcessTransferCoordinator } from "../coordinators/ProcessTransferCoordinator.ts";
 import { WithdrawCoordinator } from "../coordinators/WithdrawCoordinator.ts";
-
-import { getWithdrawProof } from "../utils/config.ts";
-import { createAndWriteToml } from "../../createToml.ts";
-import {
-  encryptedBalanceArrayToEncryptedBalance,
-  encryptedValueToEncryptedBalance,
-  fromRprLe,
-  getDecryptedValue,
-  getEncryptedValue,
-  getNonce,
-} from "../utils/utils.ts";
-import { Address, hexToBigInt, toBytes, toHex } from "viem";
+import { getDecryptedValue } from "../utils/utils.ts";
+import { deployContracts } from "../scripts/deploy.ts";
 
 const viem = hre.viem;
-
 const babyjub = new BabyJubJubUtils();
-
 let convertedAmount: bigint;
 
 let privateTokenAddress: `0x${string}`;
@@ -47,11 +27,9 @@ let tokenAddress: `0x${string}`;
 
 describe("Private Token integration testing", async function () {
   this.beforeAll(async () => {
-    const { privateToken, token } = await setup();
-
-    console.log("private token", privateToken.address);
-    privateTokenAddress = privateToken.address;
-    tokenAddress = token.address;
+    const contracts = await deployContracts(true);
+    privateTokenAddress = contracts!.privateToken.address;
+    tokenAddress = contracts!.token.address;
     await babyjub.init();
   });
 
@@ -113,7 +91,6 @@ describe("Private Token integration testing", async function () {
 
     let coordinator = new TransferCoordinator(
       transferAmount,
-      privateToken,
       account2.packedPublicKey,
       account1,
       transferProcessFee,
@@ -161,7 +138,6 @@ describe("Private Token integration testing", async function () {
 
     let transferCoordinator = new TransferCoordinator(
       transferAmount,
-      privateToken,
       account2.packedPublicKey,
       account1,
       transferProcessFee,
@@ -178,10 +154,9 @@ describe("Private Token integration testing", async function () {
     }
 
     const processTransferCoordinator = new ProcessTransferCoordinator(
-      privateToken,
       account2.packedPublicKey,
       sender.account.address,
-      0n
+      0
     );
     await processTransferCoordinator.init();
     await processTransferCoordinator.generateProof();
@@ -201,12 +176,18 @@ describe("Private Token integration testing", async function () {
   });
 
   it("should do withdrawals", async () => {
-    const withdrawAmount = 7n;
-    const withdrawRelayFee = 3n;
+    const withdrawAmount = 7;
+    const withdrawRelayFee = 3;
     const withdrawRelayRecipient = "0xdebe940f35737EDb9a9Ad2bB938A955F9b7892e3";
     const [sender] = await hre.viem.getWalletClients();
 
     const { privateToken } = await getContracts();
+    const unfmtEncOldBalance = await privateToken.read.balances([
+      account1.packedPublicKey,
+    ]);
+    const clearOldBalance = Number(
+      await getDecryptedValue(account1, unfmtEncOldBalance)
+    );
 
     const withdrawCoordinator = new WithdrawCoordinator(
       privateToken,
@@ -226,11 +207,15 @@ describe("Private Token integration testing", async function () {
     const postBalance = await privateToken.read.balances([
       account1.packedPublicKey,
     ]);
-    const decryptedBalance = await getDecryptedValue(account1, postBalance);
-    console.log("decrypted balance after withdraw", decryptedBalance);
-    // expect(Number(decryptedBalance) == newBalanceClear);
+    const decryptedBalance = Number(
+      await getDecryptedValue(account1, postBalance)
+    );
+    expect(
+      decryptedBalance == clearOldBalance - withdrawAmount,
+      "balance after withdraw should be the old balance minus the withdraw amount"
+    );
 
-    // check erc20 token balance of withdrawer and relayer
+    // TODO: check erc20 token balance of withdrawer and relayer
   });
 });
 
@@ -253,75 +238,6 @@ async function deposit() {
     account1.packedPublicKey,
     depositProcessFee,
   ]);
-}
-
-async function setup() {
-  const publicClient = await hre.viem.getPublicClient();
-  const [walletClient0, walletClient1] = await hre.viem.getWalletClients();
-  let { contract: token } = await deploy("FunToken", []);
-  const { contract: pendingDepositVerifier } = await deploy(
-    "contracts/process_pending_deposits/plonk_vk.sol:UltraVerifier",
-    []
-  );
-  const { contract: pendingTransferVerifier } = await deploy(
-    "contracts/process_pending_transfers/plonk_vk.sol:UltraVerifier",
-    []
-  );
-  const { contract: transferVerifier } = await deploy(
-    "contracts/transfer/plonk_vk.sol:UltraVerifier",
-    []
-  );
-
-  const { contract: withdrawVerifier } = await deploy(
-    "contracts/withdraw/plonk_vk.sol:UltraVerifier",
-    []
-  );
-
-  const { contract: lockVerifier } = await deploy(
-    "contracts/lock/plonk_vk.sol:UltraVerifier",
-    []
-  );
-  const { contract: addEthSigners } = await deploy(
-    "contracts/add_eth_signers/plonk_vk.sol:UltraVerifier",
-    []
-  );
-
-  const { contract: accountController } = await deploy("AccountController", [
-    addEthSigners.address,
-  ]);
-
-  const { contract: allTransferVerifier } = await deploy("TransferVerify", [
-    transferVerifier.address,
-    accountController.address,
-  ]);
-
-  const { contract: allWithdrawVerifier } = await deploy("WithdrawVerify", [
-    withdrawVerifier.address,
-    accountController.address,
-  ]);
-
-  const { contract: privateToken } = await deploy("PrivateToken", [
-    pendingDepositVerifier.address,
-    pendingTransferVerifier.address,
-    allTransferVerifier.address,
-    allWithdrawVerifier.address,
-    lockVerifier.address,
-    token.address,
-    await token.read.decimals(),
-  ]);
-
-  return {
-    publicClient,
-    pendingDepositVerifier,
-    pendingTransferVerifier,
-    transferVerifier,
-    withdrawVerifier,
-    lockVerifier,
-    token,
-    privateToken,
-    walletClient0,
-    walletClient1,
-  };
 }
 
 // A deployment function to set up the initial state

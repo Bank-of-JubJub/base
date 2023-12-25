@@ -1,7 +1,6 @@
 import {
-  BojAccount,
   EncryptedBalance,
-  PointObjects,
+  EncryptedBalanceArray,
   PointObjectsWithRandomness,
 } from "../utils/types";
 import { isAddress, toBytes, toHex } from "viem";
@@ -11,6 +10,7 @@ import {
   fromRprLe,
   getC1PointFromEncryptedBalance,
   getC2PointFromEncryptedBalance,
+  getContract,
   getEncryptedValue,
 } from "../utils/utils";
 import { createAndWriteToml } from "../../createToml";
@@ -20,8 +20,7 @@ import BabyJubJubUtils from "../utils/babyJubJubUtils";
 
 export class ProcessDepositCoordinator {
   private relayFeeRecipient: `0x${string}` | null;
-  private privateToken: any;
-  private proof: string | null;
+  private proof: `0x${string}` | null;
   private to: `0x${string}`;
   private newBalance: EncryptedBalance | null;
   private txsToProcess: bigint[] | null;
@@ -40,7 +39,6 @@ export class ProcessDepositCoordinator {
     this.relayFeeRecipient = relayFeeRecipient;
     this.to = to;
     this.newBalance = null;
-    this.privateToken = privateToken;
     this.zeroBalance = null;
     this.txsToProcess = null;
     this.encryptedAmount = null;
@@ -54,11 +52,12 @@ export class ProcessDepositCoordinator {
   }
 
   public async init() {
+    const privateToken = await getContract("PrivateToken");
     const babyjub = new BabyJubJubUtils();
     await babyjub.init();
 
     this.startingAmount = encryptedBalanceArrayToEncryptedBalance(
-      await this.privateToken.read.balances([this.to])
+      (await privateToken.read.balances([this.to])) as EncryptedBalanceArray
     );
 
     // if balance == 0
@@ -75,13 +74,15 @@ export class ProcessDepositCoordinator {
     }
 
     // stage 4 deposits
-    let count = await this.privateToken.read.pendingDepositCounts([this.to]);
+    let count = (await privateToken.read.pendingDepositCounts([
+      this.to,
+    ])) as number;
     this.txsToProcess = [] as bigint[];
     for (let i = 0; i < count; i++) {
-      let pending = await this.privateToken.read.allPendingDepositsMapping([
+      let pending = (await privateToken.read.allPendingDepositsMapping([
         this.to,
         BigInt(i),
-      ]);
+      ])) as [bigint, number];
       const processFee = pending[1];
       if (processFee >= this.minFeeToProcess && pending[0] > BigInt(0)) {
         this.txsToProcess.push(BigInt(i));
@@ -90,11 +91,9 @@ export class ProcessDepositCoordinator {
     }
 
     for (let i = 0; i < this.txsToProcess!.length; i++) {
-      const pendingDeposit =
-        (await this.privateToken.read.allPendingDepositsMapping([
-          this.to,
-          BigInt(this.txsToProcess![i]),
-        ])) as [bigint, number]; // [amount, fee]
+      const pendingDeposit = (await privateToken.read.allPendingDepositsMapping(
+        [this.to, BigInt(this.txsToProcess![i])]
+      )) as [bigint, number]; // [amount, fee]
       this.totalAmount += Number(pendingDeposit[0]);
     }
 
@@ -134,13 +133,14 @@ export class ProcessDepositCoordinator {
   }
 
   public async sendProcessDeposit() {
-    const hash = await this.privateToken.write.processPendingDeposit([
-      this.proof,
-      this.txsToProcess, // [], // txs to process, a list of ids.
-      this.relayFeeRecipient,
+    const privateToken = await getContract("PrivateToken");
+    const hash = await privateToken.write.processPendingDeposit([
+      this.proof!,
+      this.txsToProcess!, // [], // txs to process, a list of ids.
+      this.relayFeeRecipient!,
       this.to,
-      this.zeroBalance,
-      this.newBalance,
+      this.zeroBalance!,
+      this.newBalance!,
     ]);
 
     return hash;

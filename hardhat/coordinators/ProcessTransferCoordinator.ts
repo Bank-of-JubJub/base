@@ -1,15 +1,14 @@
 import {
-  BojAccount,
   EncryptedBalance,
-  PointObject,
+  EncryptedBalanceArray,
   PointObjectHex,
   PointObjects,
-  PointObjectsWithRandomness,
 } from "../utils/types";
-import { toBytes, toHex } from "viem";
+import { toHex } from "viem";
 import {
   encryptedBalanceArrayToPointObjects,
   encryptedBalanceToPointObjects,
+  getContract,
   pointObjectsToEncryptedBalance,
 } from "../utils/utils";
 import { createAndWriteToml } from "../../createToml";
@@ -21,24 +20,21 @@ import { MAX_TXS_TO_PROCESS } from "../utils/constants";
 export class ProcessTransferCoordinator {
   private to: `0x${string}`;
   private processFeeRecipient: `0x${string}`;
-  private privateToken: any;
-  private minFeeToProcess: BigInt;
+  private minFeeToProcess: number;
   private oldBalanceArray: [bigint, bigint, bigint, bigint];
   private oldEncryptedBalance: PointObjects;
   private newBalance: EncryptedBalance;
   private encryptedValues: PointObjectHex[];
-  private proof: string | null;
-  private txIndexes: bigint[];
+  private proof: `0x${string}` | null;
+  private txIndexes: number[];
 
   constructor(
-    privateToken: any,
     to: `0x${string}`,
     processFeeRecipient: `0x${string}`,
-    minFeeToProcess: BigInt = BigInt(0)
+    minFeeToProcess: number = 0
   ) {
     this.to = to;
     this.processFeeRecipient = processFeeRecipient;
-    this.privateToken = privateToken;
     this.minFeeToProcess = minFeeToProcess;
     this.oldBalanceArray = [BigInt(0), BigInt(0), BigInt(0), BigInt(0)];
     this.oldEncryptedBalance = {
@@ -57,16 +53,21 @@ export class ProcessTransferCoordinator {
   }
 
   public async init() {
+    const privateToken = await getContract("PrivateToken");
+
     const babyjub = new BabyJubJubUtils();
     await babyjub.init();
 
-    this.oldBalanceArray = await this.privateToken.read.balances([this.to]);
+    this.oldBalanceArray = (await privateToken.read.balances([
+      this.to,
+    ])) as EncryptedBalanceArray;
     this.oldEncryptedBalance = encryptedBalanceArrayToPointObjects(
       this.oldBalanceArray
     );
 
-    const pendingTransferCount =
-      (await this.privateToken.read.pendingTransferCounts([this.to])) as Number;
+    const pendingTransferCount = await privateToken.read.pendingTransferCounts([
+      this.to,
+    ]);
 
     let balanceAfterProcessTransfer = this.oldEncryptedBalance;
     this.encryptedValues = [];
@@ -74,16 +75,14 @@ export class ProcessTransferCoordinator {
     this.txIndexes = [];
 
     for (let i = 0; i <= Number(pendingTransferCount) - 1; i++) {
-      let pendingTransfer =
-        await this.privateToken.read.allPendingTransfersMapping([
-          this.to,
-          BigInt(i),
-        ]);
+      let pendingTransfer = (await privateToken.read.allPendingTransfersMapping(
+        [this.to, BigInt(i)]
+      )) as [EncryptedBalance, number];
 
       const amount = encryptedBalanceToPointObjects(pendingTransfer[0]);
-      const fee = pendingTransfer[1] as BigInt;
+      const fee = pendingTransfer[1];
       if (fee > this.minFeeToProcess && pendingTransfer[0].C1x > BigInt(0)) {
-        this.txIndexes.push(BigInt(i));
+        this.txIndexes.push(i);
       }
 
       if (this.txIndexes.length == MAX_TXS_TO_PROCESS) break;
@@ -160,8 +159,10 @@ export class ProcessTransferCoordinator {
   }
 
   public async sendProcessTransfer() {
-    const hash = await this.privateToken.write.processPendingTransfer([
-      this.proof,
+    const privateToken = await getContract("PrivateToken");
+
+    const hash = await privateToken.write.processPendingTransfer([
+      this.proof!,
       this.txIndexes,
       this.processFeeRecipient,
       this.to,

@@ -38,9 +38,6 @@ async function main() {
 
   const receipt = await publicClient.getTransactionReceipt({ hash });
   console.log(receipt);
-
-  let newBalance = await privateToken.read.balances([params.to]);
-  console.log("new balance", newBalance);
 }
 
 main().catch((error) => {

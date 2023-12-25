@@ -8,6 +8,7 @@ import {
   getDecryptedValue,
   getEncryptedValue,
   getNonce,
+  getContract,
 } from "../utils/utils";
 import { createAndWriteToml } from "../../createToml";
 import { runNargoProve } from "../utils/generateNargoProof";
@@ -23,17 +24,15 @@ export class TransferCoordinator {
   private encryptedOldBalance: [bigint, bigint, bigint, bigint] | null;
   private clearOldBalance: number | null;
   private recipientBalance: [bigint, bigint, bigint, bigint] | null;
-  private privateToken: any;
   private amount: number;
   private encryptedAmount: EncryptedBalance | null;
   private encryptedAmountRandomness: bigint | null;
   private encryptedNewBalance: EncryptedBalance | null;
   private encryptedNewBalanceRandomness: bigint | null;
-  private proof: string | null;
+  private proof: `0x${string}` | null;
 
   constructor(
     amount: number,
-    privateToken: any,
     to: `0x${string}`,
     from: BojAccount,
     processFee: number,
@@ -49,7 +48,6 @@ export class TransferCoordinator {
     this.encryptedOldBalance = null;
     this.clearOldBalance = null;
     this.recipientBalance = null;
-    this.privateToken = privateToken;
     this.amount = amount;
     this.encryptedAmount = null;
     this.encryptedAmountRandomness = null;
@@ -60,12 +58,17 @@ export class TransferCoordinator {
   }
 
   public async init() {
-    this.encryptedOldBalance = (await this.privateToken.read.balances([
+    const privateToken = await getContract("PrivateToken");
+
+    this.encryptedOldBalance = (await privateToken.read.balances([
       this.from.packedPublicKey,
     ])) as [bigint, bigint, bigint, bigint];
-    this.recipientBalance = (await this.privateToken.read.balances([
-      this.to,
-    ])) as [bigint, bigint, bigint, bigint];
+    this.recipientBalance = (await privateToken.read.balances([this.to])) as [
+      bigint,
+      bigint,
+      bigint,
+      bigint
+    ];
 
     if (
       this.recipientBalance[0] == 0n &&
@@ -142,15 +145,17 @@ export class TransferCoordinator {
   }
 
   public async sendTransfer() {
-    const hash = await this.privateToken.write.transfer([
+    const privateToken = await getContract("PrivateToken");
+
+    const hash = await privateToken.write.transfer([
       this.to,
       this.from.packedPublicKey,
       this.processFee,
       this.relayFee,
-      this.relayFeeRecipient,
-      this.encryptedAmount,
-      this.encryptedNewBalance,
-      this.proof,
+      this.relayFeeRecipient!,
+      this.encryptedAmount!,
+      this.encryptedNewBalance!,
+      this.proof!,
     ]);
 
     return hash;

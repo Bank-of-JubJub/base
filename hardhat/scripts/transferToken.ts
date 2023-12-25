@@ -1,12 +1,7 @@
 import hre from "hardhat";
 import dotenv from "dotenv";
 import { readDeploymentData } from "./saveDeploy";
-import {
-  delay,
-  encryptedValueToEncryptedBalance,
-  getDecryptedValue,
-  getEncryptedValue,
-} from "../utils/utils";
+import { delay } from "../utils/utils";
 import { BojAccount } from "../utils/types";
 import { hexToBigInt, toBytes, toHex } from "viem";
 import { TransferCoordinator } from "../coordinators/TransferCoordinator";
@@ -46,7 +41,6 @@ async function main() {
 
   const coordinator = new TransferCoordinator(
     params.amount,
-    privateToken,
     params.to,
     bojAccount,
     params.processFee,
