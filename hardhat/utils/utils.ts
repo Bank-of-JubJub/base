@@ -213,7 +213,12 @@ export function fromRprLe(publicKey: `0x${string}`): string {
 }
 
 export async function getContract(name: string) {
-  const { data: contractData } = readDeploymentData(name);
+  let contractName = name;
+  if (name.startsWith("contracts/")) {
+    const regex = /\/([^\/]+)\//;
+    contractName = name.match(regex)![1];
+  }
+  const { data: contractData } = readDeploymentData(contractName);
   const network = hre.network.name;
   return await hre.viem.getContractAt(name, contractData[network].address);
 }
