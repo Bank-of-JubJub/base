@@ -1,15 +1,15 @@
 import hre from "hardhat";
 import dotenv from "dotenv";
-import { readDeploymentData } from "./saveDeploy";
 import { delay } from "../utils/utils";
 import BabyJubJubUtils from "../utils/babyJubJubUtils";
-import { ProcessDepositCoordinator } from "../../coordinators/ProcessDepositCoordinator";
+import { ProcessTransferCoordinator } from "../../coordinators/ProcessTransferCoordinator";
+import { account2 } from "../utils/constants";
+import { readDeploymentData } from "./saveDeploy";
 dotenv.config({ path: "../.env" });
 const babyjub = new BabyJubJubUtils();
 
 const params = {
-  to: process.env.BOJ_PACKED_PUBLIC_KEY as `0x${string}`,
-  amount: 10 * 10 ** 2,
+  to: account2.packedPublicKey,
 };
 
 // THIS ONLY WORKS FOR 1 tx right now
@@ -26,7 +26,7 @@ async function main() {
     contractData[network].address
   );
 
-  const coordinator = new ProcessDepositCoordinator(
+  const coordinator = new ProcessTransferCoordinator(
     params.to,
     sender.account.address,
     0,
@@ -37,7 +37,7 @@ async function main() {
   );
   await coordinator.init();
   await coordinator.generateProof();
-  const hash = await coordinator.sendProcessDeposit();
+  const hash = await coordinator.sendProcessTransfer();
 
   await delay(15000);
 

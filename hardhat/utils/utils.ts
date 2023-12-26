@@ -9,11 +9,14 @@ import { BJJ_PRIME } from "./constants.ts";
 import BabyJubJubUtils, { PointObject } from "./babyJubJubUtils";
 import {
   BojAccount,
-  EncryptedAmount,
   EncryptedBalance,
   EncryptedBalanceArray,
+  PointObjects,
+  PointObjectsWithRandomness,
 } from "./types.ts";
 import { spawn } from "child_process";
+import { readDeploymentData } from "../scripts/saveDeploy.ts";
+import hre from "hardhat";
 const babyjub = new BabyJubJubUtils();
 babyjub.init();
 
@@ -29,7 +32,11 @@ export function getEncryptedValue(
     y: bytesToBigInt(publicKey[1]),
   };
 
-  return babyjub.exp_elgamal_encrypt(publicKeyObject, amount, isTest);
+  return babyjub.exp_elgamal_encrypt(
+    publicKeyObject,
+    amount,
+    isTest
+  ) as PointObjectsWithRandomness;
 }
 
 export async function getDecryptedValue(
@@ -152,7 +159,9 @@ export function getC2PointFromEncryptedBalance(encBalance: EncryptedBalance) {
   };
 }
 
-export function encryptedValueToEncryptedBalance(encValue: EncryptedAmount) {
+export function encryptedValueToEncryptedBalance(
+  encValue: PointObjects | PointObjectsWithRandomness
+) {
   return {
     C1x: encValue.C1.x,
     C1y: encValue.C1.y,
@@ -201,4 +210,15 @@ export function fromRprLe(publicKey: `0x${string}`): string {
     v *= BigInt(256);
   }
   return toHex(y, { size: 32 });
+}
+
+export async function getContract(name: string) {
+  let contractName = name;
+  if (name.startsWith("contracts/")) {
+    const regex = /\/([^\/]+)\//;
+    contractName = name.match(regex)![1];
+  }
+  const { data: contractData } = readDeploymentData(contractName);
+  const network = hre.network.name;
+  return await hre.viem.getContractAt(name, contractData[network].address);
 }

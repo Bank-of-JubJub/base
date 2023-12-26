@@ -3,22 +3,22 @@ import dotenv from "dotenv";
 import { delay } from "../utils/utils";
 import { BojAccount } from "../utils/types";
 import { hexToBigInt, toBytes, toHex } from "viem";
-import { TransferCoordinator } from "../../coordinators/TransferCoordinator";
 import BabyJubJubUtils from "../utils/babyJubJubUtils";
-import { account2 } from "../utils/constants";
+import { WithdrawCoordinator } from "../../coordinators/WithdrawCoordinator";
 import { readDeploymentData } from "./saveDeploy";
 dotenv.config({ path: "../.env" });
 
 const params = {
-  to: account2.packedPublicKey,
-  amount: 2,
-  processFee: 1,
-  relayFee: 1,
+  amount: 10,
+  relayFee: 0,
+  relayFeeRecipent:
+    "0x7D678b9218aC289e0C9F18c82F546c988BfE3022" as `0x${string}`,
 };
+const babyjub = new BabyJubJubUtils();
 
 async function main() {
-  const babyjub = new BabyJubJubUtils();
   await babyjub.init();
+
   const publicClient = await hre.viem.getPublicClient();
   const [sender] = await hre.viem.getWalletClients();
 
@@ -40,22 +40,21 @@ async function main() {
     contractData[network].address
   );
 
-  const coordinator = new TransferCoordinator(
-    params.amount,
-    params.to,
-    bojAccount,
-    params.processFee,
-    params.relayFee,
+  const withdrawCoordinator = new WithdrawCoordinator(
     sender.account.address,
+    bojAccount,
+    params.amount,
+    params.relayFee,
+    params.relayFeeRecipent,
     privateToken.address,
     // @ts-ignore
     publicClient,
     sender
   );
 
-  await coordinator.init();
-  await coordinator.generateProof();
-  const hash = await coordinator.sendTransfer();
+  await withdrawCoordinator.init();
+  await withdrawCoordinator.generateProof();
+  const hash = await withdrawCoordinator.sendWithdraw();
 
   await delay(5000);
 

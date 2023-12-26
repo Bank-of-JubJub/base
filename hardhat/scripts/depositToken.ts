@@ -6,7 +6,7 @@ dotenv.config({ path: "../.env" });
 
 const params = {
   to: process.env.BOJ_PACKED_PUBLIC_KEY as `0x${string}`,
-  amount: 10 * 10 ** 18,
+  amount: BigInt(10 * 10 ** 18),
 };
 
 async function main() {

@@ -4,8 +4,7 @@ import { readDeploymentData, saveDeploymentData } from "./saveDeploy";
 import { delay } from "../utils/utils";
 dotenv.config({ path: "../.env" });
 
-async function main() {
-  const publicClient = await hre.viem.getPublicClient();
+export async function deployContracts(isTest: boolean = false) {
   const [deployer] = await hre.viem.getWalletClients();
 
   console.log(
@@ -14,151 +13,104 @@ async function main() {
   );
 
   try {
-    let token = await deployAndSave("FunToken", []);
+    let token = await deployAndSave("FunToken", [], isTest);
 
     const pendingDepositVerifier = await deployAndSave(
       "contracts/process_pending_deposits/plonk_vk.sol:UltraVerifier",
-      []
+      [],
+      isTest
     );
 
     const pendingTransferVerifier = await deployAndSave(
       "contracts/process_pending_transfers/plonk_vk.sol:UltraVerifier",
-      []
+      [],
+      isTest
     );
 
     const transferVerifier = await deployAndSave(
       "contracts/transfer/plonk_vk.sol:UltraVerifier",
-      []
-    );
-
-    const transfer4337Verifier = await deployAndSave(
-      "contracts/transfer_4337/plonk_vk.sol:UltraVerifier",
-      []
-    );
-
-    const transferEthSignerVerifier = await deployAndSave(
-      "contracts/transfer_eth_signer/plonk_vk.sol:UltraVerifier",
-      []
-    );
-
-    const transferMultisigVerifier = await deployAndSave(
-      "contracts/transfer_multisig/plonk_vk.sol:UltraVerifier",
-      []
+      [],
+      isTest
     );
 
     const withdrawVerifier = await deployAndSave(
       "contracts/withdraw/plonk_vk.sol:UltraVerifier",
-      []
-    );
-
-    const withdraw4337Verifier = await deployAndSave(
-      "contracts/withdraw_4337/plonk_vk.sol:UltraVerifier",
-      []
-    );
-
-    const withdrawEthSignerVerifier = await deployAndSave(
-      "contracts/withdraw_eth_signer/plonk_vk.sol:UltraVerifier",
-      []
-    );
-
-    const withdrawMultisigVerifier = await deployAndSave(
-      "contracts/withdraw_multisig/plonk_vk.sol:UltraVerifier",
-      []
+      [],
+      isTest
     );
 
     const lockVerifier = await deployAndSave(
       "contracts/lock/plonk_vk.sol:UltraVerifier",
-      []
+      [],
+      isTest
     );
 
     const addEthSigners = await deployAndSave(
       "contracts/add_eth_signers/plonk_vk.sol:UltraVerifier",
-      []
+      [],
+      isTest
     );
 
-    const changeEthSigner = await deployAndSave(
-      "contracts/change_eth_signer/plonk_vk.sol:UltraVerifier",
-      []
+    const accountController = await deployAndSave(
+      "AccountController",
+      [addEthSigners.address],
+      isTest
     );
 
-    const changeMultiEthSigners = await deployAndSave(
-      "contracts/change_multi_eth_signers/plonk_vk.sol:UltraVerifier",
-      []
+    const allTransferVerifier = await deployAndSave(
+      "TransferVerify",
+      [transferVerifier.address, accountController.address],
+      isTest
     );
 
-    const accountController = await deployAndSave("AccountController", [
-      addEthSigners.address,
-      changeEthSigner.address,
-      changeMultiEthSigners.address,
-    ]);
+    const allWithdrawVerifier = await deployAndSave(
+      "WithdrawVerify",
+      [withdrawVerifier.address, accountController.address],
+      isTest
+    );
 
-    const privateTokenFactory = await deployAndSave("PrivateTokenFactory", [
-      pendingDepositVerifier.address,
-      pendingTransferVerifier.address,
-      transferVerifier.address,
-      withdrawVerifier.address,
-      lockVerifier.address,
-      accountController.address,
-    ]);
-
-    const txHash = await privateTokenFactory.write.deploy([token.address]);
-    await delay(10000);
-
-    const receipt = await publicClient.getTransactionReceipt({
-      hash: txHash,
-    });
-
-    const logs = await publicClient.getContractEvents({
-      address: privateTokenFactory.address,
-      abi: privateTokenFactory.abi,
-      blockHash: receipt.blockHash,
-    });
-
-    // @ts-ignore
-    let privateTokenAddress = logs[0].args.token;
-
-    saveDeploymentData("PrivateToken", {
-      address: privateTokenAddress as `0x${string}`,
-      abi: (await hre.artifacts.readArtifact("PrivateToken")).abi,
-      network: hre.network.name,
-      chainId: hre.network.config.chainId,
-      bytecode: (await hre.artifacts.readArtifact("PrivateToken")).bytecode,
-      receipt,
-    });
-
-    const privateToken = await hre.viem.getContractAt(
+    const privateToken = await deployAndSave(
       "PrivateToken",
-      privateTokenAddress
+      [
+        pendingDepositVerifier.address,
+        pendingTransferVerifier.address,
+        allTransferVerifier.address,
+        allWithdrawVerifier.address,
+        lockVerifier.address,
+        token.address,
+        await token.read.decimals(),
+      ],
+      isTest
     );
-    privateToken.write.initOtherVerifiers([
-      transfer4337Verifier.address,
-      transferEthSignerVerifier.address,
-      transferMultisigVerifier.address,
-      withdraw4337Verifier.address,
-      withdrawEthSignerVerifier.address,
-      withdrawMultisigVerifier.address,
-    ]);
 
     console.log(
       "Deployment succeeded. Private token contract at: ",
       privateToken.address
     );
+    return {
+      privateToken,
+      token,
+    };
   } catch (e) {
     console.log(e);
   }
 }
 
-main().catch((error) => {
+deployContracts().catch((error) => {
   console.error(error);
   process.exitCode = 1;
 });
 
-async function deployAndSave(name: string, constructorArgs: any[]) {
+async function deployAndSave(
+  name: string,
+  constructorArgs: any[],
+  isTest: boolean = false
+) {
   const publicClient = await hre.viem.getPublicClient();
   const [deployer] = await hre.viem.getWalletClients();
-  const count = await publicClient.getTransactionCount({
-    address: deployer.account.address,
-  });
+  // const count = await publicClient.getTransactionCount({
+  //   address: deployer.account.address,
+  // });
 
   let contractName = name;
   if (name.startsWith("contracts/")) {
@@ -171,9 +123,10 @@ async function deployAndSave(name: string, constructorArgs: any[]) {
 
   // If the saved bytecode matches the current, don't deploy, just return
   if (
-    hre.network.name != "hardhat" &&
+    // hre.network.name != "hardhat" &&
     data[hre.network.name] &&
-    data[hre.network.name].bytecode == artifact.bytecode
+    data[hre.network.name].bytecode == artifact.bytecode &&
+    !isTest
   ) {
     console.log(`${name} contract found, skipping deployment.`);
     return await hre.viem.getContractAt(name, data[hre.network.name].address);
@@ -188,7 +141,9 @@ async function deployAndSave(name: string, constructorArgs: any[]) {
 
   console.log(`${name} contract deployed`);
 
-  // await delay(20000);
+  if (!isTest) {
+    await delay(20000);
+  }
 
   const receipt = await publicClient.getTransactionReceipt({ hash });
 

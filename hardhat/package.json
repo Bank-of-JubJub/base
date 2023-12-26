@@ -9,6 +9,7 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.3",
     "@openzeppelin/contracts": "^5.0.0",
     "@types/chai": "^4.3.9",
     "@types/circomlibjs": "^0.1.6",
@@ -42,6 +43,6 @@
     "@nomicfoundation/hardhat-toolbox-viem": "^1.0.0",
     "@nomicfoundation/hardhat-viem": "1.0.0",
     "abitype": "0.10.1",
-    "viem": "1.18.0"
+    "viem": "1.20.3"
   }
 }
