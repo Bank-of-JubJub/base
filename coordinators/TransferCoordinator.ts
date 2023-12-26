@@ -2,8 +2,8 @@ import {
   BojAccount,
   EncryptedBalance,
   EncryptedBalanceArray,
-} from "../utils/types";
-import { toBytes, toHex } from "viem";
+} from "../hardhat/utils/types";
+import { PublicClient, WalletClient, getContract, toBytes, toHex } from "viem";
 import {
   encryptedValueToEncryptedBalance,
   fromRprLe,
@@ -12,13 +12,14 @@ import {
   getDecryptedValue,
   getEncryptedValue,
   getNonce,
-  getContract,
-} from "../utils/utils";
-import { createAndWriteToml } from "../../createToml";
-import { runNargoProve } from "../utils/generateNargoProof";
-import { getTransferProof } from "../utils/config";
+} from "../hardhat/utils/utils";
+import { createAndWriteToml } from "../createToml";
+import { runNargoProve } from "../hardhat/utils/generateNargoProof";
+import { getTransferProof } from "../hardhat/utils/config";
+import { abi } from "../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json";
 
 export class TransferCoordinator {
+  private privateTokenAddress: `0x${string}`;
   private isTest: boolean;
   private to: `0x${string}`;
   private from: BojAccount;
@@ -34,6 +35,8 @@ export class TransferCoordinator {
   private encryptedNewBalance: EncryptedBalance | null;
   private encryptedNewBalanceRandomness: bigint | null;
   private proof: `0x${string}` | null;
+  private walletClient: WalletClient | undefined;
+  private publicClient: PublicClient | undefined;
 
   constructor(
     amount: number,
@@ -42,8 +45,12 @@ export class TransferCoordinator {
     processFee: number,
     relayFee: number,
     relayFeeRecipient: `0x${string}`,
+    privateTokenAddress: `0x${string}`,
+    publicClient?: PublicClient,
+    walletClient?: WalletClient,
     isTest: boolean = false
   ) {
+    this.privateTokenAddress = privateTokenAddress;
     this.processFee = processFee;
     this.relayFee = relayFee;
     this.relayFeeRecipient = relayFeeRecipient;
@@ -59,11 +66,16 @@ export class TransferCoordinator {
     this.encryptedNewBalanceRandomness = null;
     this.proof = null;
     this.isTest = isTest;
+    this.walletClient = walletClient;
+    this.publicClient = publicClient;
   }
 
   public async init() {
-    const privateToken = await getContract("PrivateToken");
-
+    const privateToken = await getContract({
+      abi,
+      address: this.privateTokenAddress,
+      publicClient: this.publicClient,
+    });
     this.encryptedOldBalance = (await privateToken.read.balances([
       this.from.packedPublicKey,
     ])) as EncryptedBalanceArray;
@@ -146,7 +158,11 @@ export class TransferCoordinator {
   }
 
   public async sendTransfer() {
-    const privateToken = await getContract("PrivateToken");
+    const privateToken = await getContract({
+      abi,
+      address: this.privateTokenAddress,
+      walletClient: this.walletClient,
+    });
 
     const hash = await privateToken.write.transfer([
       this.to,

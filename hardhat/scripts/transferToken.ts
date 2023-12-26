@@ -3,9 +3,10 @@ import dotenv from "dotenv";
 import { delay } from "../utils/utils";
 import { BojAccount } from "../utils/types";
 import { hexToBigInt, toBytes, toHex } from "viem";
-import { TransferCoordinator } from "../coordinators/TransferCoordinator";
+import { TransferCoordinator } from "../../coordinators/TransferCoordinator";
 import BabyJubJubUtils from "../utils/babyJubJubUtils";
 import { account2 } from "../utils/constants";
+import { readDeploymentData } from "./saveDeploy";
 dotenv.config({ path: "../.env" });
 
 const params = {
@@ -32,13 +33,24 @@ async function main() {
     privateKey: process.env.BOJ_PRIVATE_KEY,
   } as BojAccount;
 
+  const { data: contractData } = readDeploymentData("PrivateToken");
+  const network = hre.network.name;
+  const privateToken = await hre.viem.getContractAt(
+    "PrivateToken",
+    contractData[network].address
+  );
+
   const coordinator = new TransferCoordinator(
     params.amount,
     params.to,
     bojAccount,
     params.processFee,
     params.relayFee,
-    sender.account.address
+    sender.account.address,
+    privateToken.address,
+    // @ts-ignore
+    publicClient,
+    sender
   );
 
   await coordinator.init();

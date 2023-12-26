@@ -3,21 +3,23 @@ import {
   EncryptedBalanceArray,
   PointObjectHex,
   PointObjects,
-} from "../utils/types";
-import { toHex } from "viem";
+} from "../hardhat/utils/types";
+import { PublicClient, WalletClient, getContract, toHex } from "viem";
 import {
   encryptedBalanceArrayToPointObjects,
   encryptedBalanceToPointObjects,
-  getContract,
   pointObjectsToEncryptedBalance,
-} from "../utils/utils";
-import { createAndWriteToml } from "../../createToml";
-import { runNargoProve } from "../utils/generateNargoProof";
-import { getProcessTransfersProof } from "../utils/config";
-import BabyJubJubUtils from "../utils/babyJubJubUtils";
-import { MAX_TXS_TO_PROCESS } from "../utils/constants";
+} from "../hardhat/utils/utils";
+import { createAndWriteToml } from "../createToml";
+import { runNargoProve } from "../hardhat/utils/generateNargoProof";
+import { getProcessTransfersProof } from "../hardhat/utils/config";
+import BabyJubJubUtils from "../hardhat/utils/babyJubJubUtils";
+import { MAX_TXS_TO_PROCESS } from "../hardhat/utils/constants";
+import { abi } from "../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json";
 
 export class ProcessTransferCoordinator {
+  private privateTokenAddress: `0x${string}`;
+
   private to: `0x${string}`;
   private processFeeRecipient: `0x${string}`;
   private minFeeToProcess: number;
@@ -27,13 +29,19 @@ export class ProcessTransferCoordinator {
   private encryptedValues: PointObjectHex[];
   private proof: `0x${string}` | null;
   private txIndexes: number[];
+  private walletClient: WalletClient | undefined;
+  private publicClient: PublicClient | undefined;
 
   constructor(
     to: `0x${string}`,
     processFeeRecipient: `0x${string}`,
-    minFeeToProcess: number = 0
+    minFeeToProcess: number = 0,
+    privateTokenAddress: `0x${string}`,
+    publicClient: PublicClient | undefined,
+    walletClient: WalletClient | undefined
   ) {
     this.to = to;
+    this.privateTokenAddress = privateTokenAddress;
     this.processFeeRecipient = processFeeRecipient;
     this.minFeeToProcess = minFeeToProcess;
     this.oldBalanceArray = [BigInt(0), BigInt(0), BigInt(0), BigInt(0)];
@@ -50,10 +58,16 @@ export class ProcessTransferCoordinator {
     this.encryptedValues = [];
     this.proof = null;
     this.txIndexes = [];
+    this.walletClient = walletClient;
+    this.publicClient = publicClient;
   }
 
   public async init() {
-    const privateToken = await getContract("PrivateToken");
+    const privateToken = await getContract({
+      abi,
+      address: this.privateTokenAddress,
+      publicClient: this.publicClient,
+    });
 
     const babyjub = new BabyJubJubUtils();
     await babyjub.init();
@@ -77,7 +91,7 @@ export class ProcessTransferCoordinator {
     for (let i = 0; i <= Number(pendingTransferCount) - 1; i++) {
       let pendingTransfer = (await privateToken.read.allPendingTransfersMapping(
         [this.to, BigInt(i)]
-      )) as [EncryptedBalance, number];
+      )) as [EncryptedBalance, number, bigint];
 
       const amount = encryptedBalanceToPointObjects(pendingTransfer[0]);
       const fee = pendingTransfer[1];
@@ -159,7 +173,11 @@ export class ProcessTransferCoordinator {
   }
 
   public async sendProcessTransfer() {
-    const privateToken = await getContract("PrivateToken");
+    const privateToken = await getContract({
+      abi,
+      address: this.privateTokenAddress,
+      walletClient: this.walletClient,
+    });
 
     const hash = await privateToken.write.processPendingTransfer([
       this.proof!,

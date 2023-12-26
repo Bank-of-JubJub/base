@@ -2,24 +2,31 @@ import {
   BojAccount,
   EncryptedBalance,
   EncryptedBalanceArray,
-} from "../utils/types";
-import { isAddress, toBytes, toHex } from "viem";
+} from "../hardhat/utils/types";
+import {
+  PublicClient,
+  WalletClient,
+  getContract,
+  isAddress,
+  toBytes,
+  toHex,
+} from "viem";
 import {
   encryptedBalanceArrayToEncryptedBalance,
   encryptedValueToEncryptedBalance,
   fromRprLe,
-  getContract,
   getDecryptedValue,
   getEncryptedValue,
   getNonce,
-} from "../utils/utils";
-import { createAndWriteToml } from "../../createToml";
-import { runNargoProve } from "../utils/generateNargoProof";
-import { getWithdrawProof } from "../utils/config";
+} from "../hardhat/utils/utils";
+import { createAndWriteToml } from "../createToml";
+import { runNargoProve } from "../hardhat/utils/generateNargoProof";
+import { getWithdrawProof } from "../hardhat/utils/config";
+import { abi } from "../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json";
 
 export class WithdrawCoordinator {
   private proof: `0x${string}` | null;
-  private privateToken: any;
+  private privateTokenAddress: `0x${string}`;
   private from: BojAccount;
   private to: `0x${string}`;
   private relayFee: number;
@@ -30,6 +37,8 @@ export class WithdrawCoordinator {
   private clearOldBalance: number;
   private encNewBalance: EncryptedBalance;
   private encOldBalance: EncryptedBalance;
+  private walletClient: WalletClient | undefined;
+  private publicClient: PublicClient | undefined;
 
   constructor(
     to: `0x${string}`,
@@ -37,6 +46,9 @@ export class WithdrawCoordinator {
     amount: number,
     relayFee: number,
     relayFeeRecipient: `0x${string}`,
+    privateTokenAddress: `0x${string}`,
+    publicClient?: PublicClient,
+    walletClient?: WalletClient,
     isTest: boolean = false
   ) {
     if (!isAddress(to)) {
@@ -47,6 +59,7 @@ export class WithdrawCoordinator {
     }
     this.to = to;
     this.from = from;
+    this.privateTokenAddress = privateTokenAddress;
     this.relayFee = relayFee;
     this.relayFeeRecipient = relayFeeRecipient;
     this.proof = null;
@@ -66,10 +79,16 @@ export class WithdrawCoordinator {
       C2x: BigInt(0),
       C2y: BigInt(0),
     };
+    this.walletClient = walletClient;
+    this.publicClient = publicClient;
   }
 
   public async init() {
-    const privateToken = await getContract("PrivateToken");
+    const privateToken = await getContract({
+      abi,
+      address: this.privateTokenAddress,
+      publicClient: this.publicClient,
+    });
     const unfmtEncOldBalance = (await privateToken.read.balances([
       this.from.packedPublicKey,
     ])) as EncryptedBalanceArray;
@@ -124,7 +143,11 @@ export class WithdrawCoordinator {
   }
 
   public async sendWithdraw() {
-    const privateToken = await getContract("PrivateToken");
+    const privateToken = await getContract({
+      abi,
+      address: this.privateTokenAddress,
+      walletClient: this.walletClient,
+    });
     const hash = await privateToken.write.withdraw([
       this.from.packedPublicKey,
       this.to,

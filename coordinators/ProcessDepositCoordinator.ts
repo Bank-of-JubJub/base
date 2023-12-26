@@ -2,21 +2,28 @@ import {
   EncryptedBalance,
   EncryptedBalanceArray,
   PointObjectsWithRandomness,
-} from "../utils/types";
-import { isAddress, toBytes, toHex } from "viem";
+} from "../hardhat/utils/types";
+import {
+  isAddress,
+  toBytes,
+  toHex,
+  getContract,
+  PublicClient,
+  WalletClient,
+} from "viem";
 import {
   encryptedBalanceArrayToEncryptedBalance,
   encryptedValueToEncryptedBalance,
   fromRprLe,
   getC1PointFromEncryptedBalance,
   getC2PointFromEncryptedBalance,
-  getContract,
   getEncryptedValue,
-} from "../utils/utils";
-import { createAndWriteToml } from "../../createToml";
-import { runNargoProve } from "../utils/generateNargoProof";
-import { getProcessDepositProof, getTransferProof } from "../utils/config";
-import BabyJubJubUtils from "../utils/babyJubJubUtils";
+} from "../hardhat/utils/utils";
+import { createAndWriteToml } from "../createToml";
+import { runNargoProve } from "../hardhat/utils/generateNargoProof";
+import { getProcessDepositProof } from "../hardhat/utils/config";
+import BabyJubJubUtils from "../hardhat/utils/babyJubJubUtils";
+import { abi } from "../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json";
 
 export class ProcessDepositCoordinator {
   private relayFeeRecipient: `0x${string}` | null;
@@ -29,13 +36,20 @@ export class ProcessDepositCoordinator {
   private totalAmount: number;
   private startingAmount: EncryptedBalance | null;
   private minFeeToProcess: number;
+  private privateTokenAddress: `0x${string}`;
+  private walletClient: WalletClient | undefined;
+  private publicClient: PublicClient | undefined;
 
   constructor(
     to: `0x${string}`,
     relayFeeRecipient: `0x${string}`,
-    minFeeToProcess: number = 0
+    minFeeToProcess: number = 0,
+    privateTokenAddress: `0x${string}`,
+    publicClient?: PublicClient,
+    walletClient?: WalletClient
   ) {
     this.relayFeeRecipient = relayFeeRecipient;
+    this.privateTokenAddress = privateTokenAddress;
     this.to = to;
     this.newBalance = null;
     this.zeroBalance = null;
@@ -45,13 +59,20 @@ export class ProcessDepositCoordinator {
     this.startingAmount = null;
     this.proof = null;
     this.minFeeToProcess = minFeeToProcess;
+    this.walletClient = walletClient;
+    this.publicClient = publicClient;
+
     if (!isAddress(relayFeeRecipient)) {
       throw new Error("Invalid address");
     }
   }
 
   public async init() {
-    const privateToken = await getContract("PrivateToken");
+    const privateToken = await getContract({
+      abi,
+      address: this.privateTokenAddress,
+      publicClient: this.publicClient,
+    });
     const babyjub = new BabyJubJubUtils();
     await babyjub.init();
 
@@ -59,7 +80,7 @@ export class ProcessDepositCoordinator {
       (await privateToken.read.balances([this.to])) as EncryptedBalanceArray
     );
 
-    // if balance == 0
+    // if balance == 0, set the starting amount to encrypted 0
     if (
       this.startingAmount.C1x == 0n &&
       this.startingAmount.C1y == 0n &&
@@ -72,7 +93,7 @@ export class ProcessDepositCoordinator {
       this.zeroBalance = this.startingAmount;
     }
 
-    // stage 4 deposits
+    // stage 4 deposits for processing
     let count = (await privateToken.read.pendingDepositCounts([
       this.to,
     ])) as number;
@@ -89,6 +110,7 @@ export class ProcessDepositCoordinator {
       if (this.txsToProcess.length == 4) break;
     }
 
+    // process the txs in the array, add them to the total amount
     for (let i = 0; i < this.txsToProcess!.length; i++) {
       const pendingDeposit = (await privateToken.read.allPendingDepositsMapping(
         [this.to, BigInt(this.txsToProcess![i])]
@@ -96,8 +118,10 @@ export class ProcessDepositCoordinator {
       this.totalAmount += Number(pendingDeposit[0]);
     }
 
+    // encrypt it
     this.encryptedAmount = getEncryptedValue(this.to, this.totalAmount);
 
+    // add the encrypted values
     const C1 = babyjub.add_points(
       { x: this.startingAmount!.C1x, y: this.startingAmount!.C1y },
       this.encryptedAmount!.C1
@@ -132,7 +156,11 @@ export class ProcessDepositCoordinator {
   }
 
   public async sendProcessDeposit() {
-    const privateToken = await getContract("PrivateToken");
+    const privateToken = await getContract({
+      abi,
+      address: this.privateTokenAddress,
+      walletClient: this.walletClient,
+    });
     const hash = await privateToken.write.processPendingDeposit([
       this.proof!,
       this.txsToProcess!, // [], // txs to process, a list of ids.

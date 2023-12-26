@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import { readDeploymentData } from "./saveDeploy";
 import { delay } from "../utils/utils";
 import BabyJubJubUtils from "../utils/babyJubJubUtils";
-import { ProcessDepositCoordinator } from "../coordinators/ProcessDepositCoordinator";
+import { ProcessDepositCoordinator } from "../../coordinators/ProcessDepositCoordinator";
 dotenv.config({ path: "../.env" });
 const babyjub = new BabyJubJubUtils();
 
@@ -19,9 +19,21 @@ async function main() {
   const publicClient = await hre.viem.getPublicClient();
   const [sender] = await hre.viem.getWalletClients();
 
+  const { data: contractData } = readDeploymentData("PrivateToken");
+  const network = hre.network.name;
+  const privateToken = await hre.viem.getContractAt(
+    "PrivateToken",
+    contractData[network].address
+  );
+
   const coordinator = new ProcessDepositCoordinator(
     params.to,
-    sender.account.address
+    sender.account.address,
+    0,
+    privateToken.address,
+    // @ts-ignore
+    publicClient,
+    sender
   );
   await coordinator.init();
   await coordinator.generateProof();

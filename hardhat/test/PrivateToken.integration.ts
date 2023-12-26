@@ -11,10 +11,10 @@ import {
   depositProcessFee,
   transferAmount,
 } from "../utils/constants.ts";
-import { TransferCoordinator } from "../coordinators/TransferCoordinator.ts";
-import { ProcessDepositCoordinator } from "../coordinators/ProcessDepositCoordinator.ts";
-import { ProcessTransferCoordinator } from "../coordinators/ProcessTransferCoordinator.ts";
-import { WithdrawCoordinator } from "../coordinators/WithdrawCoordinator.ts";
+import { TransferCoordinator } from "../../coordinators/TransferCoordinator.ts";
+import { ProcessDepositCoordinator } from "../../coordinators/ProcessDepositCoordinator.ts";
+import { ProcessTransferCoordinator } from "../../coordinators/ProcessTransferCoordinator.ts";
+import { WithdrawCoordinator } from "../../coordinators/WithdrawCoordinator.ts";
 import { getDecryptedValue } from "../utils/utils.ts";
 import { deployContracts } from "../scripts/deploy.ts";
 
@@ -67,11 +67,17 @@ describe("Private Token integration testing", async function () {
   it("should process pending deposits", async function () {
     await deposit();
     const { privateToken } = await getContracts();
+    const publicClient = await hre.viem.getPublicClient();
     const [sender] = await hre.viem.getWalletClients();
 
     const coordinator = new ProcessDepositCoordinator(
       account1.packedPublicKey,
-      sender.account.address
+      sender.account.address,
+      0,
+      privateTokenAddress,
+      // @ts-ignore
+      publicClient,
+      sender
     );
     await coordinator.init();
     await coordinator.generateProof();
@@ -85,6 +91,7 @@ describe("Private Token integration testing", async function () {
 
   it("should perform transfers", async function () {
     const { privateToken } = await getContracts();
+    const publicClient = await hre.viem.getPublicClient();
     const [sender] = await hre.viem.getWalletClients();
 
     let coordinator = new TransferCoordinator(
@@ -94,6 +101,10 @@ describe("Private Token integration testing", async function () {
       transferProcessFee,
       transferRelayFee,
       sender.account.address,
+      privateTokenAddress,
+      // @ts-ignore
+      publicClient,
+      sender,
       true
     );
     await coordinator.init();
@@ -131,6 +142,7 @@ describe("Private Token integration testing", async function () {
 
   it("should process pending transfers", async () => {
     const { privateToken } = await getContracts();
+    const publicClient = await hre.viem.getPublicClient();
     const [sender] = await hre.viem.getWalletClients();
     const numTransfers = 2;
 
@@ -141,6 +153,10 @@ describe("Private Token integration testing", async function () {
       transferProcessFee,
       transferRelayFee,
       sender.account.address,
+      privateTokenAddress,
+      // @ts-ignore
+      publicClient,
+      sender,
       true
     );
 
@@ -154,7 +170,11 @@ describe("Private Token integration testing", async function () {
     const processTransferCoordinator = new ProcessTransferCoordinator(
       account2.packedPublicKey,
       sender.account.address,
-      0
+      0,
+      privateTokenAddress,
+      // @ts-ignore
+      publicClient,
+      sender
     );
     await processTransferCoordinator.init();
     await processTransferCoordinator.generateProof();
@@ -177,6 +197,7 @@ describe("Private Token integration testing", async function () {
     const withdrawAmount = 7;
     const withdrawRelayFee = 3;
     const withdrawRelayRecipient = "0xdebe940f35737EDb9a9Ad2bB938A955F9b7892e3";
+    const publicClient = await hre.viem.getPublicClient();
     const [sender] = await hre.viem.getWalletClients();
 
     const { privateToken } = await getContracts();
@@ -192,7 +213,11 @@ describe("Private Token integration testing", async function () {
       account1,
       withdrawAmount,
       withdrawRelayFee,
-      withdrawRelayRecipient
+      withdrawRelayRecipient,
+      privateTokenAddress,
+      // @ts-ignore
+      publicClient,
+      sender
     );
 
     await withdrawCoordinator.init();
