@@ -7,19 +7,22 @@
     "test": "test"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.5",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.3",
-    "@openzeppelin/contracts": "^5.0.0",
+    "@openzeppelin/contracts": "^5.0.1",
     "@types/chai": "^4.3.9",
     "@types/circomlibjs": "^0.1.6",
     "@types/jest": "^29.5.6",
     "@types/json-bigint": "^1.0.4",
     "@types/mocha": "^10.0.3",
     "@types/node": "^20.10.4",
+    "big-integer": "^1.6.52",
     "chai": "^4.3.10",
-    "circomlibjs": "^0.1.7",
+    "circomlibjs": "0.0.8",
     "dotenv": "^16.3.1",
+    "ethers": "^6.9.1",
     "hardhat": "^2.17.0",
     "hardhat-deploy": "^0.11.44",
     "hardhat-gas-reporter": "^1.0.9",
@@ -42,6 +45,7 @@
     "@iarna/toml": "^2.2.5",
     "@nomicfoundation/hardhat-toolbox-viem": "^1.0.0",
     "@nomicfoundation/hardhat-viem": "1.0.0",
+    "@zk-kit/smt": "^1.0.0",
     "abitype": "0.10.1",
     "viem": "1.20.3"
   }

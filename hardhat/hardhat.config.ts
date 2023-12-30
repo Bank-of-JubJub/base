@@ -1,6 +1,7 @@
 import "hardhat-gas-reporter";
 import "hardhat-deploy";
 import "@nomicfoundation/hardhat-viem";
+import "@nomicfoundation/hardhat-ethers";
 import "solidity-docgen";
 import "@nomicfoundation/hardhat-verify";
 require("dotenv").config();
@@ -62,7 +63,7 @@ module.exports = {
       chainId: 44787,
       url: "https://alfajores-forno.celo-testnet.org",
       accounts: [process.env.PRIVATE_KEY || "0".repeat(64)],
-    }
+    },
   },
   etherscan: {
     // Your API key for Etherscan
@@ -72,7 +73,7 @@ module.exports = {
       sepolia: process.env.ETHERSCAN_API_KEY,
       optimisticEthereum: "YOUR_OPTIMISTIC_ETHERSCAN_API_KEY",
       arbitrumSepolia: process.env.ETHERSCAN_ARBITRUM_API_KEY,
-      alfajores: process.env.ETHERSCAN_CELO_API_KEY
+      alfajores: process.env.ETHERSCAN_CELO_API_KEY,
     },
     customChains: [
       {
