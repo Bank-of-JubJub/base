@@ -17,6 +17,8 @@ fn main(
     // public inputs
     blacklist_root: pub Field,
     commitments_root: pub Field // nullifier_hash: pub Field
+
+    // TODO: need to add new balance for withdraw account and compute it in the circuit
 ) {
     // verify that the nullifier corresponds to a leaf in the commitments tree
     let commitment = hash_3([secret1, secret2, amount]);

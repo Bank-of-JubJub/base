@@ -43,6 +43,7 @@ contract PrivacyPool is
     }
 
     // commitment: poseidon(secret1, secret2, amount)
+    // need amounts because deposit amount is variable, should be an input to the withdraw
     function deposit(
         uint commitment,
         uint amount
