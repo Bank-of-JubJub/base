@@ -7,22 +7,26 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import dotenv from "dotenv";
 dotenv.config({ path: "../.env" });
 import { SMT, ChildNodes, HashFunction } from "@zk-kit/smt";
-// @ts-ignore
-import { poseidon } from "circomlibjs";
-import { BJJ_PRIME } from "./constants";
+import { IMT } from "@zk-kit/imt";
+import { poseidon2 } from "poseidon-lite";
 
 async function main() {
-  // The merkle tree represents blacklisted accounts
-  const hash = (childNodes: ChildNodes) => poseidon(childNodes);
-  const tree = new SMT(hash, true);
+  const secret =
+    68986485046885582825082387270879151100288537211746581237924789162159767777n;
+  const amount = 5n;
+  const commitment = poseidon2([secret, amount]);
 
-  // This entry indicates that the deposit at index 11, 12, 13 in the commitment tree are blacklisted
-  tree.add(11n, 1n);
-  tree.add(12n, 1n);
-  tree.add(13n, 1n);
-  // creates a non membership proof that the key 6 does not exist in the tree
-  const nonMembershipProof = tree.createProof(6n);
-  console.log(nonMembershipProof);
+  const tree = new IMT(poseidon2, 20, 0);
+  tree.insert(commitment);
+
+  console.log(tree.root);
+  console.log(tree.depth);
+  console.log(tree.leaves);
+
+  const index = tree.indexOf(commitment);
+
+  const proof = tree.createProof(index);
+  console.log(proof);
 }
 
 main();
