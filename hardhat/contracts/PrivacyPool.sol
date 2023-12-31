@@ -35,27 +35,26 @@ contract PrivacyPool is
     mapping(uint => bool) public nullifiers;
     address public token;
 
-    constructor(
-        address _token,
-        address poseidon
-    ) MerkleTree(poseidon, snarkHash(bytes("ALLOWED"))) {
+    constructor(address _token, address poseidon) MerkleTree(poseidon, 0) {
         token = _token;
     }
 
-    // commitment: poseidon(secret1, secret2, amount)
+    // commitment: poseidon(secret, amount)
     // need amounts because deposit amount is variable, should be an input to the withdraw
     function deposit(
         uint commitment,
         uint amount
     ) public payable nonReentrant returns (uint) {
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        uint assetMetadata = snarkHash(abi.encode(token, amount));
-        uint leaf = hasher.poseidon([commitment, assetMetadata]);
-        uint leafIndex = insert(leaf);
+        // use the following if PrivateToken is modified to handle any token
+        // uint assetMetadata = snarkHash(abi.encode(token, amount));
+        // uint leaf = hasher.poseidon([commitment, assetMetadata]);
+        uint leafIndex = insert(commitment);
         emit Deposit(commitment, amount, leafIndex, block.timestamp);
         return leafIndex;
     }
 
+    // nullifier = poseidon(secret, commitment_tree_index)
     function withdraw(
         bytes memory proof,
         uint root,
@@ -70,10 +69,10 @@ contract PrivacyPool is
         if (nullifiers[nullifier]) revert NoteAlreadySpent();
         if (!isKnownRoot(root)) revert UnknownRoot();
         if (fee > amount) revert FeeExceedsAmount();
-        uint assetMetadata = snarkHash(abi.encode(token, amount));
-        uint withdrawMetadata = snarkHash(
-            abi.encode(recipient, refund, relayer, fee)
-        );
+        // uint assetMetadata = snarkHash(abi.encode(token, amount));
+        // uint withdrawMetadata = snarkHash(
+        //     abi.encode(recipient, refund, relayer, fee)
+        // );
         if (
             !_verifyWithdrawFromSubsetProof(
                 flatProof,
