@@ -6,7 +6,7 @@ use dep::bjj;
 use dep::utils;
 
 mod smt;
-global TREE_DEPTH: u32 = 256;
+global TREE_DEPTH: u32 = 20;
 
 fn main(
     // private inputs

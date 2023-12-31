@@ -2,7 +2,7 @@ use dep::std::option::Option;
 
 mod utils;
 
-global TREE_DEPTH: u32 = 256;
+global TREE_DEPTH: u32 = 20;
 
 /**
  * Verifies a membership or a non-membership proof, ie it calculates the tree root
