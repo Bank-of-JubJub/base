@@ -7,6 +7,7 @@ LOCATIONS=(
     "transfer"
     "withdraw"
     "add_eth_signers"
+    "withdraw_privacy_pool"
 )
 
 DEST_PATH="hardhat/contracts/"

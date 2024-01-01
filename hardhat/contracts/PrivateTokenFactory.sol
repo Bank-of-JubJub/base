@@ -12,6 +12,7 @@ contract PrivateTokenFactory {
     address public lockVerifier;
     address public accountController;
     address public transferVerifyLib;
+    address public poseidon;
 
     event Deployed(address indexed token);
 
@@ -23,7 +24,8 @@ contract PrivateTokenFactory {
         address _withdrawVerifier,
         address _lockVerifier,
         address _accountController,
-        address _transferVerifyLib
+        address _transferVerifyLib,
+        address _poseidon
     ) {
         processDepositVerifier = _pendingDepositVerifier;
         processTransferVerifier = _pendingTransferVerifier;
@@ -32,6 +34,7 @@ contract PrivateTokenFactory {
         lockVerifier = _lockVerifier;
         accountController = _accountController;
         transferVerifyLib = _transferVerifyLib;
+        poseidon = _poseidon;
     }
 
     function deploy(address _token) public {
@@ -42,7 +45,8 @@ contract PrivateTokenFactory {
             withdrawVerifier,
             lockVerifier,
             _token,
-            18
+            18,
+            poseidon
         );
         emit Deployed(address(newToken));
     }
