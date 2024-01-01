@@ -21,8 +21,8 @@ async function main() {
   tree.add(11n, 1n);
   tree.add(12n, 1n);
   tree.add(13n, 1n);
-  // creates a non membership proof that the key 6 does not exist in the tree
-  const nonMembershipProof = tree.createProof(6n);
+  // creates a non membership proof that the key 0 (tx with index 0) does not exist in the tree
+  const nonMembershipProof = tree.createProof(0n);
   console.log(nonMembershipProof);
 }
 

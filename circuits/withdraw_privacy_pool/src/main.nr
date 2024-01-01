@@ -35,7 +35,7 @@ fn main(
 ) {
     // verify that the nullifier corresponds to a leaf in the commitments tree
     let commitment = hash_2([secret, amount as Field]);
-    let computed_commitment_root = std::merkle::compute_merkle_root(commitment, index, commitment_path);
+    let computed_commitment_root = compute_merkle_root(commitment, index, commitment_path);
     assert(computed_commitment_root == commitments_root);
 
     // check that the commitment matches the entry: [key, value] pair
@@ -70,6 +70,23 @@ fn main(
     );
 }
 
+// Returns the merkle root of the tree from the provided leaf, path indices, siblings with poseidon hash.
+fn compute_merkle_root(leaf: Field, index: Field, siblings: [Field; TREE_DEPTH]) -> Field {
+    let n = siblings.len();
+    let index_bits = index.to_le_bits(n as u32);
+    let mut current = leaf;
+    for i in 0..n {
+        let path_bit = index_bits[i] as bool;
+        let (hash_left, hash_right) = if path_bit {
+            (siblings[i], current)
+        } else {
+            (current, siblings[i])
+        };
+        current = std::hash::poseidon::bn254::hash_2([hash_left, hash_right]);
+    }
+    current
+}
+
 #[test]
 fn test_main() {
     let private_key: Field = 2291123624948246627368989940774052753470489062495018070576418670157516550852;
@@ -102,7 +119,7 @@ fn test_main() {
         6939770416153240137322503476966641397417391950902474480970945462551409848591,
         10941962436777715901943463195175331263348098796018438960955633645115732864202
     ];
-    let commitments_root = 3205042045232869978713687498772188400852622346464664045870274775954320851405;
+    let commitments_root = 528424823345637765233459005028157123611466957747207540865748361023965664665;
 
     // balance setup
     let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
@@ -113,9 +130,13 @@ fn test_main() {
 
     let secret = 168986485046885582825082387270879151100288537211746581237924789162159767777;
     let nullifier = hash_2([secret, 0]);
+    let commitment = hash_2([secret, amount as Field]);
+
+    std::println("commitment:  ");
+    std::println(commitment);
 
     // not on a blacklist
-    let entry = [6, 0];
+    let entry = [0, 0];
     let matching_entry = [Option::some(12), Option::some(1)];
     let mut siblings : [Field; TREE_DEPTH] = [0; TREE_DEPTH];
     siblings[0] = 10156843431765632938234799028080865273583905746116765084187298821282584587626;

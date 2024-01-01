@@ -12,16 +12,14 @@ import { poseidon2 } from "poseidon-lite";
 
 async function main() {
   const secret =
-    68986485046885582825082387270879151100288537211746581237924789162159767777n;
+    168986485046885582825082387270879151100288537211746581237924789162159767777n;
   const amount = 5n;
   const commitment = poseidon2([secret, amount]);
 
   const tree = new IMT(poseidon2, 20, 0);
   tree.insert(commitment);
 
-  console.log(tree.root);
-  console.log(tree.depth);
-  console.log(tree.leaves);
+  console.log(toHex(commitment));
 
   const index = tree.indexOf(commitment);
 

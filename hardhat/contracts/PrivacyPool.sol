@@ -74,15 +74,15 @@ contract PrivacyPool is
         //     abi.encode(recipient, refund, relayer, fee)
         // );
         if (
-            !_verifyWithdrawFromSubsetProof(
-                flatProof,
-                root,
-                subsetRoot,
-                nullifier,
-                assetMetadata,
-                withdrawMetadata
-            )
-            // false // TODO: update
+            // !_verifyWithdrawFromSubsetProof(
+            //     flatProof,
+            //     root,
+            //     subsetRoot,
+            //     nullifier,
+            //     assetMetadata,
+            //     withdrawMetadata
+            // )
+            false // TODO: update
         ) revert InvalidZKProof();
         nullifiers[nullifier] = true;
 
