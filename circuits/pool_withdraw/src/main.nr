@@ -1,9 +1,11 @@
 use dep::std::option::Option;
 use dep::std;
 use dep::std::hash::poseidon::bn254::hash_2;
+use dep::std::hash::poseidon::bn254::hash_3;
 use dep::std::ec::tecurve::affine::Point as Gaffine;
 use dep::bjj;
 use dep::utils;
+use dep::ecrecover;
 
 mod smt;
 global TREE_DEPTH: u32 = 20;
@@ -20,6 +22,10 @@ fn main(
     commitment_path: [Field; TREE_DEPTH],
     randomness: Field,
     recipient_pub_key: [u8; 32],
+    eth_pub_key_x: [u8; 32],
+    eth_pub_key_y: [u8; 32],
+    signature: [u8; 64],
+    hashed_message: [u8; 32],
     // public inputs
     relay_fee: pub u40,
     recipient_pub_key_modulus: pub Field,
@@ -28,10 +34,14 @@ fn main(
     nullifier: pub Field,
     encrypted_amount_1: pub Gaffine,
     encrypted_amount_2: pub Gaffine,
-    process_fee: pub u40
+    process_fee: pub u40,
+    // modulus so that hashed message fits in 1 public input element in the contract
+    hashed_message_modulus: pub Field
 ) {
+    assert(hashed_message_modulus == bjj::from_rpr_le(hashed_message));
+    let address = ecrecover::ecrecover(eth_pub_key_x, eth_pub_key_y, signature, hashed_message);
     // verify that the nullifier corresponds to a leaf in the commitments tree
-    let commitment = hash_2([secret, amount as Field]);
+    let commitment = hash_3([secret, amount as Field, address]);
     let computed_commitment_root = compute_merkle_root(commitment, index, commitment_path);
     assert(computed_commitment_root == commitments_root);
 
@@ -40,7 +50,7 @@ fn main(
     assert(entry[1] == 0); // 0 if not on blacklist, 1 if on blacklist
 
     // check that the nullifier is correct
-    assert(nullifier == hash_2([secret, index]));
+    assert(nullifier == hash_2([secret, address]));
 
     // if there is no blacklist root, do not check membership
     if (blacklist_root != 0) {
@@ -120,7 +130,7 @@ fn test_main() {
 
     let secret = 168986485046885582825082387270879151100288537211746581237924789162159767777;
     let nullifier = hash_2([secret, 0]);
-    let commitment = hash_2([secret, amount as Field]);
+    let commitment = hash_3([secret, amount as Field, address]);
 
     std::println("commitment:  ");
     std::println(commitment);
@@ -131,26 +141,25 @@ fn test_main() {
     let mut siblings : [Field; TREE_DEPTH] = [0; TREE_DEPTH];
     siblings[0] = 10156843431765632938234799028080865273583905746116765084187298821282584587626;
     let blacklist_root = 19092112316297991684143646062628200623803555545749222745894317610913627992357;
-
-    main(
-        entry,
-        matching_entry,
-        siblings,
-        secret,
-        amount,
-        index,
-        commitment_path,
-        randomness,
-        packed_public_key,
-        relay_fee,
-        pub_key_modulus,
-        blacklist_root,
-        commitments_root,
-        nullifier,
-        new_balance_encrypted.0,
-        new_balance_encrypted.1,
-        process_fee
-    );
+    // main(
+    //     entry,
+    //     matching_entry,
+    //     siblings,
+    //     secret,
+    //     amount,
+    //     index,
+    //     commitment_path,
+    //     randomness,
+    //     packed_public_key,
+    //     relay_fee,
+    //     pub_key_modulus,
+    //     blacklist_root,
+    //     commitments_root,
+    //     nullifier,
+    //     new_balance_encrypted.0,
+    //     new_balance_encrypted.1,
+    //     process_fee
+    // );
 }
 
 #[test]

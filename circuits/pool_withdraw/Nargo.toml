@@ -1,5 +1,5 @@
 [package]
-name = "withdraw_privacy_pool"
+name = "pool_withdraw"
 type = "bin"
 authors = [""]
 compiler_version = ">=0.19.4"
@@ -7,3 +7,4 @@ compiler_version = ">=0.19.4"
 [dependencies]
 bjj = { tag = "v0.2.0", git = "https://github.com/Bank-of-JubJub/noir-elgamal" }
 utils = { path="../utils" }
+ecrecover = { tag = "v0.1.0", git = "https://github.com/Bank-of-JubJub/ecrecover-noir" }
