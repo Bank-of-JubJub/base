@@ -302,7 +302,7 @@ contract PrivateToken is MerkleTree {
         uint256 txNonce;
         address lockedByAddress;
         EncryptedAmount oldBalance;
-        EncryptedAmount receiverBalance;
+        // EncryptedAmount receiverBalance;
         uint256 transferCount;
         bytes32 to;
         bytes32 from;
@@ -335,31 +335,10 @@ contract PrivateToken is MerkleTree {
             "account is locked to another account"
         );
         local.oldBalance = balances[_from];
-        local.receiverBalance = balances[_to];
-        bool zeroBalance = (local.receiverBalance.C1x == 0 &&
-            local.receiverBalance.C2x == 0 &&
-            local.receiverBalance.C1y == 0 &&
-            local.receiverBalance.C2y == 0);
-        if (zeroBalance) {
-            // no fee required if a new account
-            _processFee = 0;
-            balances[_to] = _amountToSend;
-        } else {
-            local.transferCount = pendingTransferCounts[_to];
-            allPendingTransfersMapping[_to][
-                local.transferCount
-            ] = PendingTransfer(_amountToSend, _processFee, block.timestamp);
-            pendingTransferCounts[_to] += 1;
-        }
-
+        _stageTransfer(_to, _processFee, _amountToSend);
         balances[_from] = _senderNewBalance;
         emit Transfer(_from, _to, _amountToSend);
-        if (_relayFee != 0) {
-            token.transfer(
-                _relayFeeRecipient,
-                _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)
-            );
-        }
+        _payFees(_relayFee, _relayFeeRecipient);
 
         local.to = _to;
         local.from = _from;
@@ -422,12 +401,8 @@ contract PrivateToken is MerkleTree {
         local.oldBalance = balances[_from];
         balances[_from] = _newEncryptedAmount;
         totalSupply -= _amount;
-        if (_relayFee != 0) {
-            token.transfer(
-                _relayFeeRecipient,
-                uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
-            );
-        }
+        _payFees(_relayFee, _relayFeeRecipient);
+
         {
             uint256 convertedAmount = _amount *
                 10 ** (SOURCE_TOKEN_DECIMALS - decimals);
@@ -450,24 +425,32 @@ contract PrivateToken is MerkleTree {
     }
 
     function withdrawFromPool(
-        uint40 relayFee,
-        bytes32 recipientKey,
+        uint256 relayFee,
+        uint40 processFee,
+        address relayFeeRecipient,
+        bytes32 recipientPublicKey,
         bytes32 blacklistRoot,
         uint256 commitmentRoot,
         uint nullifier,
-        EncryptedAmount memory zeroBalance,
-        EncryptedAmount memory newBalance,
+        EncryptedAmount memory _encryptedAmount,
         bytes memory _proof
     ) public {
         if (poolNullifiers[nullifier]) revert NoteAlreadySpent();
         if (!isKnownRoot(commitmentRoot)) revert UnknownRoot();
-        bytes32[] memory publicInputs = new bytes32[](6);
+        _stageTransfer(recipientPublicKey, processFee, _encryptedAmount);
+        bytes32[] memory publicInputs = new bytes32[](10);
         publicInputs[0] = bytes32(uint256(relayFee));
-        publicInputs[1] = bytes32(fromRprLe(recipientKey));
+        publicInputs[1] = bytes32(fromRprLe(recipientPublicKey));
         publicInputs[2] = bytes32(blacklistRoot);
         publicInputs[3] = bytes32(commitmentRoot);
         publicInputs[4] = bytes32(nullifier);
+        publicInputs[5] = bytes32(_encryptedAmount.C1x);
+        publicInputs[6] = bytes32(_encryptedAmount.C1y);
+        publicInputs[7] = bytes32(_encryptedAmount.C2x);
+        publicInputs[8] = bytes32(_encryptedAmount.C2y);
+        publicInputs[9] = bytes32(uint(processFee));
         // TODO: add encrypted balances to public inputs
+        _payFees(relayFee, relayFeeRecipient);
         withdrawPoolVerifier.verify(_proof, publicInputs);
         poolNullifiers[nullifier] = true;
     }
@@ -541,12 +524,7 @@ contract PrivateToken is MerkleTree {
             "Process pending proof is invalid"
         );
         balances[_recipient] = _newBalance;
-        if (totalFees != 0) {
-            token.transfer(
-                _feeRecipient,
-                uint256(totalFees * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
-            );
-        }
+        _payFees(totalFees, _feeRecipient);
         emit DepositProcessed(
             _recipient,
             totalAmount,
@@ -626,12 +604,8 @@ contract PrivateToken is MerkleTree {
             "Process pending proof is invalid"
         );
         balances[_recipient] = _newBalance;
-        if (totalFees != 0) {
-            token.transfer(
-                _feeRecipient,
-                uint256(totalFees * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
-            );
-        }
+        _payFees(totalFees, _feeRecipient);
+
         emit TransferProcessed(
             _recipient,
             _newBalance,
@@ -687,12 +661,8 @@ contract PrivateToken is MerkleTree {
         publicInputs[10] = bytes32(_newEncryptedAmount.C2x);
         publicInputs[11] = bytes32(_newEncryptedAmount.C2y);
         LOCK_VERIFIER.verify(_proof, publicInputs);
-        if (_relayFee != 0) {
-            token.transfer(
-                _relayFeeRecipient,
-                uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals))
-            );
-        }
+        _payFees(_relayFee, _relayFeeRecipient);
+
         emit Lock(_from, _lockToContract, _relayFee, _relayFeeRecipient);
     }
 
@@ -747,5 +717,40 @@ contract PrivateToken is MerkleTree {
             byteArray[i] = _data[i];
         }
         return byteArray;
+    }
+
+    function _payFees(uint _fee, address _feeRecipient) internal {
+        if (_fee != 0) {
+            token.transfer(
+                _feeRecipient,
+                _fee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)
+            );
+        }
+    }
+
+    function _stageTransfer(
+        bytes32 _to,
+        uint40 _processFee,
+        EncryptedAmount memory _amount
+    ) internal returns (EncryptedAmount memory) {
+        EncryptedAmount memory receiverBalance = balances[_to];
+        bool zeroBalance = (receiverBalance.C1x == 0 &&
+            receiverBalance.C2x == 0 &&
+            receiverBalance.C1y == 0 &&
+            receiverBalance.C2y == 0);
+        if (zeroBalance) {
+            // no fee required if a new account
+            _processFee = 0;
+            balances[_to] = _amount;
+        } else {
+            uint transferCount = pendingTransferCounts[_to];
+            allPendingTransfersMapping[_to][transferCount] = PendingTransfer(
+                _amount,
+                _processFee,
+                block.timestamp
+            );
+            pendingTransferCounts[_to] += 1;
+        }
+        return receiverBalance;
     }
 }

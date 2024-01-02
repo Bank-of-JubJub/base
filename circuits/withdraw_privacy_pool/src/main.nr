@@ -10,13 +10,11 @@ global TREE_DEPTH: u32 = 20;
 
 fn main(
     // private inputs
-    private_key: Field,
     entry: [Field; 2],
     matching_entry: [Option<Field>; 2],
     smt_siblings: [Field; TREE_DEPTH],
     secret: Field,
     amount: u40,
-    balance_old_clear: u40,
     // the index of the commitment in the commitment tree
     index: Field,
     commitment_path: [Field; TREE_DEPTH],
@@ -28,10 +26,9 @@ fn main(
     blacklist_root: pub Field,
     commitments_root: pub Field,
     nullifier: pub Field,
-    balance_old_encrypted_1: pub Gaffine,
-    balance_old_encrypted_2: pub Gaffine,
-    balance_new_encrypted_1: pub Gaffine,
-    balance_new_encrypted_2: pub Gaffine // TODO: need to add new balance for withdraw account and compute it in the circuit
+    encrypted_amount_1: pub Gaffine,
+    encrypted_amount_2: pub Gaffine,
+    process_fee: pub u40
 ) {
     // verify that the nullifier corresponds to a leaf in the commitments tree
     let commitment = hash_2([secret, amount as Field]);
@@ -51,22 +48,15 @@ fn main(
         smt::verify(entry, matching_entry, smt_siblings, blacklist_root);
     }
 
-    utils::assert_correct_clear_balance(
-        private_key,
-        balance_old_clear,
-        balance_old_encrypted_1,
-        balance_old_encrypted_2
-    );
-
     assert(recipient_pub_key_modulus == bjj::from_rpr_le(recipient_pub_key));
 
-    let new_balance = balance_old_clear + amount - relay_fee;
+    let new_amount = amount - relay_fee - process_fee;
     utils::assert_correct_recipient_balance(
         recipient_pub_key,
-        new_balance,
+        new_amount,
         randomness,
-        balance_new_encrypted_1,
-        balance_new_encrypted_2
+        encrypted_amount_1,
+        encrypted_amount_2
     );
 }
 
@@ -93,7 +83,7 @@ fn test_main() {
     let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775;
     let amount: u40 = 5;
     let relay_fee: u40 = 1;
-    let old_balance_clear = 0;
+    let process_fee: u40 = 2;
 
     // commitment
     let index = 0;
@@ -125,8 +115,8 @@ fn test_main() {
     let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
     let packed_public_key = bjj::pack_point(public_key);
     let pub_key_modulus = bjj::from_rpr_le(packed_public_key);
-    let old_balance_encrypted = bjj::exp_elgamal_encrypt(public_key, old_balance_clear, randomness);
-    let new_balance_encrypted = bjj::exp_elgamal_encrypt(public_key, amount - relay_fee, randomness);
+    // let old_balance_encrypted = bjj::exp_elgamal_encrypt(public_key, old_balance_clear, randomness);
+    let new_balance_encrypted = bjj::exp_elgamal_encrypt(public_key, amount - relay_fee - process_fee, randomness);
 
     let secret = 168986485046885582825082387270879151100288537211746581237924789162159767777;
     let nullifier = hash_2([secret, 0]);
@@ -143,13 +133,11 @@ fn test_main() {
     let blacklist_root = 19092112316297991684143646062628200623803555545749222745894317610913627992357;
 
     main(
-        private_key,
         entry,
         matching_entry,
         siblings,
         secret,
         amount,
-        old_balance_clear,
         index,
         commitment_path,
         randomness,
@@ -159,10 +147,9 @@ fn test_main() {
         blacklist_root,
         commitments_root,
         nullifier,
-        old_balance_encrypted.0,
-        old_balance_encrypted.1,
         new_balance_encrypted.0,
-        new_balance_encrypted.1
+        new_balance_encrypted.1,
+        process_fee
     );
 }
 
