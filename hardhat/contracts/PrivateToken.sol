@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import {UltraVerifier as ProcessDepositVerifier} from "./process_pending_deposits/plonk_vk.sol";
 import {UltraVerifier as ProcessTransferVerifier} from "./process_pending_transfers/plonk_vk.sol";
 import {UltraVerifier as WithdrawVerifier} from "./withdraw/plonk_vk.sol";
-import {UltraVerifier as WithdrawPoolVerifier} from "./withdraw_privacy_pool/plonk_vk.sol";
+import {UltraVerifier as PoolDepositVerifier} from "./pool_deposit/plonk_vk.sol";
+import {UltraVerifier as PoolWithdrawVerifier} from "./pool_withdraw/plonk_vk.sol";
 import {UltraVerifier as LockVerifier} from "./lock/plonk_vk.sol";
 import {IERC20} from "./IERC20.sol";
 import {IERC165} from "./IERC165.sol";
@@ -58,8 +59,7 @@ contract PrivateToken is MerkleTree {
     }
 
     /// @notice The prime field that the circuit is constructed over. This is used to make message hashes fit in 1 field element
-    uint256 BJJ_PRIME =
-        21888242871839275222246405745257275088548364400416034343698204186575808495617;
+    uint256 BJJ_PRIME = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     // struct PublicKey {
     //     // We could pack those in a single uint256 to save storage costs (for e.g using circomlibjs library to pack points on BabyJubjub)
@@ -71,7 +71,8 @@ contract PrivateToken is MerkleTree {
     LockVerifier public LOCK_VERIFIER;
     address public allTransferVerifier;
     address public allWithdrawVerifier;
-    WithdrawPoolVerifier public withdrawPoolVerifier;
+    PoolDepositVerifier public poolDepositVerifier;
+    PoolWithdrawVerifier public poolWithdrawVerifier;
 
     uint40 public totalSupply;
 
@@ -87,28 +88,22 @@ contract PrivateToken is MerkleTree {
     mapping(bytes32 packedPublicKey => EncryptedAmount) public balances;
 
     // packed public key => the key for the allPendingTransfersMapping
-    mapping(bytes32 packedPublicKey => uint256 count)
-        public pendingTransferCounts;
+    mapping(bytes32 packedPublicKey => uint256 count) public pendingTransferCounts;
 
-    mapping(bytes32 packedPublicKey => uint256 count)
-        public pendingDepositCounts;
+    mapping(bytes32 packedPublicKey => uint256 count) public pendingDepositCounts;
 
-    mapping(bytes32 packedPublicKey => mapping(uint256 => PendingTransfer))
-        public allPendingTransfersMapping;
-    mapping(bytes32 packedPublicKey => mapping(uint256 => PendingDeposit))
-        public allPendingDepositsMapping;
+    mapping(bytes32 packedPublicKey => mapping(uint256 => PendingTransfer)) public allPendingTransfersMapping;
+    mapping(bytes32 packedPublicKey => mapping(uint256 => PendingDeposit)) public allPendingDepositsMapping;
 
     // This prevents replay attacks in the transfer fn
     // packed public key => keccak(new encrypted balance), this should be random enough bc it leverages randomness for encryption
-    mapping(bytes32 packeedPublicKey => mapping(uint256 balanceHash => bool isUsed))
-        public nonce;
+    mapping(bytes32 packeedPublicKey => mapping(uint256 balanceHash => bool isUsed)) public nonce;
 
     // account can be locked and controlled by a contract
-    mapping(bytes32 packedPublicKey => address lockedToContract)
-        public lockedTo;
+    mapping(bytes32 packedPublicKey => address lockedToContract) public lockedTo;
 
     // nullifiers for withdraws from the privacy pool
-    mapping(uint => bool) public poolNullifiers;
+    mapping(uint256 => bool) public poolNullifiers;
 
     /*
         A PendingTransaction is added to this array when transfer is called.
@@ -121,42 +116,13 @@ contract PrivateToken is MerkleTree {
 
     */
 
-    event Transfer(
-        bytes32 indexed to,
-        bytes32 indexed from,
-        EncryptedAmount amount
-    );
-    event TransferProcessed(
-        bytes32 to,
-        EncryptedAmount newBalance,
-        uint256 processFee,
-        address processFeeRecipient
-    );
+    event Transfer(bytes32 indexed to, bytes32 indexed from, EncryptedAmount amount);
+    event TransferProcessed(bytes32 to, EncryptedAmount newBalance, uint256 processFee, address processFeeRecipient);
     event Deposit(address from, bytes32 to, uint256 amount, uint256 processFee);
-    event DepositProcessed(
-        bytes32 to,
-        uint256 amount,
-        uint256 processFee,
-        address feeRecipient
-    );
-    event DepositToPool(
-        uint indexed commitment,
-        uint leafIndex,
-        uint timestamp
-    );
-    event Withdraw(
-        bytes32 from,
-        address to,
-        uint256 amount,
-        address _relayFeeRecipient,
-        uint256 relayFee
-    );
-    event Lock(
-        bytes32 publicKey,
-        address lockedTo,
-        uint256 relayerFee,
-        address relayerFeeRecipient
-    );
+    event DepositProcessed(bytes32 to, uint256 amount, uint256 processFee, address feeRecipient);
+    event DepositToPool(uint256 indexed commitment, uint256 leafIndex, uint256 timestamp);
+    event Withdraw(bytes32 from, address to, uint256 amount, address _relayFeeRecipient, uint256 relayFee);
+    event Lock(bytes32 publicKey, address lockedTo, uint256 relayerFee, address relayerFeeRecipient);
     event Unlock(bytes32 publicKey, address unlockedFrom);
 
     /**
@@ -175,21 +141,19 @@ contract PrivateToken is MerkleTree {
         address _processTransferVerifier,
         address _allTransferVerifier,
         address _allWithdrawVerifier,
-        address _withdrawPoolVerifier,
+        address _poolDepositVerifier,
+        address _poolWithdrawVerifier,
         address _lockVerifier,
         address _token,
         uint256 _decimals,
         address poseidon
     ) MerkleTree(poseidon, 0) {
-        PROCESS_DEPOSIT_VERIFIER = ProcessDepositVerifier(
-            _processDepositVerifier
-        );
-        PROCESS_TRANSFER_VERIFIER = ProcessTransferVerifier(
-            _processTransferVerifier
-        );
+        PROCESS_DEPOSIT_VERIFIER = ProcessDepositVerifier(_processDepositVerifier);
+        PROCESS_TRANSFER_VERIFIER = ProcessTransferVerifier(_processTransferVerifier);
         allTransferVerifier = _allTransferVerifier;
         allWithdrawVerifier = _allWithdrawVerifier;
-        withdrawPoolVerifier = WithdrawPoolVerifier(_withdrawPoolVerifier);
+        poolDepositVerifier = PoolDepositVerifier(_poolDepositVerifier);
+        poolWithdrawVerifier = PoolWithdrawVerifier(_poolWithdrawVerifier);
         LOCK_VERIFIER = LockVerifier(_lockVerifier);
 
         token = IERC20(_token);
@@ -218,55 +182,72 @@ contract PrivateToken is MerkleTree {
      * @param _processFee - (optional, can be 0) amount to pay the processor of the tx (when processPendingDeposits is called)
      */
 
-    function deposit(
-        address _from,
-        uint256 _amount,
-        bytes32 _to,
-        uint40 _processFee
-    ) public {
+    function deposit(address _from, uint256 _amount, bytes32 _to, uint40 _processFee) public {
         // convert to decimals places. any decimals following 2 are lost
         // max value is u40 - 1, so 1099511627775. with 2 decimals
         // that gives us a max supply of ~11 billion erc20 tokens
-        uint40 amount = uint40(
-            _amount / 10 ** (SOURCE_TOKEN_DECIMALS - decimals)
-        );
+        uint40 amount = uint40(_amount / 10 ** (SOURCE_TOKEN_DECIMALS - decimals));
         require(totalSupply + amount < type(uint40).max, "Amount is too big");
         token.transferFrom(_from, address(this), uint256(_amount));
         // keep the fee - users can add a fee to incentivize processPendingDeposits
         amount = amount - _processFee;
         uint256 depositCount = pendingDepositCounts[_to];
-        allPendingDepositsMapping[_to][depositCount] = PendingDeposit(
-            amount,
-            _processFee
-        );
+        allPendingDepositsMapping[_to][depositCount] = PendingDeposit(amount, _processFee);
         pendingDepositCounts[_to] += 1;
         totalSupply += amount;
         emit Deposit(_from, _to, amount, _processFee);
     }
 
-    function depositToPool(
-        uint commitment,
+    /**
+     * @notice Deposit into the privacy pool from a BoJ account. The depositor essetially burns their deposit by sending it to the 0 address, and it
+     * can be claimed by anyone who knows the secret and create a signature with the associated eth_address. Specifying an eth_address allows
+     *  for transfers within the privacy pool. Someone can comsume a commitment and create a new one, specifying a new eth_address, and secret.
+     *  The sender must share the secret with the recipient for them to claim (could be encrypted and emitted on chain.)
+     * @dev
+     * @param commitment - the commitment to the amount being deposited. poseidon(eth_address, amount, secret). This is added to the commitments tree
+     * @param _from - the packed public key of the sender in the system
+     * @param _relayFee - (optional, can be 0) amount to pay the relayer of the tx,
+     * @param _relayFeeRecipient - the recipient of the relay fee
+     * @param _amount - the encrypted amount being deposited
+     * @param _senderNewBalance - the new encrypted balance of the sender after the deposit and fee
+     * @param _proof - proof
+     */
+    function poolDeposit(
+        uint256 _commitment,
         bytes32 _from,
-        uint40 _processFee,
         uint40 _relayFee,
         address _relayFeeRecipient,
-        EncryptedAmount calldata _amountToSend,
+        EncryptedAmount calldata _amount,
         EncryptedAmount calldata _senderNewBalance,
-        bytes memory _proof_transfer
+        bytes memory _proof
     ) public {
         bytes32 to = bytes32(0);
-        transfer(
-            to,
-            _from,
-            _processFee,
-            _relayFee,
-            _relayFeeRecipient,
-            _amountToSend,
-            _senderNewBalance,
-            _proof_transfer
-        );
-        uint leafIndex = insert(commitment);
-        emit DepositToPool(commitment, leafIndex, block.timestamp);
+        EncryptedAmount memory oldBalance = balances[_from];
+
+        bytes32[] memory publicInputs = new bytes32[](15);
+        publicInputs[0] = bytes32(fromRprLe(_from));
+        publicInputs[1] = bytes32(uint256(_relayFee));
+        publicInputs[2] = bytes32(checkAndUpdateNonce(_from, _senderNewBalance));
+        publicInputs[3] = bytes32(oldBalance.C1x);
+        publicInputs[4] = bytes32(oldBalance.C1y);
+        publicInputs[5] = bytes32(oldBalance.C2x);
+        publicInputs[6] = bytes32(oldBalance.C2y);
+        publicInputs[7] = bytes32(_amount.C1x);
+        publicInputs[8] = bytes32(_amount.C1y);
+        publicInputs[9] = bytes32(_amount.C2x);
+        publicInputs[10] = bytes32(_amount.C2y);
+        publicInputs[11] = bytes32(_senderNewBalance.C1x);
+        publicInputs[12] = bytes32(_senderNewBalance.C1y);
+        publicInputs[13] = bytes32(_senderNewBalance.C2x);
+        publicInputs[14] = bytes32(_senderNewBalance.C2y);
+
+        poolDepositVerifier.verify(_proof, publicInputs);
+
+        balances[_from] = _senderNewBalance;
+
+        uint256 leafIndex = insert(_commitment);
+        _payFees(_relayFee, _relayFeeRecipient);
+        emit NewCommitment(_commitment, leafIndex, block.timestamp);
     }
 
     /**
@@ -314,8 +295,6 @@ contract PrivateToken is MerkleTree {
         bytes proof;
     }
 
-    // bytes32[] publicInputs;
-
     function transfer(
         bytes32 _to,
         bytes32 _from,
@@ -330,8 +309,7 @@ contract PrivateToken is MerkleTree {
         local.txNonce = checkAndUpdateNonce(_from, _senderNewBalance);
         local.lockedByAddress = lockedTo[_from];
         require(
-            local.lockedByAddress == address(0) ||
-                local.lockedByAddress == msg.sender,
+            local.lockedByAddress == address(0) || local.lockedByAddress == msg.sender,
             "account is locked to another account"
         );
         local.oldBalance = balances[_from];
@@ -393,8 +371,7 @@ contract PrivateToken is MerkleTree {
         local.txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
         local.lockedToAddress = lockedTo[_from];
         require(
-            local.lockedToAddress == address(0) ||
-                local.lockedToAddress == msg.sender,
+            local.lockedToAddress == address(0) || local.lockedToAddress == msg.sender,
             "account is locked to another account"
         );
         // TODO: fee
@@ -404,16 +381,9 @@ contract PrivateToken is MerkleTree {
         _payFees(_relayFee, _relayFeeRecipient);
 
         {
-            uint256 convertedAmount = _amount *
-                10 ** (SOURCE_TOKEN_DECIMALS - decimals);
+            uint256 convertedAmount = _amount * 10 ** (SOURCE_TOKEN_DECIMALS - decimals);
             token.transfer(_to, convertedAmount);
-            emit Withdraw(
-                _from,
-                _to,
-                convertedAmount,
-                _relayFeeRecipient,
-                _relayFee
-            );
+            emit Withdraw(_from, _to, convertedAmount, _relayFeeRecipient, _relayFee);
         }
         local.to = bytes32(uint256(uint160(_to)));
         local.from = _from;
@@ -424,35 +394,41 @@ contract PrivateToken is MerkleTree {
         WithdrawVerify(allWithdrawVerifier).verifyWithdraw(local);
     }
 
-    function withdrawFromPool(
-        uint256 relayFee,
-        uint40 processFee,
-        address relayFeeRecipient,
-        bytes32 recipientPublicKey,
-        bytes32 blacklistRoot,
-        uint256 commitmentRoot,
-        uint nullifier,
-        EncryptedAmount memory _encryptedAmount,
-        bytes memory _proof
+    function poolWithdraw(
+        uint256 _relayFee,
+        uint40 _processFee,
+        address _relayFeeRecipient,
+        bytes32 _recipient,
+        uint256 _blacklistRoot,
+        uint256 _commitmentRoot,
+        uint256 _nullifier,
+        EncryptedAmount memory _amount,
+        bytes memory _proof,
+        // poseidon3(ethAddress, amount, secret)
+        bytes32 _outputCommitment
     ) public {
-        if (poolNullifiers[nullifier]) revert NoteAlreadySpent();
-        if (!isKnownRoot(commitmentRoot)) revert UnknownRoot();
-        _stageTransfer(recipientPublicKey, processFee, _encryptedAmount);
+        if (poolNullifiers[_nullifier]) revert NoteAlreadySpent();
+        if (!isKnownRoot(_commitmentRoot)) revert UnknownRoot();
+        _stageTransfer(_recipient, _processFee, _amount);
+        bytes32 hashedMessage = keccak256(abi.encode(_commitmentRoot, _amount, _recipient));
+
         bytes32[] memory publicInputs = new bytes32[](10);
-        publicInputs[0] = bytes32(uint256(relayFee));
-        publicInputs[1] = bytes32(fromRprLe(recipientPublicKey));
-        publicInputs[2] = bytes32(blacklistRoot);
-        publicInputs[3] = bytes32(commitmentRoot);
-        publicInputs[4] = bytes32(nullifier);
-        publicInputs[5] = bytes32(_encryptedAmount.C1x);
-        publicInputs[6] = bytes32(_encryptedAmount.C1y);
-        publicInputs[7] = bytes32(_encryptedAmount.C2x);
-        publicInputs[8] = bytes32(_encryptedAmount.C2y);
-        publicInputs[9] = bytes32(uint(processFee));
-        // TODO: add encrypted balances to public inputs
-        _payFees(relayFee, relayFeeRecipient);
-        withdrawPoolVerifier.verify(_proof, publicInputs);
-        poolNullifiers[nullifier] = true;
+        publicInputs[0] = bytes32(uint256(_relayFee));
+        publicInputs[1] = bytes32(fromRprLe(_recipient));
+        publicInputs[2] = bytes32(_blacklistRoot % BJJ_PRIME);
+        publicInputs[3] = bytes32(_commitmentRoot % BJJ_PRIME);
+        publicInputs[4] = bytes32(_nullifier % BJJ_PRIME);
+        publicInputs[5] = bytes32(_amount.C1x);
+        publicInputs[6] = bytes32(_amount.C1y);
+        publicInputs[7] = bytes32(_amount.C2x);
+        publicInputs[8] = bytes32(_amount.C2y);
+        publicInputs[9] = bytes32(uint256(_processFee));
+        publicInputs[10] = bytes32(fromRprLe(hashedMessage));
+        _payFees(_relayFee, _relayFeeRecipient);
+        poolWithdrawVerifier.verify(_proof, publicInputs);
+        poolNullifiers[_nullifier] = true;
+        uint256 leafIndex = insert(outputCommitment);
+        emit NewCommitment(_outputCommitment, leafIndex, block.timestamp);
     }
 
     /**
@@ -483,12 +459,7 @@ contract PrivateToken is MerkleTree {
         uint40 totalFees;
         uint256 totalAmount;
         EncryptedAmount memory oldBalance = balances[_recipient];
-        if (
-            oldBalance.C1x == 0 &&
-            oldBalance.C1y == 0 &&
-            oldBalance.C2x == 0 &&
-            oldBalance.C2y == 0
-        ) {
+        if (oldBalance.C1x == 0 && oldBalance.C1y == 0 && oldBalance.C2x == 0 && oldBalance.C2y == 0) {
             // if this is a fresh account, use the encrypted zero balance
             oldBalance = _zeroBalance;
         }
@@ -498,9 +469,7 @@ contract PrivateToken is MerkleTree {
         );
 
         for (uint8 i = 0; i < numTxsToProcess; i++) {
-            userPendingDepositsArray[i] = allPendingDepositsMapping[_recipient][
-                _txsToProcess[i]
-            ];
+            userPendingDepositsArray[i] = allPendingDepositsMapping[_recipient][_txsToProcess[i]];
             delete allPendingDepositsMapping[_recipient][_txsToProcess[i]];
             totalAmount += userPendingDepositsArray[i].amount;
             totalFees += userPendingDepositsArray[i].fee;
@@ -519,18 +488,10 @@ contract PrivateToken is MerkleTree {
         publicInputs[8] = bytes32(_newBalance.C2x);
         publicInputs[9] = bytes32(_newBalance.C2y);
 
-        require(
-            PROCESS_DEPOSIT_VERIFIER.verify(_proof, publicInputs),
-            "Process pending proof is invalid"
-        );
+        require(PROCESS_DEPOSIT_VERIFIER.verify(_proof, publicInputs), "Process pending proof is invalid");
         balances[_recipient] = _newBalance;
         _payFees(totalFees, _feeRecipient);
-        emit DepositProcessed(
-            _recipient,
-            totalAmount,
-            totalFees,
-            _feeRecipient
-        );
+        emit DepositProcessed(_recipient, totalAmount, totalFees, _feeRecipient);
     }
 
     /**
@@ -578,40 +539,22 @@ contract PrivateToken is MerkleTree {
                 publicInputs[10 + 4 * i] = bytes32(0);
                 publicInputs[11 + 4 * i] = bytes32(0);
             } else {
-                pendingTransfers[i] = allPendingTransfersMapping[_recipient][
-                    _txsToProcess[i]
-                ];
+                pendingTransfers[i] = allPendingTransfersMapping[_recipient][_txsToProcess[i]];
                 delete allPendingTransfersMapping[_recipient][_txsToProcess[i]];
                 require(block.timestamp > pendingTransfers[i].time);
-                publicInputs[8 + 4 * i] = bytes32(
-                    pendingTransfers[i].amount.C1x
-                );
-                publicInputs[9 + 4 * i] = bytes32(
-                    pendingTransfers[i].amount.C1y
-                );
-                publicInputs[10 + 4 * i] = bytes32(
-                    pendingTransfers[i].amount.C2x
-                );
-                publicInputs[11 + 4 * i] = bytes32(
-                    pendingTransfers[i].amount.C2y
-                );
+                publicInputs[8 + 4 * i] = bytes32(pendingTransfers[i].amount.C1x);
+                publicInputs[9 + 4 * i] = bytes32(pendingTransfers[i].amount.C1y);
+                publicInputs[10 + 4 * i] = bytes32(pendingTransfers[i].amount.C2x);
+                publicInputs[11 + 4 * i] = bytes32(pendingTransfers[i].amount.C2y);
                 totalFees += pendingTransfers[i].fee;
             }
         }
 
-        require(
-            PROCESS_TRANSFER_VERIFIER.verify(_proof, publicInputs),
-            "Process pending proof is invalid"
-        );
+        require(PROCESS_TRANSFER_VERIFIER.verify(_proof, publicInputs), "Process pending proof is invalid");
         balances[_recipient] = _newBalance;
         _payFees(totalFees, _feeRecipient);
 
-        emit TransferProcessed(
-            _recipient,
-            _newBalance,
-            totalFees,
-            _feeRecipient
-        );
+        emit TransferProcessed(_recipient, _newBalance, totalFees, _feeRecipient);
     }
 
     // the contract this is locked to must call unlock to give control back to this contract
@@ -639,10 +582,7 @@ contract PrivateToken is MerkleTree {
         uint256 txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
         require(lockedTo[_from] == address(0), "account is already locked");
         // figure out actual function signature, this is just a placeholder
-        require(
-            _lockToContract.supportsInterface(0x80ac58cd),
-            "contract does not implement unlock"
-        );
+        require(_lockToContract.supportsInterface(0x80ac58cd), "contract does not implement unlock");
         lockedTo[_from] = _lockToContract;
         EncryptedAmount memory oldEncryptedAmount = balances[_from];
 
@@ -685,23 +625,19 @@ contract PrivateToken is MerkleTree {
     // Utility functions //
     ///////////////////////
 
-    function checkAndUpdateNonce(
-        bytes32 _from,
-        EncryptedAmount memory _encryptedAmount
-    ) internal returns (uint256) {
-        uint256 txNonce = uint256(keccak256(abi.encode(_encryptedAmount))) %
-            BJJ_PRIME;
+    function checkAndUpdateNonce(bytes32 _from, EncryptedAmount memory _encryptedAmount) internal returns (uint256) {
+        uint256 txNonce = uint256(keccak256(abi.encode(_encryptedAmount))) % BJJ_PRIME;
         require(nonce[_from][txNonce] == false, "nonce is not unique");
         nonce[_from][txNonce] = true;
         return txNonce;
     }
 
-    function fromRprLe(bytes32 publicKey) internal view returns (uint256) {
+    function fromRprLe(bytes32 value) internal view returns (uint256) {
         uint256 y = 0;
         uint256 v = 1;
-        bytes memory publicKeyBytes = bytes32ToBytes(publicKey);
+        bytes memory valueBytes = bytes32ToBytes(value);
         for (uint8 i = 0; i < 32; i++) {
-            y += (uint8(publicKeyBytes[i]) * v) % BJJ_PRIME;
+            y += (uint8(valueBytes[i]) * v) % BJJ_PRIME;
             if (i != 31) {
                 v *= 256;
             }
@@ -709,9 +645,7 @@ contract PrivateToken is MerkleTree {
         return y;
     }
 
-    function bytes32ToBytes(
-        bytes32 _data
-    ) internal pure returns (bytes memory) {
+    function bytes32ToBytes(bytes32 _data) internal pure returns (bytes memory) {
         bytes memory byteArray = new bytes(32);
         for (uint256 i = 0; i < 32; i++) {
             byteArray[i] = _data[i];
@@ -719,36 +653,27 @@ contract PrivateToken is MerkleTree {
         return byteArray;
     }
 
-    function _payFees(uint _fee, address _feeRecipient) internal {
+    function _payFees(uint256 _fee, address _feeRecipient) internal {
         if (_fee != 0) {
-            token.transfer(
-                _feeRecipient,
-                _fee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)
-            );
+            token.transfer(_feeRecipient, _fee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals));
         }
     }
 
-    function _stageTransfer(
-        bytes32 _to,
-        uint40 _processFee,
-        EncryptedAmount memory _amount
-    ) internal returns (EncryptedAmount memory) {
+    function _stageTransfer(bytes32 _to, uint40 _processFee, EncryptedAmount memory _amount)
+        internal
+        returns (EncryptedAmount memory)
+    {
         EncryptedAmount memory receiverBalance = balances[_to];
-        bool zeroBalance = (receiverBalance.C1x == 0 &&
-            receiverBalance.C2x == 0 &&
-            receiverBalance.C1y == 0 &&
-            receiverBalance.C2y == 0);
+        bool zeroBalance = (
+            receiverBalance.C1x == 0 && receiverBalance.C2x == 0 && receiverBalance.C1y == 0 && receiverBalance.C2y == 0
+        );
         if (zeroBalance) {
             // no fee required if a new account
             _processFee = 0;
             balances[_to] = _amount;
         } else {
-            uint transferCount = pendingTransferCounts[_to];
-            allPendingTransfersMapping[_to][transferCount] = PendingTransfer(
-                _amount,
-                _processFee,
-                block.timestamp
-            );
+            uint256 transferCount = pendingTransferCounts[_to];
+            allPendingTransfersMapping[_to][transferCount] = PendingTransfer(_amount, _processFee, block.timestamp);
             pendingTransferCounts[_to] += 1;
         }
         return receiverBalance;
