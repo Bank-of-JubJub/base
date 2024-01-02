@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config({ path: "../.env" });
 import { IMT } from "@zk-kit/imt";
-import { poseidon2 } from "poseidon-lite";
+import { poseidon2, poseidon3 } from "poseidon-lite";
 import { toHex } from "viem";
 
 async function main() {
