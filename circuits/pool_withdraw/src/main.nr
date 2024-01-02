@@ -16,7 +16,15 @@ fn main(
     matching_entry: [Option<Field>; 2],
     smt_siblings: [Field; TREE_DEPTH],
     secret: Field,
+    // amount to be withdrawn from the pool
     amount: u40,
+    // amount in the original commitment
+    input_amount: u40,
+    // input_amount - amount, amount remaining in the pool
+    remaining_balance: u40,
+    new_secret: Field,
+    // can associate the new commitment with a new eth_address
+    new_eth_address: Field,
     // the index of the commitment in the commitment tree
     index: Field,
     commitment_path: [Field; TREE_DEPTH],
@@ -36,14 +44,19 @@ fn main(
     encrypted_amount_2: pub Gaffine,
     process_fee: pub u40,
     // modulus so that hashed message fits in 1 public input element in the contract
-    hashed_message_modulus: pub Field
+    hashed_message_modulus: pub Field,
+    output_commitment: pub Field
 ) {
     assert(hashed_message_modulus == bjj::from_rpr_le(hashed_message));
     let address = ecrecover::ecrecover(eth_pub_key_x, eth_pub_key_y, signature, hashed_message);
     // verify that the nullifier corresponds to a leaf in the commitments tree
-    let commitment = hash_3([secret, amount as Field, address]);
+    let commitment = hash_3([address, input_amount as Field, secret]);
     let computed_commitment_root = compute_merkle_root(commitment, index, commitment_path);
     assert(computed_commitment_root == commitments_root);
+
+    let output_commitment_computed = hash_3([new_eth_address, remaining_balance as Field, new_secret]);
+    assert(output_commitment_computed == output_commitment);
+    assert(remaining_balance + amount == input_amount);
 
     // check that the commitment matches the entry: [key, value] pair
     assert(entry[0] == index);
