@@ -217,33 +217,28 @@ contract PrivateToken is MerkleTree {
         bytes32 _from,
         uint40 _relayFee,
         address _relayFeeRecipient,
-        EncryptedAmount calldata _amount,
-        EncryptedAmount calldata _senderNewBalance,
+        EncryptedAmount calldata _newBalance,
         bytes memory _proof
     ) public {
         bytes32 to = bytes32(0);
         EncryptedAmount memory oldBalance = balances[_from];
 
-        bytes32[] memory publicInputs = new bytes32[](15);
+        bytes32[] memory publicInputs = new bytes32[](11);
         publicInputs[0] = bytes32(fromRprLe(_from));
         publicInputs[1] = bytes32(uint256(_relayFee));
-        publicInputs[2] = bytes32(checkAndUpdateNonce(_from, _senderNewBalance));
+        publicInputs[2] = bytes32(checkAndUpdateNonce(_from, _newBalance));
         publicInputs[3] = bytes32(oldBalance.C1x);
         publicInputs[4] = bytes32(oldBalance.C1y);
         publicInputs[5] = bytes32(oldBalance.C2x);
         publicInputs[6] = bytes32(oldBalance.C2y);
-        publicInputs[7] = bytes32(_amount.C1x);
-        publicInputs[8] = bytes32(_amount.C1y);
-        publicInputs[9] = bytes32(_amount.C2x);
-        publicInputs[10] = bytes32(_amount.C2y);
-        publicInputs[11] = bytes32(_senderNewBalance.C1x);
-        publicInputs[12] = bytes32(_senderNewBalance.C1y);
-        publicInputs[13] = bytes32(_senderNewBalance.C2x);
-        publicInputs[14] = bytes32(_senderNewBalance.C2y);
+        publicInputs[7] = bytes32(_newBalance.C1x);
+        publicInputs[8] = bytes32(_newBalance.C1y);
+        publicInputs[9] = bytes32(_newBalance.C2x);
+        publicInputs[10] = bytes32(_newBalance.C2y);
 
         poolDepositVerifier.verify(_proof, publicInputs);
 
-        balances[_from] = _senderNewBalance;
+        balances[_from] = _newBalance;
 
         uint256 leafIndex = insert(_commitment);
         _payFees(_relayFee, _relayFeeRecipient);
@@ -396,7 +391,7 @@ contract PrivateToken is MerkleTree {
      * @notice withdraws from the pool. withdrawals must be staged like transfers, to cover the case where an
      *  account is being updated simultaneously. the withdrawer can specify a blacklist root to create a non-inclusion proof
      *  against in the circuit. This root should be created by an analytics/ compliance firm like chainalysis or TRM.
-     The withdrawer does not have to withdraw the entire deposit. They can provide a new commmitment for their unwithdrawn amount
+     *  The withdrawer does not have to withdraw the entire deposit. They can provide a new commmitment for their unwithdrawn amount
      * @dev
      *  @param
      */
