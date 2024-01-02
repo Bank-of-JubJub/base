@@ -124,7 +124,7 @@ contract PrivateToken is MerkleTree {
     event Withdraw(bytes32 from, address to, uint256 amount, address _relayFeeRecipient, uint256 relayFee);
     event Lock(bytes32 publicKey, address lockedTo, uint256 relayerFee, address relayerFeeRecipient);
     event Unlock(bytes32 publicKey, address unlockedFrom);
-
+    event NewCommitment(uint256 commitment, uint256 leafIndex, uint256 timestamp);
     /**
      * @notice Constructor - setup up verifiers and link to token
      * @dev
@@ -208,8 +208,7 @@ contract PrivateToken is MerkleTree {
      * @param _from - the packed public key of the sender in the system
      * @param _relayFee - (optional, can be 0) amount to pay the relayer of the tx,
      * @param _relayFeeRecipient - the recipient of the relay fee
-     * @param _amount - the encrypted amount being deposited
-     * @param _senderNewBalance - the new encrypted balance of the sender after the deposit and fee
+     * @param _newBalance - the new encrypted balance of the sender after the deposit and fee
      * @param _proof - proof
      */
     function poolDeposit(
@@ -407,7 +406,7 @@ contract PrivateToken is MerkleTree {
         EncryptedAmount memory _amount,
         bytes memory _proof,
         // poseidon3(ethAddress, amount, secret)
-        bytes32 _outputCommitment
+        uint256 _outputCommitment
     ) public {
         if (poolNullifiers[_nullifier]) revert NoteAlreadySpent();
         if (!isKnownRoot(_commitmentRoot)) revert UnknownRoot();
@@ -429,7 +428,7 @@ contract PrivateToken is MerkleTree {
         _payFees(_relayFee, _relayFeeRecipient);
         poolWithdrawVerifier.verify(_proof, publicInputs);
         poolNullifiers[_nullifier] = true;
-        uint256 leafIndex = insert(outputCommitment);
+        uint256 leafIndex = insert(_outputCommitment);
         emit NewCommitment(_outputCommitment, leafIndex, block.timestamp);
     }
 
