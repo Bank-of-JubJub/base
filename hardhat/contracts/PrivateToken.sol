@@ -344,8 +344,6 @@ contract PrivateToken is MerkleTree {
      *  @param _newEncryptedAmount - the new encrypted balance of the sender after the withdraw and fee
      */
 
-    // TODO: update withdraw function to have validational conditional on the type of accounts, 4337, eth signer, multisig
-
     struct WithdrawLocals {
         uint256 txNonce;
         address lockedToAddress;
@@ -393,6 +391,15 @@ contract PrivateToken is MerkleTree {
         local.newBalance = _newEncryptedAmount;
         WithdrawVerify(allWithdrawVerifier).verifyWithdraw(local);
     }
+
+    /**
+     * @notice withdraws from the pool. withdrawals must be staged like transfers, to cover the case where an
+     *  account is being updated simultaneously. the withdrawer can specify a blacklist root to create a non-inclusion proof
+     *  against in the circuit. This root should be created by an analytics/ compliance firm like chainalysis or TRM.
+     The withdrawer does not have to withdraw the entire deposit. They can provide a new commmitment for their unwithdrawn amount
+     * @dev
+     *  @param
+     */
 
     function poolWithdraw(
         uint256 _relayFee,

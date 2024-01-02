@@ -63,7 +63,7 @@ fn main(
     assert(entry[1] == 0); // 0 if not on blacklist, 1 if on blacklist
 
     // check that the nullifier is correct
-    assert(nullifier == hash_2([secret, address]));
+    assert(nullifier == hash_2([address, secret]));
 
     // if there is no blacklist root, do not check membership
     if (blacklist_root != 0) {
