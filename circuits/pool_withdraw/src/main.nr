@@ -16,7 +16,7 @@ fn main(
     matching_entry: [Option<Field>; 2],
     smt_siblings: [Field; TREE_DEPTH],
     secret: Field,
-    // amount to be withdrawn from the pool
+    // amount to be withdrawn from the pool. relay and process fee will be taken from this amount
     amount: u40,
     // amount in the original commitment
     input_amount: u40,
@@ -63,7 +63,7 @@ fn main(
     assert(entry[1] == 0); // 0 if not on blacklist, 1 if on blacklist
 
     // check that the nullifier is correct
-    assert(nullifier == hash_2([address, secret]));
+    assert(nullifier == hash_2([index, secret]));
 
     // if there is no blacklist root, do not check membership
     if (blacklist_root != 0) {
@@ -104,7 +104,10 @@ fn compute_merkle_root(leaf: Field, index: Field, siblings: [Field; TREE_DEPTH])
 fn test_main() {
     let private_key: Field = 2291123624948246627368989940774052753470489062495018070576418670157516550852;
     let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775;
+    let amount: u40 = 10;
+    let input_amount: u40 = 10;
     let amount: u40 = 5;
+    let remaining_balance: u40 = 5;
     let relay_fee: u40 = 1;
     let process_fee: u40 = 2;
 
@@ -132,21 +135,27 @@ fn test_main() {
         6939770416153240137322503476966641397417391950902474480970945462551409848591,
         10941962436777715901943463195175331263348098796018438960955633645115732864202
     ];
-    let commitments_root = 528424823345637765233459005028157123611466957747207540865748361023965664665;
+    let commitments_root = 6598509457608670666299136503868652005177457995065010418208814398647233618885;
 
     // balance setup
     let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
     let packed_public_key = bjj::pack_point(public_key);
     let pub_key_modulus = bjj::from_rpr_le(packed_public_key);
     // let old_balance_encrypted = bjj::exp_elgamal_encrypt(public_key, old_balance_clear, randomness);
-    let new_balance_encrypted = bjj::exp_elgamal_encrypt(public_key, amount - relay_fee - process_fee, randomness);
+    let encrypted_amount = bjj::exp_elgamal_encrypt(public_key, amount - relay_fee - process_fee, randomness);
+
+    std::println(encrypted_amount.0.x);
+    std::println(encrypted_amount.0.y);
+    std::println(encrypted_amount.1.x);
+    std::println(encrypted_amount.1.y);
 
     let secret = 168986485046885582825082387270879151100288537211746581237924789162159767777;
-    let nullifier = hash_2([secret, 0]);
-    let commitment = hash_3([secret, amount as Field, address]);
-
-    std::println("commitment:  ");
-    std::println(commitment);
+    let new_secret = 168986485046885582825082387270879151100288537211746581237924789162159767778;
+    let address = 0x844Aa7aE2DB9bEb52f0613E5742EC5Ce9E1371a6;
+    let new_eth_address = 0x844Aa7aE2DB9bEb52f0613E5742EC5Ce9E1371a6;
+    let nullifier = hash_2([0, secret]);
+    let input_commitment = hash_3([address, input_amount as Field, secret]);
+    let output_commitment = hash_3([new_eth_address, remaining_balance as Field, new_secret]);
 
     // not on a blacklist
     let entry = [0, 0];
@@ -160,18 +169,29 @@ fn test_main() {
     //     siblings,
     //     secret,
     //     amount,
+    //     input_amount,
+    //     remaining_balance,
+    //     new_secret,
+    //     new_eth_address,
     //     index,
     //     commitment_path,
     //     randomness,
     //     packed_public_key,
+    //     eth_pub_key_x,
+    //     eth_pub_key_y,
+    //     signature,
+    //     hashed_message,
     //     relay_fee,
     //     pub_key_modulus,
     //     blacklist_root,
     //     commitments_root,
     //     nullifier,
-    //     new_balance_encrypted.0,
-    //     new_balance_encrypted.1,
-    //     process_fee
+    //     encrypted_amount.0,
+    //     encrypted_amount.1,
+    //     process_fee,
+    //     hashed_message_modulus,
+    //     output_commitment
+
     // );
 }
 
