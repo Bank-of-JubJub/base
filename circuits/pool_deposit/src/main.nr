@@ -59,9 +59,9 @@ fn main(
     );
 }
 
-// Because of a bug in Noir 10.3, this test will cause a stack overflow error, but you can check that it passes via `nargo prove` instead of `nargo test`: the values inside Prover.toml are strictly equivalent to this test
+// this is the same inputs as the transfer test, just with unused params removed
 #[test]
-fn test_transfer() {
+fn test_pool_deposit() {
     // private values
     let private_key: Field = 2291123624948246627368989940774052753470489062495018070576418670157516550852;
     let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775;
