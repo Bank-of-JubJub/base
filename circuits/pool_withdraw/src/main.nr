@@ -33,7 +33,6 @@ fn main(
     eth_pub_key_x: [u8; 32],
     eth_pub_key_y: [u8; 32],
     signature: [u8; 64],
-    hashed_message: [u8; 32],
     // public inputs
     relay_fee: pub u40,
     recipient_pub_key_modulus: pub Field,
@@ -43,12 +42,15 @@ fn main(
     encrypted_amount_1: pub Gaffine,
     encrypted_amount_2: pub Gaffine,
     process_fee: pub u40,
-    // modulus so that hashed message fits in 1 public input element in the contract
-    hashed_message_modulus: pub Field,
     output_commitment: pub Field
 ) {
-    assert(hashed_message_modulus == bjj::from_rpr_le(hashed_message));
-    let address = ecrecover::ecrecover(eth_pub_key_x, eth_pub_key_y, signature, hashed_message);
+    let hashed_message_calculated = compute_message_hash(recipient_pub_key, encrypted_amount_1, encrypted_amount_2);
+    let address = ecrecover::ecrecover(
+        eth_pub_key_x,
+        eth_pub_key_y,
+        signature,
+        hashed_message_calculated
+    );
     // verify that the nullifier corresponds to a leaf in the commitments tree
     let commitment = hash_3([address, input_amount as Field, secret]);
     let computed_commitment_root = compute_merkle_root(commitment, index, commitment_path);
@@ -81,6 +83,36 @@ fn main(
         encrypted_amount_1,
         encrypted_amount_2
     );
+}
+
+fn compute_message_hash(
+    public_key: [u8;32],
+    encrypted_amount_1: Gaffine,
+    encrypted_amount_2: Gaffine
+) -> [u8;32] {
+    // message is the concatenation of the recipient public key and the encrypted amount
+    let mut message: [u8; 160] = [0; 160];
+    for i in 0..32 {
+        message[i] = public_key[i];
+    }
+
+    let C1x = encrypted_amount_1.x.to_be_bytes(32);
+    let C1y = encrypted_amount_1.y.to_be_bytes(32);
+    let C2x = encrypted_amount_2.x.to_be_bytes(32);
+    let C2y = encrypted_amount_2.y.to_be_bytes(32);
+    for i in 0..32 {
+        message[i + 32] = C1x[i];
+    }
+    for i in 0..32 {
+        message[i + 64] = C1y[i];
+    }
+    for i in 0..32 {
+        message[i + 96] = C2x[i];
+    }
+    for i in 0..32 {
+        message[i + 128] = C2y[i];
+    }
+    std::hash::keccak256(message, 160)
 }
 
 // Returns the merkle root of the tree from the provided leaf, path indices, siblings with poseidon hash.
@@ -191,7 +223,6 @@ fn test_main() {
     //     process_fee,
     //     hashed_message_modulus,
     //     output_commitment
-
     // );
 }
 
@@ -207,3 +238,26 @@ fn test_verify_smt() {
     smt::verify(entry, matching_entry, siblings, root);
 }
 
+#[test]
+fn test_compute_message_hash() {
+    let public_key = [
+        0xdc, 0x9f, 0x9f, 0xdb, 0x74, 0x6d, 0x0f, 0x07, 0xb0, 0x04, 0xcc, 0x43, 0x16, 0xe3, 0x49, 0x5a, 0x58, 0x57, 0x0b, 0x90, 0x66, 0x14, 0x99, 0xf8, 0xa6, 0xa6, 0x69, 0x6f, 0xf4, 0x15, 0x6b, 0xaa
+    ];
+
+    let encrypted_amount = (Gaffine {
+        x: 0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368,
+        y: 0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f
+    }, Gaffine {
+        x: 0x20a08bc68201d32688f1ba415b168f1b78dfcb0af4c5c8741b8674d9aea97147,
+        y: 0x137c478ed936487f6b0a7b850a256c8286c993a43f808ade344aa1dcccd2e126
+    });
+
+    // message is the concatenation of the public key and the encrypted amount
+    let message_hash_computed = compute_message_hash(public_key, encrypted_amount.0, encrypted_amount.1);
+    let message_hash = [
+        226, 67, 35, 208, 253, 52, 103, 173, 60, 94, 95, 240, 146, 210, 105, 21, 146, 37, 214, 232, 77, 34, 156, 107, 112, 90, 60, 90, 189, 34, 253, 139
+    ];
+    for i in 0..message_hash.len() {
+        assert(message_hash[i] == message_hash_computed[i]);
+    }
+}

@@ -411,7 +411,6 @@ contract PrivateToken is MerkleTree {
         if (poolNullifiers[_nullifier]) revert NoteAlreadySpent();
         if (!isKnownRoot(_commitmentRoot)) revert UnknownRoot();
         _stageTransfer(_recipient, _processFee, _amount);
-        bytes32 hashedMessage = keccak256(abi.encode(_commitmentRoot, _amount, _recipient));
 
         bytes32[] memory publicInputs = new bytes32[](10);
         publicInputs[0] = bytes32(uint256(_relayFee));
@@ -424,7 +423,6 @@ contract PrivateToken is MerkleTree {
         publicInputs[7] = bytes32(_amount.C2x);
         publicInputs[8] = bytes32(_amount.C2y);
         publicInputs[9] = bytes32(uint256(_processFee));
-        publicInputs[10] = bytes32(fromRprLe(hashedMessage));
         _payFees(_relayFee, _relayFeeRecipient);
         poolWithdrawVerifier.verify(_proof, publicInputs);
         poolNullifiers[_nullifier] = true;
