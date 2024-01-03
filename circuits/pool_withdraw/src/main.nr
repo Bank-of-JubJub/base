@@ -91,7 +91,13 @@ fn compute_message_hash(
     encrypted_amount_2: Gaffine
 ) -> [u8;32] {
     // message is the concatenation of the recipient public key and the encrypted amount
-    let mut message: [u8; 160] = [0; 160];
+    let mut message: [u8; 349] = [0; 349];
+
+    let prefix = "\x19Ethereum Signed Message:\n";
+    let message_length: Field = 320;
+    // TODO: add prefix to message
+    // prefixedMessage = toBytes(`\x19Ethereum Signed Message:\n${message.length}${message}`)
+
     for i in 0..32 {
         message[i] = public_key[i];
     }
@@ -112,7 +118,7 @@ fn compute_message_hash(
     for i in 0..32 {
         message[i + 128] = C2y[i];
     }
-    std::hash::keccak256(message, 160)
+    std::hash::keccak256(message, 349)
 }
 
 // Returns the merkle root of the tree from the provided leaf, path indices, siblings with poseidon hash.
@@ -142,6 +148,10 @@ fn test_main() {
     let remaining_balance: u40 = 5;
     let relay_fee: u40 = 1;
     let process_fee: u40 = 2;
+
+    let signature = [
+        228, 186, 97, 91, 219, 107, 135, 161, 33, 126, 124, 76, 15, 225, 175, 244, 156, 40, 54, 211, 47, 160, 66, 205, 94, 104, 183, 117, 152, 244, 225, 72, 41, 230, 44, 65, 236, 105, 114, 144, 68, 247, 69, 132, 48, 34, 245, 11, 17, 186, 216, 56, 83, 225, 129, 200, 152, 12, 222, 177, 71, 15, 79, 54, 28
+    ];
 
     // commitment
     let index = 0;
@@ -212,7 +222,6 @@ fn test_main() {
     //     eth_pub_key_x,
     //     eth_pub_key_y,
     //     signature,
-    //     hashed_message,
     //     relay_fee,
     //     pub_key_modulus,
     //     blacklist_root,
@@ -221,7 +230,6 @@ fn test_main() {
     //     encrypted_amount.0,
     //     encrypted_amount.1,
     //     process_fee,
-    //     hashed_message_modulus,
     //     output_commitment
     // );
 }
