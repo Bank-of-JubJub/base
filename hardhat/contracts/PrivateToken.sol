@@ -172,13 +172,13 @@ contract PrivateToken {
      * @param _processFee - (optional, can be 0) amount to pay the processor of the tx (when processPendingDeposits is called)
      */
 
-    function deposit(address _from, uint256 _amount, bytes32 _to, uint40 _processFee) public {
+    function deposit(uint256 _amount, bytes32 _to, uint40 _processFee) public {
         // convert to decimals places. any decimals following 2 are lost
         // max value is u40 - 1, so 1099511627775. with 2 decimals
         // that gives us a max supply of ~11 billion erc20 tokens
         uint40 amount = uint40(_amount / 10 ** (SOURCE_TOKEN_DECIMALS - decimals));
         require(totalSupply + amount < type(uint40).max, "Amount is too big");
-        token.transferFrom(_from, address(this), uint256(_amount));
+        token.transferFrom(msg.sender, address(this), uint256(_amount));
         // keep the fee - users can add a fee to incentivize processPendingDeposits
         amount = amount - _processFee;
         uint256 depositCount = pendingDepositCounts[_to];
