@@ -185,7 +185,7 @@ contract PrivateToken {
         allPendingDepositsMapping[_to][depositCount] = PendingDeposit(amount, _processFee);
         pendingDepositCounts[_to] += 1;
         totalSupply += amount;
-        emit Deposit(_from, _to, amount, _processFee);
+        emit Deposit(msg.sender, _to, amount, _processFee);
     }
 
     /**
