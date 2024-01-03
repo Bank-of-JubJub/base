@@ -67,7 +67,8 @@ fn main(
     // check that the nullifier is correct
     assert(nullifier == hash_2([index, secret]));
 
-    // if there is no blacklist root, do not check membership
+    // TODO: pull this out as a standalone tool; 
+    // should be able to prove integrity of a transaction at any future date, not just when the withdrawal happens
     if (blacklist_root != 0) {
         // verifies non-membership of the entry in the provided root to a SMT
         smt::verify(entry, matching_entry, smt_siblings, blacklist_root);
