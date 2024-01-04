@@ -14,6 +14,7 @@ import {ERC165Checker} from "./ERC165Checker.sol";
 import {AccountController} from "./AccountController.sol";
 import {TransferVerify} from "./TransferVerify.sol";
 import {WithdrawVerify} from "./WithdrawVerify.sol";
+import {BlacklistManager} from "./BlacklistManager.sol";
 import "./MerkleTree.sol";
 
 /**
@@ -73,6 +74,7 @@ contract PrivateToken is MerkleTree {
     address public allWithdrawVerifier;
     PoolDepositVerifier public poolDepositVerifier;
     PoolWithdrawVerifier public poolWithdrawVerifier;
+    BlacklistManager public blacklistManager;
 
     uint40 public totalSupply;
 
@@ -146,7 +148,8 @@ contract PrivateToken is MerkleTree {
         address _lockVerifier,
         address _token,
         uint256 _decimals,
-        address poseidon
+        address poseidon,
+        address blacklistManager
     ) MerkleTree(poseidon, 0) {
         PROCESS_DEPOSIT_VERIFIER = ProcessDepositVerifier(_processDepositVerifier);
         PROCESS_TRANSFER_VERIFIER = ProcessTransferVerifier(_processTransferVerifier);
@@ -155,6 +158,7 @@ contract PrivateToken is MerkleTree {
         poolDepositVerifier = PoolDepositVerifier(_poolDepositVerifier);
         poolWithdrawVerifier = PoolWithdrawVerifier(_poolWithdrawVerifier);
         LOCK_VERIFIER = LockVerifier(_lockVerifier);
+        blacklistManager = BlacklistManager(blacklistManager);
 
         token = IERC20(_token);
         uint256 sourceDecimals = _decimals;
@@ -400,22 +404,22 @@ contract PrivateToken is MerkleTree {
         uint40 _processFee,
         address _relayFeeRecipient,
         bytes32 _recipient,
-        uint256 _blacklistRoot,
         uint256 _commitmentRoot,
         uint256 _nullifier,
         EncryptedAmount memory _amount,
         bytes memory _proof,
-        // poseidon3(ethAddress, amount, secret)
+        // poseidon3(ethAddress, amount, timestamp, secret)
         uint256 _outputCommitment
     ) public {
         if (poolNullifiers[_nullifier]) revert NoteAlreadySpent();
         if (!isKnownRoot(_commitmentRoot)) revert UnknownRoot();
         _stageTransfer(_recipient, _processFee, _amount);
+        uint256 blacklistRoot = blacklistManager.blacklistRoot();
 
-        bytes32[] memory publicInputs = new bytes32[](10);
+        bytes32[] memory publicInputs = new bytes32[](12);
         publicInputs[0] = bytes32(uint256(_relayFee));
         publicInputs[1] = bytes32(fromRprLe(_recipient));
-        publicInputs[2] = bytes32(_blacklistRoot % BJJ_PRIME);
+        publicInputs[2] = bytes32(blacklistRoot % BJJ_PRIME);
         publicInputs[3] = bytes32(_commitmentRoot % BJJ_PRIME);
         publicInputs[4] = bytes32(_nullifier % BJJ_PRIME);
         publicInputs[5] = bytes32(_amount.C1x);
@@ -423,6 +427,9 @@ contract PrivateToken is MerkleTree {
         publicInputs[7] = bytes32(_amount.C2x);
         publicInputs[8] = bytes32(_amount.C2y);
         publicInputs[9] = bytes32(uint256(_processFee));
+        publicInputs[10] = bytes32(_outputCommitment);
+        publicInputs[11] = bytes32(block.timestamp);
+
         _payFees(_relayFee, _relayFeeRecipient);
         poolWithdrawVerifier.verify(_proof, publicInputs);
         poolNullifiers[_nullifier] = true;

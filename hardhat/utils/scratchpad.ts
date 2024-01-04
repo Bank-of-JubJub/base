@@ -20,12 +20,13 @@ async function main() {
     C2x: "20a08bc68201d32688f1ba415b168f1b78dfcb0af4c5c8741b8674d9aea97147",
     C2y: "137c478ed936487f6b0a7b850a256c8286c993a43f808ade344aa1dcccd2e126"
   }
-  const message = `${recipient}${amount.C1x}${amount.C1y}${amount.C2x}${amount.C2y}`
-  console.log(toBytes(message))
-  const prefixedMessage = toBytes(`\x19Ethereum Signed Message:\n${message.length}${message}`)
+  const message = `0x${recipient}${amount.C1x}${amount.C1y}${amount.C2x}${amount.C2y}`
   console.log(message.length)
+  console.log("prefix bytes", toBytes(`\x19Ethereum Signed Message:\n${message.length}`))
+  const prefixedMessage = toBytes(`\x19Ethereum Signed Message:\n${message.length}${message}`)
+  console.log('recipient', toBytes(recipient))
   let hash = keccak256(prefixedMessage);
-  // console.log(toBytes(hash))
+  console.log(toBytes(hash))
   let signature = await account.signMessage({ message })
 
   const valid = await verifyMessage({

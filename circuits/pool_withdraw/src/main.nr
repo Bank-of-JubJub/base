@@ -1,7 +1,7 @@
 use dep::std::option::Option;
 use dep::std;
 use dep::std::hash::poseidon::bn254::hash_2;
-use dep::std::hash::poseidon::bn254::hash_3;
+use dep::std::hash::poseidon::bn254::hash_4;
 use dep::std::ec::tecurve::affine::Point as Gaffine;
 use dep::bjj;
 use dep::utils;
@@ -27,6 +27,7 @@ fn main(
     new_eth_address: Field,
     // the index of the commitment in the commitment tree
     index: Field,
+    creation_timestamp: u32,
     commitment_path: [Field; TREE_DEPTH],
     randomness: Field,
     recipient_pub_key: [u8; 32],
@@ -42,7 +43,8 @@ fn main(
     encrypted_amount_1: pub Gaffine,
     encrypted_amount_2: pub Gaffine,
     process_fee: pub u40,
-    output_commitment: pub Field
+    output_commitment: pub Field,
+    timestamp: pub Field
 ) {
     let hashed_message_calculated = compute_message_hash(recipient_pub_key, encrypted_amount_1, encrypted_amount_2);
     let address = ecrecover::ecrecover(
@@ -52,11 +54,16 @@ fn main(
         hashed_message_calculated
     );
     // verify that the nullifier corresponds to a leaf in the commitments tree
-    let commitment = hash_3([address, input_amount as Field, secret]);
+    let commitment = hash_4([address, input_amount as Field, timestamp as Field, secret]);
     let computed_commitment_root = compute_merkle_root(commitment, index, commitment_path);
     assert(computed_commitment_root == commitments_root);
 
-    let output_commitment_computed = hash_3([new_eth_address, remaining_balance as Field, new_secret]);
+    // verify that 24 hours have passed between commitment creation and nullification
+    // this ensures that the commitment has time to be flagged and added to the blacklist
+    let time_delay = creation_timestamp + 60 * 60 * 24;
+    assert(timestamp as u32 >= time_delay);
+
+    let output_commitment_computed = hash_4([new_eth_address, remaining_balance as Field, timestamp as Field, new_secret]);
     assert(output_commitment_computed == output_commitment);
     assert(remaining_balance + amount == input_amount);
 
@@ -67,11 +74,8 @@ fn main(
     // check that the nullifier is correct
     assert(nullifier == hash_2([index, secret]));
 
-    // if there is no blacklist root, do not check membership
-    if (blacklist_root != 0) {
-        // verifies non-membership of the entry in the provided root to a SMT
-        smt::verify(entry, matching_entry, smt_siblings, blacklist_root);
-    }
+    // verifies non-membership of the entry in the provided root to a SMT
+    smt::verify(entry, matching_entry, smt_siblings, blacklist_root);
 
     assert(recipient_pub_key_modulus == bjj::from_rpr_le(recipient_pub_key));
 
@@ -90,34 +94,53 @@ fn compute_message_hash(
     encrypted_amount_1: Gaffine,
     encrypted_amount_2: Gaffine
 ) -> [u8;32] {
+    // TODO: need to convert the inputs into a string representation bc the string version
+    // is what is hashed when signing
+
     // message is the concatenation of the recipient public key and the encrypted amount
     let mut message: [u8; 349] = [0; 349];
 
-    let prefix = "\x19Ethereum Signed Message:\n";
-    let message_length: Field = 320;
+    let mut prefix_message = "Ethereum Signed Message:\n320";
+
+    let mut prefix: [u8;29] = [0; 29];
+    prefix[0] = 25.to_be_bytes(1)[0]; // this is \x19
+    for i in 1..prefix.len() {
+        prefix[i] = prefix_message.as_bytes()[i - 1];
+    }
+    let prefix_length = prefix.len();
+
+    for i in 0..prefix_length {
+        message[i] = prefix[i];
+    }
+    // let message_length: Field = 320;
     // TODO: add prefix to message
     // prefixedMessage = toBytes(`\x19Ethereum Signed Message:\n${message.length}${message}`)
 
-    for i in 0..32 {
-        message[i] = public_key[i];
+    for i in 0..public_key.len() {
+        message[i + prefix_length] = public_key[i];
     }
 
-    let C1x = encrypted_amount_1.x.to_be_bytes(32);
-    let C1y = encrypted_amount_1.y.to_be_bytes(32);
-    let C2x = encrypted_amount_2.x.to_be_bytes(32);
-    let C2y = encrypted_amount_2.y.to_be_bytes(32);
-    for i in 0..32 {
-        message[i + 32] = C1x[i];
+    let C1x = encrypted_amount_1.x.to_be_bytes(64);
+    let C1y = encrypted_amount_1.y.to_be_bytes(64);
+    let C2x = encrypted_amount_2.x.to_be_bytes(64);
+    let C2y = encrypted_amount_2.y.to_be_bytes(64);
+
+    let length = C1x.len();
+
+    for i in 0..length {
+        message[i + prefix_length + length] = C1x[i];
     }
-    for i in 0..32 {
-        message[i + 64] = C1y[i];
+    for i in 0..length {
+        message[i + prefix_length + length * 2] = C1y[i];
     }
-    for i in 0..32 {
-        message[i + 96] = C2x[i];
+    for i in 0..length {
+        message[i + prefix_length + length * 3] = C2x[i];
     }
-    for i in 0..32 {
-        message[i + 128] = C2y[i];
+    for i in 0..length {
+        message[i + prefix_length + length * 4] = C2y[i];
     }
+    std::println(message);
+
     std::hash::keccak256(message, 349)
 }
 
@@ -191,13 +214,15 @@ fn test_main() {
     std::println(encrypted_amount.1.x);
     std::println(encrypted_amount.1.y);
 
+    let timestamp: Field = 1704333451;
+
     let secret = 168986485046885582825082387270879151100288537211746581237924789162159767777;
     let new_secret = 168986485046885582825082387270879151100288537211746581237924789162159767778;
     let address = 0x844Aa7aE2DB9bEb52f0613E5742EC5Ce9E1371a6;
     let new_eth_address = 0x844Aa7aE2DB9bEb52f0613E5742EC5Ce9E1371a6;
     let nullifier = hash_2([0, secret]);
-    let input_commitment = hash_3([address, input_amount as Field, secret]);
-    let output_commitment = hash_3([new_eth_address, remaining_balance as Field, new_secret]);
+    let input_commitment = hash_4([address, input_amount as Field, timestamp, secret]);
+    let output_commitment = hash_4([new_eth_address, remaining_balance as Field, timestamp, new_secret]);
 
     // not on a blacklist
     let entry = [0, 0];
@@ -248,9 +273,19 @@ fn test_verify_smt() {
 
 #[test]
 fn test_compute_message_hash() {
-    let public_key = [
+    let public_key: [u8;32] = [
         0xdc, 0x9f, 0x9f, 0xdb, 0x74, 0x6d, 0x0f, 0x07, 0xb0, 0x04, 0xcc, 0x43, 0x16, 0xe3, 0x49, 0x5a, 0x58, 0x57, 0x0b, 0x90, 0x66, 0x14, 0x99, 0xf8, 0xa6, 0xa6, 0x69, 0x6f, 0xf4, 0x15, 0x6b, 0xaa
     ];
+
+    // let mut public_key_string: [u8; 64] = [0; 64];
+    for i in 0..public_key.len() {
+        let val = public_key[i] as Field;
+        let bytes = val.to_le_bits(4);
+
+        std::println(bytes);
+    }
+
+    // let asbytes = public_key_1.as_bytes();
 
     let encrypted_amount = (Gaffine {
         x: 0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368,
@@ -268,4 +303,5 @@ fn test_compute_message_hash() {
     for i in 0..message_hash.len() {
         assert(message_hash[i] == message_hash_computed[i]);
     }
+    // assert(message_hash == message_hash_computed);
 }
