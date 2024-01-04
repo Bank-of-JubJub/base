@@ -6,25 +6,14 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 // import "./verifiers/withdraw_from_subset_verifier.sol";
 import "./MerkleTree.sol";
 
-contract PrivacyPool is
-    ReentrancyGuard,
-    MerkleTree
+contract PrivacyPool is ReentrancyGuard, MerkleTree {
     // WithdrawFromSubsetVerifier
-{
+
     using SafeERC20 for IERC20;
 
-    event Deposit(
-        uint indexed commitment,
-        uint amount,
-        uint leafIndex,
-        uint timestamp
-    );
+    event Deposit(uint256 indexed commitment, uint256 amount, uint256 leafIndex, uint256 timestamp);
     event Withdrawal(
-        address recipient,
-        address indexed relayer,
-        uint indexed subsetRoot,
-        uint nullifier,
-        uint fee
+        address recipient, address indexed relayer, uint256 indexed subsetRoot, uint256 nullifier, uint256 fee
     );
 
     error FeeExceedsAmount();
@@ -32,24 +21,22 @@ contract PrivacyPool is
     error MsgValueInvalid();
     error NoteAlreadySpent();
     error UnknownRoot();
-    mapping(uint => bool) public nullifiers;
+
+    mapping(uint256 => bool) public nullifiers;
     address public token;
 
     constructor(address _token, address poseidon) MerkleTree(poseidon, 0) {
         token = _token;
     }
 
-    // commitment: poseidon(secret, amount)
+    // commitment: poseidon(eth_address, amount, timestamp, secret)
     // need amounts because deposit amount is variable, should be an input to the withdraw
-    function deposit(
-        uint commitment,
-        uint amount
-    ) public payable nonReentrant returns (uint) {
+    function deposit(uint256 commitment, uint256 amount) public payable nonReentrant returns (uint256) {
         IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
         // use the following if PrivateToken is modified to handle any token
         // uint assetMetadata = snarkHash(abi.encode(token, amount));
         // uint leaf = hasher.poseidon([commitment, assetMetadata]);
-        uint leafIndex = insert(commitment);
+        uint256 leafIndex = insert(commitment);
         emit Deposit(commitment, amount, leafIndex, block.timestamp);
         return leafIndex;
     }
@@ -57,14 +44,14 @@ contract PrivacyPool is
     // nullifier = poseidon(secret, commitment_tree_index)
     function withdraw(
         bytes memory proof,
-        uint root,
-        uint subsetRoot,
-        uint nullifier,
-        uint amount,
+        uint256 root,
+        uint256 subsetRoot,
+        uint256 nullifier,
+        uint256 amount,
         address recipient,
-        uint refund,
+        uint256 refund,
         address relayer,
-        uint fee
+        uint256 fee
     ) public payable nonReentrant returns (bool) {
         if (nullifiers[nullifier]) revert NoteAlreadySpent();
         if (!isKnownRoot(root)) revert UnknownRoot();
@@ -102,9 +89,7 @@ contract PrivacyPool is
         return true;
     }
 
-    function snarkHash(bytes memory data) internal pure returns (uint) {
-        return
-            uint256(keccak256(data)) %
-            21888242871839275222246405745257275088548364400416034343698204186575808495617;
+    function snarkHash(bytes memory data) internal pure returns (uint256) {
+        return uint256(keccak256(data)) % 21888242871839275222246405745257275088548364400416034343698204186575808495617;
     }
 }
