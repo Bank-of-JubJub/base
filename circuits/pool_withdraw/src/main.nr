@@ -49,7 +49,6 @@ fn main(
     output_commitment: pub Field,
     timestamp: pub Field,
 ) {
-    // let hashed_message_calculated = compute_message_hash(recipient_pub_key, encrypted_amount_1, encrypted_amount_2);
     let address = ecrecover::ecrecover(
         eth_pub_key_x,
         eth_pub_key_y,
