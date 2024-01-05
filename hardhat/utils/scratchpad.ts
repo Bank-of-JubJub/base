@@ -29,6 +29,8 @@ async function main() {
   console.log(toBytes(hash))
   let signature = await account.signMessage({ message })
 
+  console.log(signature)
+
   const valid = await verifyMessage({
     address: account.address,
     message: message,
