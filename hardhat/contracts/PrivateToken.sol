@@ -432,6 +432,8 @@ contract PrivateToken is MerkleTree {
         _stageTransfer(_recipient, _processFee, _amount);
         uint256 blacklistRoot = blacklistManager.blacklistRoot();
 
+        // users will sign this message and provide it as input to the circuit
+        // this will ensure that the indented eth address is the one that is withdrawing
         WithdrawMessage memory _message = WithdrawMessage({recipient: _recipient, amount: _amount});
         bytes32 hashedMessage = getEIP712MessageHash(_message);
 
