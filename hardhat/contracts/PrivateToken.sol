@@ -89,14 +89,14 @@ contract PrivateToken is MerkleTree {
     //TODO: allow this to be set in the constructor
     uint8 public immutable decimals = 2;
 
-    // Domain Separator (example)
+    // Domain Separator
+    // more specific info may not be needed since
+    // EncrypteAmounts should always be unique
     bytes32 constant DOMAIN_SEPARATOR = keccak256(
         abi.encode(
-            keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+            keccak256("EIP712Domain(string name,string version)"),
             keccak256(bytes("BankOfJubjub")),
-            keccak256(bytes("1")),
-            block.chainid,
-            address(this)
+            keccak256(bytes("1"))
         )
     );
 
@@ -713,8 +713,11 @@ contract PrivateToken is MerkleTree {
         return keccak256(
             abi.encode(
                 keccak256("WithdrawMessage(bytes32 recipient,EncryptedAmount amount)"),
-                keccak256(_message.recipient),
-                keccak256(_message.amount)
+                keccak256(bytes32ToBytes(_message.recipient)),
+                keccak256(bytes32ToBytes(bytes32(_message.amount.C1x))),
+                keccak256(bytes32ToBytes(bytes32(_message.amount.C1y))),
+                keccak256(bytes32ToBytes(bytes32(_message.amount.C2x))),
+                keccak256(bytes32ToBytes(bytes32(_message.amount.C2y)))
             )
         );
     }
