@@ -713,16 +713,25 @@ contract PrivateToken is MerkleTree {
         return keccak256(
             abi.encode(
                 keccak256("WithdrawMessage(bytes32 recipient,EncryptedAmount amount)"),
-                keccak256(bytes32ToBytes(_message.recipient)),
-                keccak256(bytes32ToBytes(bytes32(_message.amount.C1x))),
-                keccak256(bytes32ToBytes(bytes32(_message.amount.C1y))),
-                keccak256(bytes32ToBytes(bytes32(_message.amount.C2x))),
-                keccak256(bytes32ToBytes(bytes32(_message.amount.C2y)))
+                _message.recipient,
+                _hashEncryptedAmount(_message.amount)
             )
         );
     }
 
-    function getEIP712MessageHash(WithdrawMessage memory _message) internal pure returns (bytes32) {
+    function _hashEncryptedAmount(EncryptedAmount memory amount) private pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                keccak256(bytes("EncryptedAmount(uint256 C1x,uint256 C1y,uint256 C2x,uint256 C2y)")),
+                amount.C1x,
+                amount.C1y,
+                amount.C2x,
+                amount.C2y
+            )
+        );
+    }
+
+    function getEIP712MessageHash(WithdrawMessage memory _message) private pure returns (bytes32) {
         return keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, _hashWithdrawMessage(_message)));
     }
 }
