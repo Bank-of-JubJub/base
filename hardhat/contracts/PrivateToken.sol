@@ -37,6 +37,11 @@ contract PrivateToken is MerkleTree {
         uint256 C2y;
     }
 
+    struct WithdrawMessage {
+        bytes32 recipient;
+        EncryptedAmount amount;
+    }
+
     // breaking up deposits/transfer into two steps allow all of them to succeed.
     // without this, te people trying to send the same person money in the same block would fail
     // because they would both be trying to update the same ecrypted state
@@ -83,6 +88,17 @@ contract PrivateToken is MerkleTree {
 
     //TODO: allow this to be set in the constructor
     uint8 public immutable decimals = 2;
+
+    // Domain Separator (example)
+    bytes32 constant DOMAIN_SEPARATOR = keccak256(
+        abi.encode(
+            keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
+            keccak256(bytes("BankOfJubjub")),
+            keccak256(bytes("1")),
+            block.chainid,
+            address(this)
+        )
+    );
 
     // packed public key => encrypted balance
     // packed using this algo: https://github.com/iden3/circomlibjs/blob/4f094c5be05c1f0210924a3ab204d8fd8da69f49/src/babyjub.js#L97
@@ -149,7 +165,7 @@ contract PrivateToken is MerkleTree {
         address _token,
         uint256 _decimals,
         address poseidon,
-        address blacklistManager
+        address _blacklistManager
     ) MerkleTree(poseidon, 0) {
         PROCESS_DEPOSIT_VERIFIER = ProcessDepositVerifier(_processDepositVerifier);
         PROCESS_TRANSFER_VERIFIER = ProcessTransferVerifier(_processTransferVerifier);
@@ -158,7 +174,7 @@ contract PrivateToken is MerkleTree {
         poolDepositVerifier = PoolDepositVerifier(_poolDepositVerifier);
         poolWithdrawVerifier = PoolWithdrawVerifier(_poolWithdrawVerifier);
         LOCK_VERIFIER = LockVerifier(_lockVerifier);
-        blacklistManager = BlacklistManager(blacklistManager);
+        blacklistManager = BlacklistManager(_blacklistManager);
 
         token = IERC20(_token);
         uint256 sourceDecimals = _decimals;
@@ -416,19 +432,27 @@ contract PrivateToken is MerkleTree {
         _stageTransfer(_recipient, _processFee, _amount);
         uint256 blacklistRoot = blacklistManager.blacklistRoot();
 
-        bytes32[] memory publicInputs = new bytes32[](12);
-        publicInputs[0] = bytes32(uint256(_relayFee));
-        publicInputs[1] = bytes32(fromRprLe(_recipient));
-        publicInputs[2] = bytes32(blacklistRoot % BJJ_PRIME);
-        publicInputs[3] = bytes32(_commitmentRoot % BJJ_PRIME);
-        publicInputs[4] = bytes32(_nullifier % BJJ_PRIME);
-        publicInputs[5] = bytes32(_amount.C1x);
-        publicInputs[6] = bytes32(_amount.C1y);
-        publicInputs[7] = bytes32(_amount.C2x);
-        publicInputs[8] = bytes32(_amount.C2y);
-        publicInputs[9] = bytes32(uint256(_processFee));
-        publicInputs[10] = bytes32(_outputCommitment);
-        publicInputs[11] = bytes32(block.timestamp);
+        WithdrawMessage memory _message = WithdrawMessage({recipient: _recipient, amount: _amount});
+        bytes32 hashedMessage = getEIP712MessageHash(_message);
+
+        bytes32[] memory publicInputs = new bytes32[](44);
+        for (uint8 i = 0; i < 32; i++) {
+            // Noir takes an array of 32 bytes32 as public inputs
+            bytes1 aByte = bytes1((hashedMessage << (i * 8)));
+            publicInputs[i] = bytes32(uint256(uint8(aByte)));
+        }
+        publicInputs[32] = bytes32(uint256(_relayFee));
+        publicInputs[33] = bytes32(fromRprLe(_recipient));
+        publicInputs[34] = bytes32(blacklistRoot % BJJ_PRIME);
+        publicInputs[35] = bytes32(_commitmentRoot % BJJ_PRIME);
+        publicInputs[36] = bytes32(_nullifier % BJJ_PRIME);
+        publicInputs[37] = bytes32(_amount.C1x);
+        publicInputs[38] = bytes32(_amount.C1y);
+        publicInputs[39] = bytes32(_amount.C2x);
+        publicInputs[40] = bytes32(_amount.C2y);
+        publicInputs[41] = bytes32(uint256(_processFee));
+        publicInputs[42] = bytes32(_outputCommitment);
+        publicInputs[43] = bytes32(block.timestamp);
 
         _payFees(_relayFee, _relayFeeRecipient);
         poolWithdrawVerifier.verify(_proof, publicInputs);
@@ -683,5 +707,19 @@ contract PrivateToken is MerkleTree {
             pendingTransferCounts[_to] += 1;
         }
         return receiverBalance;
+    }
+
+    function _hashWithdrawMessage(WithdrawMessage memory _message) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                keccak256("WithdrawMessage(bytes32 recipient,EncryptedAmount amount)"),
+                keccak256(_message.recipient),
+                keccak256(_message.amount)
+            )
+        );
+    }
+
+    function getEIP712MessageHash(WithdrawMessage memory _message) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, _hashWithdrawMessage(_message)));
     }
 }

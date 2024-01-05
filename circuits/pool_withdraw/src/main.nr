@@ -10,6 +10,8 @@ use dep::ecrecover;
 mod smt;
 global TREE_DEPTH: u32 = 20;
 
+global hex_str: [str<2>; 256] = ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "0a", "0b", "0c", "0d", "0e", "0f", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "1a", "1b", "1c", "1d", "1e", "1f", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "2a", "2b", "2c", "2d", "2e", "2f", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "3a", "3b", "3c", "3d", "3e", "3f", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "4a", "4b", "4c", "4d", "4e", "4f", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "5a", "5b", "5c", "5d", "5e", "5f", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "6a", "6b", "6c", "6d", "6e", "6f", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "7a", "7b", "7c", "7d", "7e", "7f", "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "8a", "8b", "8c", "8d", "8e", "8f", "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "9a", "9b", "9c", "9d", "9e", "9f", "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "aa", "ab", "ac", "ad", "ae", "af", "b0", "b1", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "ba", "bb", "bc", "bd", "be", "bf", "c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "ca", "cb", "cc", "cd", "ce", "cf", "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "da", "db", "dc", "dd", "de", "df", "e0", "e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8", "e9", "ea", "eb", "ec", "ed", "ee", "ef", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "fa", "fb", "fc", "fd", "fe", "ff"];
+
 fn main(
     // private inputs
     entry: [Field; 2],
@@ -35,6 +37,7 @@ fn main(
     eth_pub_key_y: [u8; 32],
     signature: [u8; 64],
     // public inputs
+    hashed_message: pub [u8; 32]
     relay_fee: pub u40,
     recipient_pub_key_modulus: pub Field,
     blacklist_root: pub Field,
@@ -44,14 +47,14 @@ fn main(
     encrypted_amount_2: pub Gaffine,
     process_fee: pub u40,
     output_commitment: pub Field,
-    timestamp: pub Field
+    timestamp: pub Field,
 ) {
-    let hashed_message_calculated = compute_message_hash(recipient_pub_key, encrypted_amount_1, encrypted_amount_2);
+    // let hashed_message_calculated = compute_message_hash(recipient_pub_key, encrypted_amount_1, encrypted_amount_2);
     let address = ecrecover::ecrecover(
         eth_pub_key_x,
         eth_pub_key_y,
         signature,
-        hashed_message_calculated
+        hashed_message
     );
     // verify that the nullifier corresponds to a leaf in the commitments tree
     let commitment = hash_4([address, input_amount as Field, timestamp as Field, secret]);
@@ -87,61 +90,6 @@ fn main(
         encrypted_amount_1,
         encrypted_amount_2
     );
-}
-
-fn compute_message_hash(
-    public_key: [u8;32],
-    encrypted_amount_1: Gaffine,
-    encrypted_amount_2: Gaffine
-) -> [u8;32] {
-    // TODO: need to convert the inputs into a string representation bc the string version
-    // is what is hashed when signing
-
-    // message is the concatenation of the recipient public key and the encrypted amount
-    let mut message: [u8; 349] = [0; 349];
-
-    let mut prefix_message = "Ethereum Signed Message:\n320";
-
-    let mut prefix: [u8;29] = [0; 29];
-    prefix[0] = 25.to_be_bytes(1)[0]; // this is \x19
-    for i in 1..prefix.len() {
-        prefix[i] = prefix_message.as_bytes()[i - 1];
-    }
-    let prefix_length = prefix.len();
-
-    for i in 0..prefix_length {
-        message[i] = prefix[i];
-    }
-    // let message_length: Field = 320;
-    // TODO: add prefix to message
-    // prefixedMessage = toBytes(`\x19Ethereum Signed Message:\n${message.length}${message}`)
-
-    for i in 0..public_key.len() {
-        message[i + prefix_length] = public_key[i];
-    }
-
-    let C1x = encrypted_amount_1.x.to_be_bytes(64);
-    let C1y = encrypted_amount_1.y.to_be_bytes(64);
-    let C2x = encrypted_amount_2.x.to_be_bytes(64);
-    let C2y = encrypted_amount_2.y.to_be_bytes(64);
-
-    let length = C1x.len();
-
-    for i in 0..length {
-        message[i + prefix_length + length] = C1x[i];
-    }
-    for i in 0..length {
-        message[i + prefix_length + length * 2] = C1y[i];
-    }
-    for i in 0..length {
-        message[i + prefix_length + length * 3] = C2x[i];
-    }
-    for i in 0..length {
-        message[i + prefix_length + length * 4] = C2y[i];
-    }
-    std::println(message);
-
-    std::hash::keccak256(message, 349)
 }
 
 // Returns the merkle root of the tree from the provided leaf, path indices, siblings with poseidon hash.
@@ -269,39 +217,4 @@ fn test_verify_smt() {
     let root = 19092112316297991684143646062628200623803555545749222745894317610913627992357;
 
     smt::verify(entry, matching_entry, siblings, root);
-}
-
-#[test]
-fn test_compute_message_hash() {
-    let public_key: [u8;32] = [
-        0xdc, 0x9f, 0x9f, 0xdb, 0x74, 0x6d, 0x0f, 0x07, 0xb0, 0x04, 0xcc, 0x43, 0x16, 0xe3, 0x49, 0x5a, 0x58, 0x57, 0x0b, 0x90, 0x66, 0x14, 0x99, 0xf8, 0xa6, 0xa6, 0x69, 0x6f, 0xf4, 0x15, 0x6b, 0xaa
-    ];
-
-    // let mut public_key_string: [u8; 64] = [0; 64];
-    for i in 0..public_key.len() {
-        let val = public_key[i] as Field;
-        let bytes = val.to_le_bits(4);
-
-        std::println(bytes);
-    }
-
-    // let asbytes = public_key_1.as_bytes();
-
-    let encrypted_amount = (Gaffine {
-        x: 0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368,
-        y: 0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f
-    }, Gaffine {
-        x: 0x20a08bc68201d32688f1ba415b168f1b78dfcb0af4c5c8741b8674d9aea97147,
-        y: 0x137c478ed936487f6b0a7b850a256c8286c993a43f808ade344aa1dcccd2e126
-    });
-
-    // message is the concatenation of the public key and the encrypted amount
-    let message_hash_computed = compute_message_hash(public_key, encrypted_amount.0, encrypted_amount.1);
-    let message_hash = [
-        226, 67, 35, 208, 253, 52, 103, 173, 60, 94, 95, 240, 146, 210, 105, 21, 146, 37, 214, 232, 77, 34, 156, 107, 112, 90, 60, 90, 189, 34, 253, 139
-    ];
-    for i in 0..message_hash.len() {
-        assert(message_hash[i] == message_hash_computed[i]);
-    }
-    // assert(message_hash == message_hash_computed);
 }
