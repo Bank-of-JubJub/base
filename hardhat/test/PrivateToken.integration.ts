@@ -255,7 +255,6 @@ async function deposit() {
     BigInt(depositAmount) / BigInt(10 ** (tokenDecimals - bojDecimals));
 
   await privateToken.write.deposit([
-    walletClient0.account.address,
     depositAmount,
     account1.packedPublicKey,
     depositProcessFee,
