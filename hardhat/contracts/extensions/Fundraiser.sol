@@ -8,7 +8,7 @@ contract FundraiserContract {
     PrivateToken privateToken;
 
     // the recipient is the account that will receive the funds
-    // users may want to verify that the
+    // users may want to verify that the recipient is the correct account (eg controlled by a multisig)
     mapping(bytes32 recipient => Fundraiser[] fundraisers) fundraisersMap;
     mapping(bytes32 sender => bool isPending) hasPendingContribution;
 
@@ -63,12 +63,10 @@ contract FundraiserContract {
         PrivateToken.EncryptedAmount calldata _amountToSend,
         PrivateToken.EncryptedAmount calldata _senderNewBalance,
         bytes memory _proof_transfer,
+        bytes memory _proof_increaseAmountContributed,
         PrivateToken.EncryptedAmount memory _newAmountContributed
     ) public {
-        require(
-            privateToken.lockedTo(_from) == address(this),
-            "Not locked to fundraiser"
-        );
+        require(privateToken.lockedTo(_from) == address(this), "Not locked to fundraiser");
         PendingContribution memory pendingContribution = PendingContribution({
             to: _to,
             from: _from,
@@ -79,45 +77,39 @@ contract FundraiserContract {
 
         // TODO: handle relay fee
         // TODO: circuit to verify that inputs are valid and amount contributed is increased properly
+        // essentially the verify transfer logic to verify the transfer is valid
+        // and the process_transfer logic to verify the amount contributed is increased properly
+
+        // TODO: need verify 2 proofs.
+        // 1. verify transfer
+        // 2. verify increaseAmountContributed
 
         Fundraiser memory f = fundraisersMap[_to][fundraiserIndex];
         // circuit to check correctly increased amount contributed
         f.amountContributed = _newAmountContributed;
-        fundraisersMap[_to][fundraiserIndex].contributions.push(
-            pendingContribution
-        );
+        fundraisersMap[_to][fundraiserIndex].contributions.push(pendingContribution);
         hasPendingContribution[_from] = true;
     }
 
     // TODO: need to create a circuit to validate this is coming from the correct account
-    function revokeContribution(
-        bytes32 _to,
-        bytes32 _from,
-        uint256 fundraiserIndex,
-        uint256 contributionIndex
-    ) public {}
+    function revokeContribution(bytes32 _to, bytes32 _from, uint256 fundraiserIndex, uint256 contributionIndex)
+        public
+    {}
 
-    function setThresholdMet(
-        bytes32 recipient,
-        uint256 fundraiserIndex,
-        bytes memory proof
-    ) public {
+    function setThresholdMet(bytes32 recipient, uint256 fundraiserIndex, bytes memory proof) public {
         Fundraiser memory f = fundraisersMap[recipient][fundraiserIndex];
         // TODO: write a circuit that allows the recipient to prove that the
         // f.amountContributed >= threshold
     }
 
     function processContributions(bytes32 _to, uint256 fundraiserIndex) public {
-        require(
-            fundraisersMap[_to][fundraiserIndex].endTime >= block.timestamp,
-            "Fundraiser must be over"
-        );
+        require(fundraisersMap[_to][fundraiserIndex].endTime >= block.timestamp, "Fundraiser must be over");
         Fundraiser memory f = fundraisersMap[_to][fundraiserIndex];
         require(f.isThresholdMet, "Fundraising threshold must be met");
         PendingContribution[] memory contributions = f.contributions;
 
         // TODO: handle 10(?) deposits per tx
-        for (uint i = 0; i < contributions.length; i++) {
+        for (uint256 i = 0; i < contributions.length; i++) {
             PendingContribution memory contribution = contributions[i];
             privateToken.transfer(
                 contribution.to,
