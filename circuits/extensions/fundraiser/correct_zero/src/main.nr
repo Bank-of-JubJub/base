@@ -1,10 +1,10 @@
-use dep::std::ec::tecurve::affine::Curve as AffineCurve;
 use dep::std::ec::tecurve::affine::Point as Gaffine;
-use dep::std::collections::vec::Vec;
 use dep::std;
 use dep::utils;
 use dep::bjj;
 
+// this circuit makes sure that when a fundraiser is created, the recipient's balance is 0. it is embedded in the elliptic curve
+// so that contributors can homomophically add to the recipient's balance without knowing the recipient's private key.
 fn main(
     randomness: Field,
     public_key: pub [u8; 32],
