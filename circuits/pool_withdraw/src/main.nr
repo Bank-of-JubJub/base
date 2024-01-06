@@ -2,6 +2,7 @@ use dep::std::option::Option;
 use dep::std;
 use dep::std::hash::poseidon::bn254::hash_2;
 use dep::std::hash::poseidon::bn254::hash_4;
+use dep::std::hash::poseidon::bn254::hash_3;
 use dep::std::ec::tecurve::affine::Point as Gaffine;
 use dep::bjj;
 use dep::utils;
@@ -9,8 +10,6 @@ use dep::ecrecover;
 
 mod smt;
 global TREE_DEPTH: u32 = 20;
-
-global hex_str: [str<2>; 256] = ["00", "01", "02", "03", "04", "05", "06", "07", "08", "09", "0a", "0b", "0c", "0d", "0e", "0f", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "1a", "1b", "1c", "1d", "1e", "1f", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "2a", "2b", "2c", "2d", "2e", "2f", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "3a", "3b", "3c", "3d", "3e", "3f", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "4a", "4b", "4c", "4d", "4e", "4f", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "5a", "5b", "5c", "5d", "5e", "5f", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "6a", "6b", "6c", "6d", "6e", "6f", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "7a", "7b", "7c", "7d", "7e", "7f", "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "8a", "8b", "8c", "8d", "8e", "8f", "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "9a", "9b", "9c", "9d", "9e", "9f", "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "a8", "a9", "aa", "ab", "ac", "ad", "ae", "af", "b0", "b1", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "ba", "bb", "bc", "bd", "be", "bf", "c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9", "ca", "cb", "cc", "cd", "ce", "cf", "d0", "d1", "d2", "d3", "d4", "d5", "d6", "d7", "d8", "d9", "da", "db", "dc", "dd", "de", "df", "e0", "e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8", "e9", "ea", "eb", "ec", "ed", "ee", "ef", "f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "fa", "fb", "fc", "fd", "fe", "ff"];
 
 fn main(
     // private inputs
@@ -37,7 +36,7 @@ fn main(
     eth_pub_key_y: [u8; 32],
     signature: [u8; 64],
     // public inputs
-    hashed_message: pub [u8; 32]
+    hashed_message: pub [u8; 32],
     relay_fee: pub u40,
     recipient_pub_key_modulus: pub Field,
     blacklist_root: pub Field,
@@ -47,16 +46,13 @@ fn main(
     encrypted_amount_2: pub Gaffine,
     process_fee: pub u40,
     output_commitment: pub Field,
-    timestamp: pub Field,
+    timestamp: pub Field
 ) {
-    let address = ecrecover::ecrecover(
-        eth_pub_key_x,
-        eth_pub_key_y,
-        signature,
-        hashed_message
-    );
+    let address = ecrecover::ecrecover(eth_pub_key_x, eth_pub_key_y, signature, hashed_message);
     // verify that the nullifier corresponds to a leaf in the commitments tree
-    let commitment = hash_4([address, input_amount as Field, timestamp as Field, secret]);
+    let commitment = hash_4([address, input_amount as Field, creation_timestamp as Field, secret]);
+    std::println("commitment: ");
+    std::println(commitment);
     let computed_commitment_root = compute_merkle_root(commitment, index, commitment_path);
     assert(computed_commitment_root == commitments_root);
 
@@ -112,16 +108,11 @@ fn compute_merkle_root(leaf: Field, index: Field, siblings: [Field; TREE_DEPTH])
 fn test_main() {
     let private_key: Field = 2291123624948246627368989940774052753470489062495018070576418670157516550852;
     let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775;
-    let amount: u40 = 10;
-    let input_amount: u40 = 10;
     let amount: u40 = 5;
+    let input_amount: u40 = 10;
     let remaining_balance: u40 = 5;
     let relay_fee: u40 = 1;
     let process_fee: u40 = 2;
-
-    let signature = [
-        228, 186, 97, 91, 219, 107, 135, 161, 33, 126, 124, 76, 15, 225, 175, 244, 156, 40, 54, 211, 47, 160, 66, 205, 94, 104, 183, 117, 152, 244, 225, 72, 41, 230, 44, 65, 236, 105, 114, 144, 68, 247, 69, 132, 48, 34, 245, 11, 17, 186, 216, 56, 83, 225, 129, 200, 152, 12, 222, 177, 71, 15, 79, 54, 28
-    ];
 
     // commitment
     let index = 0;
@@ -147,7 +138,7 @@ fn test_main() {
         6939770416153240137322503476966641397417391950902474480970945462551409848591,
         10941962436777715901943463195175331263348098796018438960955633645115732864202
     ];
-    let commitments_root = 6598509457608670666299136503868652005177457995065010418208814398647233618885;
+    let commitments_root = 19411473306426262218938048504148813752714381268614746277053705696464881084655;
 
     // balance setup
     let public_key: Gaffine = bjj::priv_to_pub_key(private_key);
@@ -156,13 +147,7 @@ fn test_main() {
     // let old_balance_encrypted = bjj::exp_elgamal_encrypt(public_key, old_balance_clear, randomness);
     let encrypted_amount = bjj::exp_elgamal_encrypt(public_key, amount - relay_fee - process_fee, randomness);
 
-    std::println(encrypted_amount.0.x);
-    std::println(encrypted_amount.0.y);
-    std::println(encrypted_amount.1.x);
-    std::println(encrypted_amount.1.y);
-
-    let timestamp: Field = 1704333451;
-
+    let timestamp = 1;
     let secret = 168986485046885582825082387270879151100288537211746581237924789162159767777;
     let new_secret = 168986485046885582825082387270879151100288537211746581237924789162159767778;
     let address = 0x844Aa7aE2DB9bEb52f0613E5742EC5Ce9E1371a6;
@@ -171,39 +156,49 @@ fn test_main() {
     let input_commitment = hash_4([address, input_amount as Field, timestamp, secret]);
     let output_commitment = hash_4([new_eth_address, remaining_balance as Field, timestamp, new_secret]);
 
+    let hashed_message: [u8;32] = [ 148, 225, 232, 52, 253, 74, 158, 220, 43, 224, 62, 209, 233, 106, 81, 115, 101, 157, 92, 126, 121, 93, 207, 92, 236, 212, 52, 251, 210, 140, 219, 196 ];
+    let eth_pub_key_x = [ 29, 133, 230, 167, 30, 47, 197, 113, 66, 163, 204, 93, 63, 170, 166, 25, 169, 90, 9, 96, 193, 99, 100, 43, 62, 180, 59, 50, 159, 216, 225, 91 ];
+    let eth_pub_key_y = [ 243, 36, 32, 52, 180, 27, 194, 37, 29, 61, 26, 157, 36, 49, 44, 86, 80, 250, 55, 7, 144, 167, 101, 38, 179, 180, 160, 202, 78, 181, 107, 222 ];
+    let signature = [228, 186, 97, 91, 219, 107, 135, 161, 33, 126, 124, 76, 15, 225, 175, 244, 156, 40, 54, 211, 47, 160, 66, 205, 94, 104, 183, 117, 152, 244, 225, 72, 41, 230, 44, 65, 236, 105, 114, 144, 68, 247, 69, 132, 48, 34, 245, 11, 17, 186, 216, 56, 83, 225, 129, 200, 152, 12, 222, 177, 71, 15, 79, 54 ];
+
     // not on a blacklist
     let entry = [0, 0];
     let matching_entry = [Option::some(12), Option::some(1)];
     let mut siblings : [Field; TREE_DEPTH] = [0; TREE_DEPTH];
     siblings[0] = 10156843431765632938234799028080865273583905746116765084187298821282584587626;
     let blacklist_root = 19092112316297991684143646062628200623803555545749222745894317610913627992357;
-    // main(
-    //     entry,
-    //     matching_entry,
-    //     siblings,
-    //     secret,
-    //     amount,
-    //     input_amount,
-    //     remaining_balance,
-    //     new_secret,
-    //     new_eth_address,
-    //     index,
-    //     commitment_path,
-    //     randomness,
-    //     packed_public_key,
-    //     eth_pub_key_x,
-    //     eth_pub_key_y,
-    //     signature,
-    //     relay_fee,
-    //     pub_key_modulus,
-    //     blacklist_root,
-    //     commitments_root,
-    //     nullifier,
-    //     encrypted_amount.0,
-    //     encrypted_amount.1,
-    //     process_fee,
-    //     output_commitment
-    // );
+    main(
+        // private
+        entry,
+        matching_entry,
+        siblings,
+        secret,
+        amount,
+        input_amount,
+        remaining_balance,
+        new_secret,
+        new_eth_address,
+        index,
+        1, // creation_timestamp
+        commitment_path,
+        randomness,
+        packed_public_key,
+        eth_pub_key_x,
+        eth_pub_key_y,
+        signature,
+        // public
+        hashed_message,
+        relay_fee,
+        pub_key_modulus,
+        blacklist_root,
+        commitments_root,
+        nullifier,
+        encrypted_amount.0,
+        encrypted_amount.1,
+        process_fee,
+        output_commitment,
+        86402 // timestamp + 24 hours
+    );
 }
 
 #[test]

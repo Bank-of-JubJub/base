@@ -9,6 +9,7 @@ dotenv.config({ path: "../.env" });
 import { SMT, ChildNodes, HashFunction } from "@zk-kit/smt";
 import { IMT } from "@zk-kit/imt";
 import { BJJ_PRIME } from "./constants";
+import { sign } from "crypto";
 
 async function main() {
   const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
@@ -29,7 +30,7 @@ async function main() {
   console.log(toBytes(hash))
   let signature = await account.signMessage({ message })
 
-  console.log(hash)
+  console.log(toBytes(signature))
 
   const valid = await verifyMessage({
     address: account.address,
@@ -37,10 +38,14 @@ async function main() {
     signature,
   })
 
-  const publicKey = await recoverPublicKey({
+  const publicKeyUncompressed = await recoverPublicKey({
     hash,
     signature
   })
+
+  const publicKey = publicKeyUncompressed.slice(4)
+  console.log(publicKeyUncompressed)
+  console.log("public key, ", toBytes("0x" + publicKey).slice(0, 32), toBytes("0x" + publicKey).slice(32))
 
   const address1 = await recoverMessageAddress({
     message,
