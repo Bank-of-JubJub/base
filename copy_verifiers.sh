@@ -7,6 +7,8 @@ LOCATIONS=(
     "transfer"
     "withdraw"
     "add_eth_signers"
+    "pool_withdraw"
+    "pool_deposit"
 )
 
 DEST_PATH="hardhat/contracts/"
@@ -18,7 +20,7 @@ for LOCATION in "${LOCATIONS[@]}"; do
     if [[ -f "$SRC_PATH" ]]; then
         # Extract the folder name from the source path
         FOLDER_NAME=$(basename "$SRC_PATH")
-        echo  "$DEST_PATH/{$LOCATION}/"
+        echo "$DEST_PATH/{$LOCATION}/"
         # Use the cp command with the -r (recursive) option to copy the folder
         mkdir -p "$DEST_PATH/$LOCATION"
         cp -r "$SRC_PATH" "$DEST_PATH/$LOCATION/plonk_vk.sol"

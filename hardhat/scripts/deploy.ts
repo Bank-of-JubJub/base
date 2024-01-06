@@ -101,16 +101,13 @@ deployContracts().catch((error) => {
   process.exitCode = 1;
 });
 
-async function deployAndSave(
+export async function deployAndSave(
   name: string,
   constructorArgs: any[],
   isTest: boolean = false
 ) {
   const publicClient = await hre.viem.getPublicClient();
   const [deployer] = await hre.viem.getWalletClients();
-  // const count = await publicClient.getTransactionCount({
-  //   address: deployer.account.address,
-  // });
 
   let contractName = name;
   if (name.startsWith("contracts/")) {

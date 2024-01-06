@@ -1,0 +1,117 @@
+use dep::std::ec::tecurve::affine::Curve as AffineCurve;
+use dep::std::ec::tecurve::affine::Point as Gaffine;
+use dep::std::collections::vec::Vec;
+use dep::std;
+use dep::utils;
+use dep::bjj;
+
+fn main(
+    private_key: Field,
+    randomness: Field,
+    value: u40,
+    /* Balance_old_me_clear is the clear (i.e decrypted) balance of sender 
+        this is computed offchain by solving the DLP with babygiant algorithm, 
+        after calling bjj_exp_elgamal_decrypt with his private key */
+    balance_old_me_clear: u40,
+    sender_pub_key: [u8; 32],
+    // Public inputs
+    sender_pub_key_modulus: pub Field,
+    // account_address: pub Field, // can be removed with packed public keys
+    relay_fee: pub u40,
+    nonce: pub Field,
+    old_balance_encrypted_1: pub Gaffine,
+    old_balance_encrypted_2: pub Gaffine,
+    new_balance_encrypted_1: pub Gaffine,
+    new_balance_encrypted_2: pub Gaffine
+) {
+    let unpacked_sender_pub_key = utils::assert_private_key_matches_packed(private_key, sender_pub_key);
+    assert(sender_pub_key_modulus == bjj::from_rpr_le(sender_pub_key));
+
+    // the sender must have sufficient balance
+    assert(value + relay_fee <= balance_old_me_clear);
+
+    /* this is to deter potential front-running issue: ref https://crypto.stanford.edu/~buenz/papers/zether.pdf §3.1. 
+    Here we adopt a simpler approach than the multistep approach proposed in the Zether paper, for a better UX: 
+    an attacker who tries to DOS the sender should at least pay 1 token to either original sender or receiver. 
+    The "1" threshold could be changed to ensure correct economic incentives, typically this should be at least 
+    a multiple of the average gas price of a transfer transaction. another more straightforward solution to 
+    front-running would be simply to do the homomorphic addition in the smart contract rather than the circuit, 
+    but this is too expensive today on Ethereum, according to the Zeestar paper §III : 
+    https://files.sri.inf.ethz.ch/website/papers/sp22-zeestar.pdf
+    */
+    assert(value >= 1);
+    utils::assert_correct_clear_balance(
+        private_key,
+        balance_old_me_clear,
+        old_balance_encrypted_1,
+        old_balance_encrypted_2
+    );
+
+    utils::assert_correct_new_balance_transfer(
+        unpacked_sender_pub_key,
+        balance_old_me_clear,
+        new_balance_encrypted_1,
+        new_balance_encrypted_2,
+        value,
+        relay_fee,
+        0, // process fee is 0
+        randomness
+    );
+}
+
+// this is the same inputs as the transfer test, just with unused params removed
+#[test]
+fn test_pool_deposit() {
+    // private values
+    let private_key: Field = 2291123624948246627368989940774052753470489062495018070576418670157516550852;
+    let randomness: Field = 168986485046885582825082387270879151100288537211746581237924789162159767775;
+    let value: u40 = 5;
+    let old_balance = 999;
+
+    // public values
+    let packed_sender_pub_key = [
+        0xdc, 0x9f, 0x9f, 0xdb, 0x74, 0x6d, 0x0f, 0x07, 0xb0, 0x04, 0xcc, 0x43, 0x16, 0xe3, 0x49,
+        0x5a, 0x58, 0x57, 0x0b, 0x90, 0x66, 0x14, 0x99, 0xf8, 0xa6, 0xa6, 0x69, 0x6f, 0xf4, 0x15,
+        0x6b, 0xaa
+    ];
+    let sender_pub_key_modulus = bjj::from_rpr_le(packed_sender_pub_key);
+
+    let relay_fee: u40 = 2;
+
+    let nonce = 21791187112363609100120894565844832280298519926030489354388467102708178882956;
+
+    // let old_encrypted_balance = bjj::exp_elgamal_encrypt(sender_unpacked, old_balance, randomness);
+    let old_encrypted_balance: (Gaffine, Gaffine) = (Gaffine::new(
+            0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368,
+            0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f
+        ), Gaffine::new(
+            0x1a71ea2eae3ddac2aac76373cbb880c5c6cc76e9d29807d82d05f3c85b5beabb,
+            0x2a179ce3f5cbeec397a3d14154d38fae55ffc6163f89ff324171ead91f110ff5
+        ));
+    // let new_balance_encrypted = bjj::exp_elgamal_encrypt(sender_unpacked, old_balance - process_fee - relay_fee - value, randomness);
+
+    let new_balance_encrypted: (Gaffine, Gaffine) = (Gaffine::new(
+            0x034ed15cc9c368232e3926503d285e05f1ebed691e83dd928ca96c9ef0ce7368,
+            0x0967e26ca6d6476a92fdf6e3417219351a51c337fb0a43fcfedc50f3009c036f
+        ), Gaffine::new(
+            0x2795109cf233e0d54d88f75d6c8b28b37ea224b6083e2f76efed55710e1fd425,
+            0x3006aa76f9499aeee9080237f3c24005be7ca83627f6600f7b278dff77a37df5
+        ));
+
+    //    std::println( encrypted_amount.0);
+    // std::println(encrypted_amount.1);
+    main(
+        private_key,
+        randomness,
+        value,
+        old_balance,
+        packed_sender_pub_key,
+        sender_pub_key_modulus,
+        relay_fee,
+        nonce,
+        old_encrypted_balance.0,
+        old_encrypted_balance.1,
+        new_balance_encrypted.0,
+        new_balance_encrypted.1
+    );
+}

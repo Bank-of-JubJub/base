@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import {UltraVerifier as ProcessDepositVerifier} from "./process_pending_deposits/plonk_vk.sol";
 import {UltraVerifier as ProcessTransferVerifier} from "./process_pending_transfers/plonk_vk.sol";
 import {UltraVerifier as WithdrawVerifier} from "./withdraw/plonk_vk.sol";
-import {UltraVerifier as Withdraw4337Verifier} from "./withdraw/plonk_vk.sol";
-import {UltraVerifier as WithdrawEthSignerVerifier} from "./withdraw/plonk_vk.sol";
-import {UltraVerifier as WithdrawMultisigVerifier} from "./withdraw/plonk_vk.sol";
+import {UltraVerifier as PoolDepositVerifier} from "./pool_deposit/plonk_vk.sol";
+import {UltraVerifier as PoolWithdrawVerifier} from "./pool_withdraw/plonk_vk.sol";
 import {UltraVerifier as LockVerifier} from "./lock/plonk_vk.sol";
 import {IERC20} from "./IERC20.sol";
 import {IERC165} from "./IERC165.sol";
@@ -15,6 +14,8 @@ import {ERC165Checker} from "./ERC165Checker.sol";
 import {AccountController} from "./AccountController.sol";
 import {TransferVerify} from "./TransferVerify.sol";
 import {WithdrawVerify} from "./WithdrawVerify.sol";
+import {BlacklistManager} from "./BlacklistManager.sol";
+import "./MerkleTree.sol";
 
 /**
  * @dev Implementation of PrivateToken.
@@ -22,8 +23,11 @@ import {WithdrawVerify} from "./WithdrawVerify.sol";
  * Balances are encrypted to each owner's public key, according to the registered keys inside the PublicKeyInfrastructure.
  * Because we use Exponential ElGamal encryption, each EncryptedAmount is a pair of points on Baby Jubjub (C1,C2) = ((C1x,C1y),(C2x,C2y)).
  */
-contract PrivateToken {
+contract PrivateToken is MerkleTree {
     using ERC165Checker for address;
+
+    error UnknownRoot();
+    error NoteAlreadySpent();
 
     struct EncryptedAmount {
         // #TODO : We could pack those in 2 uints instead of 4 to save storage costs (for e.g using circomlibjs library to pack points on BabyJubjub)
@@ -31,6 +35,11 @@ contract PrivateToken {
         uint256 C1y;
         uint256 C2x;
         uint256 C2y;
+    }
+
+    struct WithdrawMessage {
+        bytes32 recipient;
+        EncryptedAmount amount;
     }
 
     // breaking up deposits/transfer into two steps allow all of them to succeed.
@@ -65,13 +74,12 @@ contract PrivateToken {
     // } // The Public Key should be a point on Baby JubJub elliptic curve : checks must be done offchain before registering to ensure that X<p and Y<p and (X,Y) is on the curve
     ProcessDepositVerifier public PROCESS_DEPOSIT_VERIFIER;
     ProcessTransferVerifier public PROCESS_TRANSFER_VERIFIER;
-    // WithdrawVerifier public WITHDRAW_VERIFIER;
-    // Withdraw4337Verifier public WITHDRAW_4337_VERIFIER;
-    // WithdrawEthSignerVerifier public WITHDRAW_ETH_SIGNER_VERIFIER;
-    // WithdrawMultisigVerifier public WITHDRAW_MULTISIG_VERIFIER;
     LockVerifier public LOCK_VERIFIER;
     address public allTransferVerifier;
     address public allWithdrawVerifier;
+    PoolDepositVerifier public poolDepositVerifier;
+    PoolWithdrawVerifier public poolWithdrawVerifier;
+    BlacklistManager public blacklistManager;
 
     uint40 public totalSupply;
 
@@ -80,6 +88,17 @@ contract PrivateToken {
 
     //TODO: allow this to be set in the constructor
     uint8 public immutable decimals = 2;
+
+    // Domain Separator
+    // more specific info may not be needed since
+    // EncrypteAmounts should always be unique
+    bytes32 constant DOMAIN_SEPARATOR = keccak256(
+        abi.encode(
+            keccak256("EIP712Domain(string name,string version)"),
+            keccak256(bytes("BankOfJubjub")),
+            keccak256(bytes("1"))
+        )
+    );
 
     // packed public key => encrypted balance
     // packed using this algo: https://github.com/iden3/circomlibjs/blob/4f094c5be05c1f0210924a3ab204d8fd8da69f49/src/babyjub.js#L97
@@ -101,6 +120,9 @@ contract PrivateToken {
     // account can be locked and controlled by a contract
     mapping(bytes32 packedPublicKey => address lockedToContract) public lockedTo;
 
+    // nullifiers for withdraws from the privacy pool
+    mapping(uint256 => bool) public poolNullifiers;
+
     /*
         A PendingTransaction is added to this array when transfer is called.
         The transfer fn debits the senders balance by the amount sent.
@@ -116,10 +138,11 @@ contract PrivateToken {
     event TransferProcessed(bytes32 to, EncryptedAmount newBalance, uint256 processFee, address processFeeRecipient);
     event Deposit(address from, bytes32 to, uint256 amount, uint256 processFee);
     event DepositProcessed(bytes32 to, uint256 amount, uint256 processFee, address feeRecipient);
+    event DepositToPool(uint256 indexed commitment, uint256 leafIndex, uint256 timestamp);
     event Withdraw(bytes32 from, address to, uint256 amount, address _relayFeeRecipient, uint256 relayFee);
     event Lock(bytes32 publicKey, address lockedTo, uint256 relayerFee, address relayerFeeRecipient);
     event Unlock(bytes32 publicKey, address unlockedFrom);
-
+    event NewCommitment(uint256 commitment, uint256 leafIndex, uint256 timestamp);
     /**
      * @notice Constructor - setup up verifiers and link to token
      * @dev
@@ -136,22 +159,29 @@ contract PrivateToken {
         address _processTransferVerifier,
         address _allTransferVerifier,
         address _allWithdrawVerifier,
+        address _poolDepositVerifier,
+        address _poolWithdrawVerifier,
         address _lockVerifier,
         address _token,
-        uint256 _decimals
-    ) {
+        uint256 _decimals,
+        address poseidon,
+        address _blacklistManager
+    ) MerkleTree(poseidon, 0) {
         PROCESS_DEPOSIT_VERIFIER = ProcessDepositVerifier(_processDepositVerifier);
         PROCESS_TRANSFER_VERIFIER = ProcessTransferVerifier(_processTransferVerifier);
         allTransferVerifier = _allTransferVerifier;
         allWithdrawVerifier = _allWithdrawVerifier;
+        poolDepositVerifier = PoolDepositVerifier(_poolDepositVerifier);
+        poolWithdrawVerifier = PoolWithdrawVerifier(_poolWithdrawVerifier);
         LOCK_VERIFIER = LockVerifier(_lockVerifier);
+        blacklistManager = BlacklistManager(_blacklistManager);
 
         token = IERC20(_token);
         uint256 sourceDecimals = _decimals;
         try token.decimals() returns (uint256 returnedDecimals) {
             sourceDecimals = returnedDecimals;
         } catch {
-            // do nothing
+            // do nothing    // WithdrawVerifier public WITHDRAW_VERIFIER;
         }
 
         SOURCE_TOKEN_DECIMALS = sourceDecimals;
@@ -189,6 +219,52 @@ contract PrivateToken {
     }
 
     /**
+     * @notice Deposit into the privacy pool from a BoJ account. The depositor essetially burns their deposit by sending it to the 0 address, and it
+     * can be claimed by anyone who knows the secret and create a signature with the associated eth_address. Specifying an eth_address allows
+     *  for transfers within the privacy pool. Someone can comsume a commitment and create a new one, specifying a new eth_address, and secret.
+     *  The sender must share the secret with the recipient for them to claim (could be encrypted and emitted on chain.)
+     * @dev
+     * @param commitment - the commitment to the amount being deposited. poseidon(eth_address, amount, secret). This is added to the commitments tree
+     * @param _from - the packed public key of the sender in the system
+     * @param _relayFee - (optional, can be 0) amount to pay the relayer of the tx,
+     * @param _relayFeeRecipient - the recipient of the relay fee
+     * @param _newBalance - the new encrypted balance of the sender after the deposit and fee
+     * @param _proof - proof
+     */
+    function poolDeposit(
+        uint256 _commitment,
+        bytes32 _from,
+        uint40 _relayFee,
+        address _relayFeeRecipient,
+        EncryptedAmount calldata _newBalance,
+        bytes memory _proof
+    ) public {
+        bytes32 to = bytes32(0);
+        EncryptedAmount memory oldBalance = balances[_from];
+
+        bytes32[] memory publicInputs = new bytes32[](11);
+        publicInputs[0] = bytes32(fromRprLe(_from));
+        publicInputs[1] = bytes32(uint256(_relayFee));
+        publicInputs[2] = bytes32(checkAndUpdateNonce(_from, _newBalance));
+        publicInputs[3] = bytes32(oldBalance.C1x);
+        publicInputs[4] = bytes32(oldBalance.C1y);
+        publicInputs[5] = bytes32(oldBalance.C2x);
+        publicInputs[6] = bytes32(oldBalance.C2y);
+        publicInputs[7] = bytes32(_newBalance.C1x);
+        publicInputs[8] = bytes32(_newBalance.C1y);
+        publicInputs[9] = bytes32(_newBalance.C2x);
+        publicInputs[10] = bytes32(_newBalance.C2y);
+
+        poolDepositVerifier.verify(_proof, publicInputs);
+
+        balances[_from] = _newBalance;
+
+        uint256 leafIndex = insert(_commitment);
+        _payFees(_relayFee, _relayFeeRecipient);
+        emit NewCommitment(_commitment, leafIndex, block.timestamp);
+    }
+
+    /**
      * @notice This functions transfers an encrypted amount of tokens to the recipient (_to).
      *  If the sender is sending to an account with a 0 balance, they can omit the fee, as the funds
      *  will be directly added to their account. Otherwise a fee can be specified to incentivize
@@ -221,7 +297,7 @@ contract PrivateToken {
         uint256 txNonce;
         address lockedByAddress;
         EncryptedAmount oldBalance;
-        EncryptedAmount receiverBalance;
+        // EncryptedAmount receiverBalance;
         uint256 transferCount;
         bytes32 to;
         bytes32 from;
@@ -232,8 +308,6 @@ contract PrivateToken {
         PrivateToken privateToken;
         bytes proof;
     }
-
-    // bytes32[] publicInputs;
 
     function transfer(
         bytes32 _to,
@@ -253,27 +327,10 @@ contract PrivateToken {
             "account is locked to another account"
         );
         local.oldBalance = balances[_from];
-        local.receiverBalance = balances[_to];
-        bool zeroBalance = (
-            local.receiverBalance.C1x == 0 && local.receiverBalance.C2x == 0 && local.receiverBalance.C1y == 0
-                && local.receiverBalance.C2y == 0
-        );
-        if (zeroBalance) {
-            // no fee required if a new account
-            _processFee = 0;
-            balances[_to] = _amountToSend;
-        } else {
-            local.transferCount = pendingTransferCounts[_to];
-            allPendingTransfersMapping[_to][local.transferCount] =
-                PendingTransfer(_amountToSend, _processFee, block.timestamp);
-            pendingTransferCounts[_to] += 1;
-        }
-
+        _stageTransfer(_to, _processFee, _amountToSend);
         balances[_from] = _senderNewBalance;
         emit Transfer(_from, _to, _amountToSend);
-        if (_relayFee != 0) {
-            token.transfer(_relayFeeRecipient, _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals));
-        }
+        _payFees(_relayFee, _relayFeeRecipient);
 
         local.to = _to;
         local.from = _from;
@@ -300,8 +357,6 @@ contract PrivateToken {
      *  @param _withdraw_proof - proof
      *  @param _newEncryptedAmount - the new encrypted balance of the sender after the withdraw and fee
      */
-
-    // TODO: update withdraw function to have validational conditional on the type of accounts, 4337, eth signer, multisig
 
     struct WithdrawLocals {
         uint256 txNonce;
@@ -335,9 +390,8 @@ contract PrivateToken {
         local.oldBalance = balances[_from];
         balances[_from] = _newEncryptedAmount;
         totalSupply -= _amount;
-        if (_relayFee != 0) {
-            token.transfer(_relayFeeRecipient, uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)));
-        }
+        _payFees(_relayFee, _relayFeeRecipient);
+
         {
             uint256 convertedAmount = _amount * 10 ** (SOURCE_TOKEN_DECIMALS - decimals);
             token.transfer(_to, convertedAmount);
@@ -350,6 +404,63 @@ contract PrivateToken {
         local.proof = _withdraw_proof;
         local.newBalance = _newEncryptedAmount;
         WithdrawVerify(allWithdrawVerifier).verifyWithdraw(local);
+    }
+
+    /**
+     * @notice withdraws from the pool. withdrawals must be staged like transfers, to cover the case where an
+     *  account is being updated simultaneously. the withdrawer can specify a blacklist root to create a non-inclusion proof
+     *  against in the circuit. This root should be created by an analytics/ compliance firm like chainalysis or TRM.
+     *  The withdrawer does not have to withdraw the entire deposit. They can provide a new commmitment for their unwithdrawn amount
+     * @dev
+     *  @param
+     */
+
+    function poolWithdraw(
+        uint256 _relayFee,
+        uint40 _processFee,
+        address _relayFeeRecipient,
+        bytes32 _recipient,
+        uint256 _commitmentRoot,
+        uint256 _nullifier,
+        EncryptedAmount memory _amount,
+        bytes memory _proof,
+        // poseidon3(ethAddress, amount, timestamp, secret)
+        uint256 _outputCommitment
+    ) public {
+        if (poolNullifiers[_nullifier]) revert NoteAlreadySpent();
+        if (!isKnownRoot(_commitmentRoot)) revert UnknownRoot();
+        _stageTransfer(_recipient, _processFee, _amount);
+        uint256 blacklistRoot = blacklistManager.blacklistRoot();
+
+        // users will sign this message and provide it as input to the circuit
+        // this will ensure that the indented eth address is the one that is withdrawing
+        WithdrawMessage memory _message = WithdrawMessage({recipient: _recipient, amount: _amount});
+        bytes32 hashedMessage = getEIP712MessageHash(_message);
+
+        bytes32[] memory publicInputs = new bytes32[](44);
+        for (uint8 i = 0; i < 32; i++) {
+            // Noir takes an array of 32 bytes32 as public inputs
+            bytes1 aByte = bytes1((hashedMessage << (i * 8)));
+            publicInputs[i] = bytes32(uint256(uint8(aByte)));
+        }
+        publicInputs[32] = bytes32(uint256(_relayFee));
+        publicInputs[33] = bytes32(fromRprLe(_recipient));
+        publicInputs[34] = bytes32(blacklistRoot % BJJ_PRIME);
+        publicInputs[35] = bytes32(_commitmentRoot % BJJ_PRIME);
+        publicInputs[36] = bytes32(_nullifier % BJJ_PRIME);
+        publicInputs[37] = bytes32(_amount.C1x);
+        publicInputs[38] = bytes32(_amount.C1y);
+        publicInputs[39] = bytes32(_amount.C2x);
+        publicInputs[40] = bytes32(_amount.C2y);
+        publicInputs[41] = bytes32(uint256(_processFee));
+        publicInputs[42] = bytes32(_outputCommitment);
+        publicInputs[43] = bytes32(block.timestamp);
+
+        _payFees(_relayFee, _relayFeeRecipient);
+        poolWithdrawVerifier.verify(_proof, publicInputs);
+        poolNullifiers[_nullifier] = true;
+        uint256 leafIndex = insert(_outputCommitment);
+        emit NewCommitment(_outputCommitment, leafIndex, block.timestamp);
     }
 
     /**
@@ -411,9 +522,7 @@ contract PrivateToken {
 
         require(PROCESS_DEPOSIT_VERIFIER.verify(_proof, publicInputs), "Process pending proof is invalid");
         balances[_recipient] = _newBalance;
-        if (totalFees != 0) {
-            token.transfer(_feeRecipient, uint256(totalFees * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)));
-        }
+        _payFees(totalFees, _feeRecipient);
         emit DepositProcessed(_recipient, totalAmount, totalFees, _feeRecipient);
     }
 
@@ -475,9 +584,8 @@ contract PrivateToken {
 
         require(PROCESS_TRANSFER_VERIFIER.verify(_proof, publicInputs), "Process pending proof is invalid");
         balances[_recipient] = _newBalance;
-        if (totalFees != 0) {
-            token.transfer(_feeRecipient, uint256(totalFees * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)));
-        }
+        _payFees(totalFees, _feeRecipient);
+
         emit TransferProcessed(_recipient, _newBalance, totalFees, _feeRecipient);
     }
 
@@ -525,9 +633,8 @@ contract PrivateToken {
         publicInputs[10] = bytes32(_newEncryptedAmount.C2x);
         publicInputs[11] = bytes32(_newEncryptedAmount.C2y);
         LOCK_VERIFIER.verify(_proof, publicInputs);
-        if (_relayFee != 0) {
-            token.transfer(_relayFeeRecipient, uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)));
-        }
+        _payFees(_relayFee, _relayFeeRecipient);
+
         emit Lock(_from, _lockToContract, _relayFee, _relayFeeRecipient);
     }
 
@@ -557,12 +664,12 @@ contract PrivateToken {
         return txNonce;
     }
 
-    function fromRprLe(bytes32 publicKey) internal view returns (uint256) {
+    function fromRprLe(bytes32 value) internal view returns (uint256) {
         uint256 y = 0;
         uint256 v = 1;
-        bytes memory publicKeyBytes = bytes32ToBytes(publicKey);
+        bytes memory valueBytes = bytes32ToBytes(value);
         for (uint8 i = 0; i < 32; i++) {
-            y += (uint8(publicKeyBytes[i]) * v) % BJJ_PRIME;
+            y += (uint8(valueBytes[i]) * v) % BJJ_PRIME;
             if (i != 31) {
                 v *= 256;
             }
@@ -576,5 +683,57 @@ contract PrivateToken {
             byteArray[i] = _data[i];
         }
         return byteArray;
+    }
+
+    function _payFees(uint256 _fee, address _feeRecipient) internal {
+        if (_fee != 0) {
+            token.transfer(_feeRecipient, _fee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals));
+        }
+    }
+
+    function _stageTransfer(bytes32 _to, uint40 _processFee, EncryptedAmount memory _amount)
+        internal
+        returns (EncryptedAmount memory)
+    {
+        EncryptedAmount memory receiverBalance = balances[_to];
+        bool zeroBalance = (
+            receiverBalance.C1x == 0 && receiverBalance.C2x == 0 && receiverBalance.C1y == 0 && receiverBalance.C2y == 0
+        );
+        if (zeroBalance) {
+            // no fee required if a new account
+            _processFee = 0;
+            balances[_to] = _amount;
+        } else {
+            uint256 transferCount = pendingTransferCounts[_to];
+            allPendingTransfersMapping[_to][transferCount] = PendingTransfer(_amount, _processFee, block.timestamp);
+            pendingTransferCounts[_to] += 1;
+        }
+        return receiverBalance;
+    }
+
+    function _hashWithdrawMessage(WithdrawMessage memory _message) internal pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                keccak256("WithdrawMessage(bytes32 recipient,EncryptedAmount amount)"),
+                _message.recipient,
+                _hashEncryptedAmount(_message.amount)
+            )
+        );
+    }
+
+    function _hashEncryptedAmount(EncryptedAmount memory amount) private pure returns (bytes32) {
+        return keccak256(
+            abi.encode(
+                keccak256(bytes("EncryptedAmount(uint256 C1x,uint256 C1y,uint256 C2x,uint256 C2y)")),
+                amount.C1x,
+                amount.C1y,
+                amount.C2x,
+                amount.C2y
+            )
+        );
+    }
+
+    function getEIP712MessageHash(WithdrawMessage memory _message) private pure returns (bytes32) {
+        return keccak256(abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR, _hashWithdrawMessage(_message)));
     }
 }
