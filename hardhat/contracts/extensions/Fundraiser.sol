@@ -22,12 +22,14 @@ contract FundraiserContract {
     uint256 BJJ_PRIME = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     struct Fundraiser {
-        // removed endTime,  probably not needed
+        uint256 endTime;
         uint256 threshold;
         bool isThresholdMet;
         PrivateToken.EncryptedAmount amountContributed;
-        PendingContribution[] contributions;
+        uint256 contributionCount;
+        mapping(uint256 => PendingContribution) contributions;
     }
+    // PendingContribution[] contributions;
 
     struct PendingContribution {
         bytes32 to;
@@ -39,6 +41,11 @@ contract FundraiserContract {
         PrivateToken.EncryptedAmount senderNewBalance;
         bytes proof_transfer;
     }
+
+    event Contribution();
+    event RevokedContribution();
+    event ThresholdMet();
+    event ContributionProcessed();
 
     constructor(
         address _privateToken,
@@ -58,19 +65,21 @@ contract FundraiserContract {
         bytes32 _recipient,
         uint256 _threshold,
         PrivateToken.EncryptedAmount memory encryptedZero,
-        bytes memory _proof
+        bytes memory _proof,
+        uint256 _endTime
     ) public {
         bool isThresholdMet = false;
         if (_threshold == 0) {
             isThresholdMet = true;
         }
-        Fundraiser memory fundraiser = Fundraiser({
-            threshold: _threshold,
-            isThresholdMet: isThresholdMet,
-            amountContributed: encryptedZero,
-            contributions: new PendingContribution[](0)
-        });
-        fundraisersMap[_recipient].push(fundraiser);
+        fundraisersMap[_recipient].push();
+        Fundraiser storage fundraiser = fundraisersMap[_recipient][fundraisersMap[_recipient].length - 1];
+        fundraiser.endTime = _endTime;
+        fundraiser.threshold = _threshold;
+        fundraiser.isThresholdMet = isThresholdMet;
+        fundraiser.amountContributed = encryptedZero;
+        fundraiser.contributionCount = 0;
+        // Fundraiser memory fundraiser = Fundraiser(_endTime, _threshold, isThresholdMet, encryptedZero, 0);
         bytes32[] memory publicInputs = new bytes32[](36);
         for (uint8 i = 0; i < 32; i++) {
             // Noir takes an array of 32 bytes32 as public inputs
@@ -82,6 +91,21 @@ contract FundraiserContract {
         publicInputs[34] = bytes32(encryptedZero.C2x);
         publicInputs[35] = bytes32(encryptedZero.C2y);
         zeroVerifier.verify(_proof, publicInputs);
+    }
+
+    struct ContributeLocals {
+        uint256 txNonce;
+        uint256 senderBalanceC1x;
+        uint256 senderBalanceC1y;
+        uint256 senderBalanceC2x;
+        uint256 senderBalanceC2y;
+        PrivateToken.EncryptedAmount senderBalance;
+        uint256 receiverBalanceC1x;
+        uint256 receiverBalanceC1y;
+        uint256 receiverBalanceC2x;
+        uint256 receiverBalanceC2y;
+        PrivateToken.EncryptedAmount receiverBalance;
+        PrivateToken.TransferLocals transferLocals;
     }
 
     function contribute(
@@ -97,36 +121,43 @@ contract FundraiserContract {
         PrivateToken.EncryptedAmount memory _newAmountContributed
     ) public {
         require(privateToken.lockedTo(_from) == address(this), "Not locked to fundraiser");
-
-        uint256 txNonce = uint256(keccak256(abi.encode(_amountToSend))) % BJJ_PRIME;
-        require(privateToken.nonce(_from, txNonce) == false, "Nonce must be unused");
-
-        (uint256 senderBalanceC1x, uint256 senderBalanceC1y, uint256 senderBalanceC2x, uint256 senderBalanceC2y) =
-            privateToken.balances(_from);
-        PrivateToken.EncryptedAmount memory senderBalance = PrivateToken.EncryptedAmount({
-            C1x: senderBalanceC1x,
-            C1y: senderBalanceC1y,
-            C2x: senderBalanceC2x,
-            C2y: senderBalanceC2y
+        ContributeLocals memory contributeLocals;
+        contributeLocals.txNonce = uint256(keccak256(abi.encode(_amountToSend))) % BJJ_PRIME;
+        require(privateToken.nonce(_from, contributeLocals.txNonce) == false, "Nonce must be unused");
+        (
+            contributeLocals.senderBalanceC1x,
+            contributeLocals.senderBalanceC1y,
+            contributeLocals.senderBalanceC2x,
+            contributeLocals.senderBalanceC2y
+        ) = privateToken.balances(_from);
+        contributeLocals.senderBalance = PrivateToken.EncryptedAmount({
+            C1x: contributeLocals.senderBalanceC1x,
+            C1y: contributeLocals.senderBalanceC1y,
+            C2x: contributeLocals.senderBalanceC2x,
+            C2y: contributeLocals.senderBalanceC2y
         });
 
-        (uint256 receiverBalanceC1x, uint256 receiverBalanceC1y, uint256 receiverBalanceC2x, uint256 receiverBalanceC2y)
-        = privateToken.balances(_to);
-        PrivateToken.EncryptedAmount memory receiverBalance = PrivateToken.EncryptedAmount({
-            C1x: receiverBalanceC1x,
-            C1y: receiverBalanceC1y,
-            C2x: receiverBalanceC2x,
-            C2y: receiverBalanceC2y
+        (
+            contributeLocals.receiverBalanceC1x,
+            contributeLocals.receiverBalanceC1y,
+            contributeLocals.receiverBalanceC2x,
+            contributeLocals.receiverBalanceC2y
+        ) = privateToken.balances(_to);
+        contributeLocals.receiverBalance = PrivateToken.EncryptedAmount({
+            C1x: contributeLocals.receiverBalanceC1x,
+            C1y: contributeLocals.receiverBalanceC1y,
+            C2x: contributeLocals.receiverBalanceC2x,
+            C2y: contributeLocals.receiverBalanceC2y
         });
-        PrivateToken.TransferLocals memory locals = PrivateToken.TransferLocals({
+        contributeLocals.transferLocals = PrivateToken.TransferLocals({
             to: _to,
             from: _from,
             processFee: 0, // fundraisers are incentivized to pay the process fee if the fundraiser is successful
             relayFee: _relayFee,
-            txNonce: txNonce,
-            oldBalance: senderBalance,
+            txNonce: contributeLocals.txNonce,
+            oldBalance: contributeLocals.senderBalance,
             amountToSend: _amountToSend,
-            receiverBalance: receiverBalance,
+            receiverBalance: contributeLocals.receiverBalance,
             senderNewBalance: _senderNewBalance,
             proof: _proof_transfer,
             // the following dont matter
@@ -135,10 +166,10 @@ contract FundraiserContract {
             privateToken: PrivateToken(address(0x0))
         });
 
-        Fundraiser memory f = fundraisersMap[_to][fundraiserIndex];
+        Fundraiser storage f = fundraisersMap[_to][fundraiserIndex];
 
         // 1. verifies that the transfer is valid
-        transferVerify.verifyTransfer(locals);
+        transferVerify.verifyTransfer(contributeLocals.transferLocals);
 
         // 2. verify increaseAmountContributed
         bytes32[] memory publicInputs = new bytes32[](12);
@@ -160,27 +191,35 @@ contract FundraiserContract {
 
         f.amountContributed = _newAmountContributed;
 
-        PendingContribution memory pendingContribution = PendingContribution({
-            to: _to,
-            from: _from,
-            relayFee: _relayFee,
-            processFee: 0, // fundraisers are incentivized to pay the process fee if the fundraiser is successful
-            relayFeeRecipient: _relayFeeRecipient,
-            amountToSend: _amountToSend,
-            senderNewBalance: _senderNewBalance,
-            proof_transfer: _proof_transfer
-        });
-        fundraisersMap[_to][fundraiserIndex].contributions.push(pendingContribution);
+        // fundraiser.contributions.push();
+        uint256 index = fundraisersMap[_to][fundraiserIndex].contributionCount;
+        f.contributions[index] = PendingContribution(
+            _to, _from, _relayFee, _relayFeeRecipient, 0, _amountToSend, _senderNewBalance, _proof_transfer
+        );
+
         hasPendingContribution[_from] = true;
     }
 
-    // cant have a revoke function, no way to decrement the Fundraiser.amountContributed
-    // function revokeContribution()
+    // can only revoke after endTime has passed
+    function revokeContribution(bytes32 _to, bytes32 _from, uint256 _fundraiserIndex, uint256 contributionIndex)
+        public
+    {
+        require(hasPendingContribution[_from], "No pending contribution");
+        Fundraiser storage f = fundraisersMap[_to][_fundraiserIndex];
+        require(f.endTime >= block.timestamp, "End time must has passed");
+        require(f.isThresholdMet == false, "Fundraiser must not be successful");
+
+        delete fundraisersMap[_to][_fundraiserIndex].contributions[contributionIndex];
+        hasPendingContribution[_from] = false;
+
+        // TODO: write a circuit that checks the sender has proof that they control the account they are revoking from
+    }
 
     // the recipient is the only account that can create a proof that the threshold has been met
     function setThresholdMet(bytes32 recipient, uint256 fundraiserIndex, bytes memory proof) public {
         fundraisersMap[recipient][fundraiserIndex].isThresholdMet = true;
-        Fundraiser memory f = fundraisersMap[recipient][fundraiserIndex];
+        Fundraiser storage f = fundraisersMap[recipient][fundraiserIndex];
+        require(f.endTime < block.timestamp, "Fundraiser must be open");
 
         bytes32[] memory publicInputs = new bytes32[](5);
         publicInputs[0] = bytes32(f.amountContributed.C1x);
@@ -194,15 +233,14 @@ contract FundraiserContract {
     }
 
     function processContributions(bytes32 _to, uint256 fundraiserIndex) public {
-        // is this needed?
-        // require(fundraisersMap[_to][fundraiserIndex].endTime >= block.timestamp, "Fundraiser must be over");
-        Fundraiser memory f = fundraisersMap[_to][fundraiserIndex];
+        Fundraiser storage f = fundraisersMap[_to][fundraiserIndex];
         require(f.isThresholdMet, "Fundraising threshold must be met");
-        PendingContribution[] memory contributions = f.contributions;
 
         // TODO: handle 10(?) deposits per tx
-        for (uint256 i = 0; i < contributions.length; i++) {
-            PendingContribution memory contribution = contributions[i];
+        // this is at risk to attack as designed.
+        // need to constrain the loop size
+        for (uint256 i = 0; i < f.contributionCount; i++) {
+            PendingContribution memory contribution = f.contributions[i];
             privateToken.transfer(
                 contribution.to,
                 contribution.from,
