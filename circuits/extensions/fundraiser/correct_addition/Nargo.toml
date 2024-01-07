@@ -1,5 +1,5 @@
 [package]
-name = "validate_contribution"
+name = "correct_addition"
 type = "bin"
 authors = [""]
 compiler_version = ">=0.19.4"
