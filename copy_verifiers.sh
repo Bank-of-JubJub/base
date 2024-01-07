@@ -10,6 +10,7 @@ LOCATIONS=(
     "correct_addition"
     "correct_zero"
     "met_threshold"
+    "revoke_contribution"
 )
 
 DEST_PATH="hardhat/contracts/"

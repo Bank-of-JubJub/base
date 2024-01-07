@@ -4,9 +4,11 @@ pragma solidity ^0.8.0;
 
 import "../PrivateToken.sol";
 import "../TransferVerify.sol";
+import "../AccountController.sol";
 import {UltraVerifier as AdditionVerifier} from "../correct_addition/plonk_vk.sol";
 import {UltraVerifier as ThresholdVerifier} from "../met_threshold/plonk_vk.sol";
 import {UltraVerifier as ZeroVerifier} from "../correct_zero/plonk_vk.sol";
+import {UltraVerifier as RevokeVerifier} from "../revoke_contribution/plonk_vk.sol";
 
 contract FundraiserContract {
     PrivateToken privateToken;
@@ -14,6 +16,8 @@ contract FundraiserContract {
     AdditionVerifier additionVerifier;
     ThresholdVerifier thresholdVerifier;
     ZeroVerifier zeroVerifier;
+    RevokeVerifier revokeVerifier;
+    AccountController accountController;
 
     // the recipient is the account that will receive the funds
     // users may want to verify that the recipient is the correct account (eg controlled by a multisig)
@@ -42,23 +46,29 @@ contract FundraiserContract {
         bytes proof_transfer;
     }
 
-    event Contribution();
-    event RevokedContribution();
-    event ThresholdMet();
-    event ContributionProcessed();
+    event Contribution(bytes32 to, bytes32 from, uint256 amount, uint256 fundraiserIndex);
+    event RevokedContribution(bytes32 to, bytes32 from, uint256 fundraiserIndex, uint256 contributionIndex);
+    event ThresholdMet(bytes32 recipient, uint256 fundraiserIndex);
+    event ContributionProcessed(
+        bytes32 to, bytes32 from, uint256 fundraiserIndex, uint256 contributionIndex, uint256 amount
+    );
 
     constructor(
         address _privateToken,
         address _transferVerify,
         address _additionVerifier,
         address _thresholdVerifier,
-        address _zeroVerifier
+        address _zeroVerifier,
+        address _accountController,
+        address _revokeVerifier
     ) {
         privateToken = PrivateToken(_privateToken);
         transferVerify = TransferVerify(_transferVerify);
         additionVerifier = AdditionVerifier(_additionVerifier);
         thresholdVerifier = ThresholdVerifier(_thresholdVerifier);
         zeroVerifier = ZeroVerifier(_zeroVerifier);
+        accountController = AccountController(_accountController);
+        revokeVerifier = RevokeVerifier(_revokeVerifier);
     }
 
     function createFundriser(
@@ -169,6 +179,7 @@ contract FundraiserContract {
         Fundraiser storage f = fundraisersMap[_to][fundraiserIndex];
 
         // 1. verifies that the transfer is valid
+        // this call ensures that if _from is controlled by an eth controller, the msg.sender is the eth controller
         transferVerify.verifyTransfer(contributeLocals.transferLocals);
 
         // 2. verify increaseAmountContributed
@@ -201,9 +212,13 @@ contract FundraiserContract {
     }
 
     // can only revoke after endTime has passed
-    function revokeContribution(bytes32 _to, bytes32 _from, uint256 _fundraiserIndex, uint256 contributionIndex)
-        public
-    {
+    function revokeContribution(
+        bytes32 _to,
+        bytes32 _from,
+        uint256 _fundraiserIndex,
+        uint256 contributionIndex,
+        bytes memory _proof
+    ) public {
         require(hasPendingContribution[_from], "No pending contribution");
         Fundraiser storage f = fundraisersMap[_to][_fundraiserIndex];
         require(f.endTime >= block.timestamp, "End time must has passed");
@@ -212,7 +227,20 @@ contract FundraiserContract {
         delete fundraisersMap[_to][_fundraiserIndex].contributions[contributionIndex];
         hasPendingContribution[_from] = false;
 
-        // TODO: write a circuit that checks the sender has proof that they control the account they are revoking from
+        // check if the sender is controlled by an eth controller
+        address controller = accountController.ethController(_from);
+        if (controller != address(0x0)) {
+            require(msg.sender == controller, "Transfer must be sent from the eth controller");
+        }
+
+        // check that the sender has the private key corresponding to the public key
+        bytes32[] memory publicInputs = new bytes32[](32);
+        for (uint8 i = 0; i < 32; i++) {
+            // Noir takes an array of 32 bytes32 as public inputs
+            bytes1 aByte = bytes1((_from << (i * 8)));
+            publicInputs[i] = bytes32(uint256(uint8(aByte)));
+        }
+        revokeVerifier.verify(_proof, publicInputs);
     }
 
     // the recipient is the only account that can create a proof that the threshold has been met
