@@ -6,6 +6,10 @@ members = [
     "circuits/process_pending_deposits",
     "circuits/process_pending_transfers",
     "circuits/add_eth_signers",
+    "circuits/extensions/fundraiser/correct_zero",
+    "circuits/extensions/fundraiser/met_threshold",
+    "circuits/extensions/fundraiser/correct_addition",
+    "circuits/extensions/fundraiser/revoke_contribution",
 ]
 default-member = "circuits/transfer"
 

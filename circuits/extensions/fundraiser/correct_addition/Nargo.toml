@@ -1,0 +1,9 @@
+[package]
+name = "correct_addition"
+type = "bin"
+authors = [""]
+compiler_version = ">=0.19.4"
+
+[dependencies]
+bjj = { tag = "v0.2.0", git = "https://github.com/Bank-of-JubJub/noir-elgamal" }
+utils = { path="../../../utils" }
