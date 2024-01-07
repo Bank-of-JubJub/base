@@ -19,6 +19,7 @@ contract FundraiserContract {
     // users may want to verify that the recipient is the correct account (eg controlled by a multisig)
     mapping(bytes32 recipient => Fundraiser[] fundraisers) fundraisersMap;
     mapping(bytes32 sender => bool isPending) hasPendingContribution;
+    uint256 BJJ_PRIME = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     struct Fundraiser {
         // removed endTime,  probably not needed
@@ -96,29 +97,42 @@ contract FundraiserContract {
         PrivateToken.EncryptedAmount memory _newAmountContributed
     ) public {
         require(privateToken.lockedTo(_from) == address(this), "Not locked to fundraiser");
-        PendingContribution memory pendingContribution = PendingContribution({
-            to: _to,
-            from: _from,
-            relayFee: _relayFee,
-            relayFeeRecipient: _relayFeeRecipient,
-            amountToSend: _amountToSend,
-            senderNewBalance: _senderNewBalance,
-            proof_transfer: _proof_transfer
-        });
 
         uint256 txNonce = uint256(keccak256(abi.encode(_amountToSend))) % BJJ_PRIME;
-        require(privateToken.nonce(_from)(txNonce) == false, "Nonce must be unused");
+        require(privateToken.nonce(_from, txNonce) == false, "Nonce must be unused");
+
+        (uint256 senderBalanceC1x, uint256 senderBalanceC1y, uint256 senderBalanceC2x, uint256 senderBalanceC2y) =
+            privateToken.balances(_from);
+        PrivateToken.EncryptedAmount memory senderBalance = PrivateToken.EncryptedAmount({
+            C1x: senderBalanceC1x,
+            C1y: senderBalanceC1y,
+            C2x: senderBalanceC2x,
+            C2y: senderBalanceC2y
+        });
+
+        (uint256 receiverBalanceC1x, uint256 receiverBalanceC1y, uint256 receiverBalanceC2x, uint256 receiverBalanceC2y)
+        = privateToken.balances(_to);
+        PrivateToken.EncryptedAmount memory receiverBalance = PrivateToken.EncryptedAmount({
+            C1x: receiverBalanceC1x,
+            C1y: receiverBalanceC1y,
+            C2x: receiverBalanceC2x,
+            C2y: receiverBalanceC2y
+        });
         PrivateToken.TransferLocals memory locals = PrivateToken.TransferLocals({
             to: _to,
             from: _from,
             processFee: 0, // fundraisers are incentivized to pay the process fee if the fundraiser is successful
             relayFee: _relayFee,
             txNonce: txNonce,
-            oldBalance: privateToken.balances(_from),
+            oldBalance: senderBalance,
             amountToSend: _amountToSend,
-            receiverBalance: privateToken.balances(_to),
+            receiverBalance: receiverBalance,
             senderNewBalance: _senderNewBalance,
-            proof: _proof_transfer
+            proof: _proof_transfer,
+            // the following dont matter
+            lockedByAddress: address(0x0),
+            transferCount: 0,
+            privateToken: PrivateToken(address(0x0))
         });
 
         Fundraiser memory f = fundraisersMap[_to][fundraiserIndex];
@@ -144,8 +158,18 @@ contract FundraiserContract {
         // verifies that the amount contributed has been correctly updated
         additionVerifier.verify(_proof_increaseAmountContributed, publicInputs);
 
-        // circuit to check correctly increased amount contributed
         f.amountContributed = _newAmountContributed;
+
+        PendingContribution memory pendingContribution = PendingContribution({
+            to: _to,
+            from: _from,
+            relayFee: _relayFee,
+            processFee: 0, // fundraisers are incentivized to pay the process fee if the fundraiser is successful
+            relayFeeRecipient: _relayFeeRecipient,
+            amountToSend: _amountToSend,
+            senderNewBalance: _senderNewBalance,
+            proof_transfer: _proof_transfer
+        });
         fundraisersMap[_to][fundraiserIndex].contributions.push(pendingContribution);
         hasPendingContribution[_from] = true;
     }
