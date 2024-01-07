@@ -8,7 +8,7 @@ members = [
     "circuits/add_eth_signers",
     "circuits/extensions/fundraiser/correct_zero",
     "circuits/extensions/fundraiser/met_threshold",
-    # "circuits/extensions/fundraiser/validate_contribution",
+    "circuits/extensions/fundraiser/correct_addition",
 ]
 default-member = "circuits/transfer"
 
