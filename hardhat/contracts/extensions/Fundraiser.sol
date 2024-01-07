@@ -46,12 +46,11 @@ contract FundraiserContract {
         bytes proof_transfer;
     }
 
-    event Contribution(bytes32 to, bytes32 from, uint256 amount, uint256 fundraiserIndex);
+    event Contribution(bytes32 to, bytes32 from, uint256 fundraiserIndex);
     event RevokedContribution(bytes32 to, bytes32 from, uint256 fundraiserIndex, uint256 contributionIndex);
     event ThresholdMet(bytes32 recipient, uint256 fundraiserIndex);
-    event ContributionProcessed(
-        bytes32 to, bytes32 from, uint256 fundraiserIndex, uint256 contributionIndex, uint256 amount
-    );
+    event ContributionProcessed(bytes32 to, bytes32 from, uint256 fundraiserIndex, uint256 contributionIndex);
+    event ManyProcessed(bytes32 _to, uint256 _fundraiserIndex, uint256 _startIndex);
 
     constructor(
         address _privateToken,
@@ -116,10 +115,11 @@ contract FundraiserContract {
         uint256 receiverBalanceC2y;
         PrivateToken.EncryptedAmount receiverBalance;
         PrivateToken.TransferLocals transferLocals;
+        bytes32[] publicInputs;
     }
 
     function contribute(
-        uint256 fundraiserIndex,
+        uint256 _fundraiserIndex,
         bytes32 _to,
         bytes32 _from,
         uint40 _relayFee, // relay fee is only paid if the fundraiser is successful
@@ -176,39 +176,39 @@ contract FundraiserContract {
             privateToken: PrivateToken(address(0x0))
         });
 
-        Fundraiser storage f = fundraisersMap[_to][fundraiserIndex];
+        Fundraiser storage f = fundraisersMap[_to][_fundraiserIndex];
 
         // 1. verifies that the transfer is valid
         // this call ensures that if _from is controlled by an eth controller, the msg.sender is the eth controller
         transferVerify.verifyTransfer(contributeLocals.transferLocals);
 
         // 2. verify increaseAmountContributed
-        bytes32[] memory publicInputs = new bytes32[](12);
-        publicInputs[0] = bytes32(f.amountContributed.C1x);
-        publicInputs[1] = bytes32(f.amountContributed.C1y);
-        publicInputs[2] = bytes32(f.amountContributed.C2x);
-        publicInputs[3] = bytes32(f.amountContributed.C2y);
-        publicInputs[4] = bytes32(_amountToSend.C1x);
-        publicInputs[5] = bytes32(_amountToSend.C1y);
-        publicInputs[6] = bytes32(_amountToSend.C2x);
-        publicInputs[7] = bytes32(_amountToSend.C2y);
-        publicInputs[8] = bytes32(_newAmountContributed.C1x);
-        publicInputs[9] = bytes32(_newAmountContributed.C1y);
-        publicInputs[10] = bytes32(_newAmountContributed.C2x);
-        publicInputs[11] = bytes32(_newAmountContributed.C2y);
+        contributeLocals.publicInputs = new bytes32[](12);
+        contributeLocals.publicInputs[0] = bytes32(f.amountContributed.C1x);
+        contributeLocals.publicInputs[1] = bytes32(f.amountContributed.C1y);
+        contributeLocals.publicInputs[2] = bytes32(f.amountContributed.C2x);
+        contributeLocals.publicInputs[3] = bytes32(f.amountContributed.C2y);
+        contributeLocals.publicInputs[4] = bytes32(_amountToSend.C1x);
+        contributeLocals.publicInputs[5] = bytes32(_amountToSend.C1y);
+        contributeLocals.publicInputs[6] = bytes32(_amountToSend.C2x);
+        contributeLocals.publicInputs[7] = bytes32(_amountToSend.C2y);
+        contributeLocals.publicInputs[8] = bytes32(_newAmountContributed.C1x);
+        contributeLocals.publicInputs[9] = bytes32(_newAmountContributed.C1y);
+        contributeLocals.publicInputs[10] = bytes32(_newAmountContributed.C2x);
+        contributeLocals.publicInputs[11] = bytes32(_newAmountContributed.C2y);
 
         // verifies that the amount contributed has been correctly updated
-        additionVerifier.verify(_proof_increaseAmountContributed, publicInputs);
+        additionVerifier.verify(_proof_increaseAmountContributed, contributeLocals.publicInputs);
 
         f.amountContributed = _newAmountContributed;
 
-        // fundraiser.contributions.push();
-        uint256 index = fundraisersMap[_to][fundraiserIndex].contributionCount;
+        uint256 index = fundraisersMap[_to][_fundraiserIndex].contributionCount;
         f.contributions[index] = PendingContribution(
             _to, _from, _relayFee, _relayFeeRecipient, 0, _amountToSend, _senderNewBalance, _proof_transfer
         );
 
         hasPendingContribution[_from] = true;
+        emit Contribution(_to, _from, _fundraiserIndex);
     }
 
     // can only revoke after endTime has passed
@@ -216,7 +216,7 @@ contract FundraiserContract {
         bytes32 _to,
         bytes32 _from,
         uint256 _fundraiserIndex,
-        uint256 contributionIndex,
+        uint256 _contributionIndex,
         bytes memory _proof
     ) public {
         require(hasPendingContribution[_from], "No pending contribution");
@@ -224,7 +224,7 @@ contract FundraiserContract {
         require(f.endTime >= block.timestamp, "End time must has passed");
         require(f.isThresholdMet == false, "Fundraiser must not be successful");
 
-        delete fundraisersMap[_to][_fundraiserIndex].contributions[contributionIndex];
+        delete fundraisersMap[_to][_fundraiserIndex].contributions[_contributionIndex];
         hasPendingContribution[_from] = false;
 
         // check if the sender is controlled by an eth controller
@@ -241,6 +241,7 @@ contract FundraiserContract {
             publicInputs[i] = bytes32(uint256(uint8(aByte)));
         }
         revokeVerifier.verify(_proof, publicInputs);
+        emit RevokedContribution(_to, _from, _fundraiserIndex, _contributionIndex);
     }
 
     // the recipient is the only account that can create a proof that the threshold has been met
@@ -258,16 +259,14 @@ contract FundraiserContract {
 
         // checks that the threshold has been met without revealing the specific amount raised
         thresholdVerifier.verify(proof, publicInputs);
+        emit ThresholdMet(recipient, fundraiserIndex);
     }
 
-    function processContributions(bytes32 _to, uint256 fundraiserIndex) public {
-        Fundraiser storage f = fundraisersMap[_to][fundraiserIndex];
+    function processContributions(bytes32 _to, uint256 _fundraiserIndex, uint256 _startIndex) public {
+        Fundraiser storage f = fundraisersMap[_to][_fundraiserIndex];
         require(f.isThresholdMet, "Fundraising threshold must be met");
-
-        // TODO: handle 10(?) deposits per tx
-        // this is at risk to attack as designed.
-        // need to constrain the loop size
-        for (uint256 i = 0; i < f.contributionCount; i++) {
+        // TODO: figure out how many loops this should do
+        for (uint256 i = _startIndex; i < 10; i++) {
             PendingContribution memory contribution = f.contributions[i];
             privateToken.transfer(
                 contribution.to,
@@ -281,7 +280,9 @@ contract FundraiserContract {
             );
             // must not have a pending contribution to unlock the account
             hasPendingContribution[contribution.from] = false;
+            emit ContributionProcessed(contribution.to, contribution.from, _fundraiserIndex, i);
         }
+        emit ManyProcessed(_to, _fundraiserIndex, _startIndex);
     }
 
     function unlock(bytes32 _account) public {
