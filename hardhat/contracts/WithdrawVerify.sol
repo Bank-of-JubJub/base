@@ -1,20 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import {UltraVerifier as WithdrawVerifier} from "./withdraw/plonk_vk.sol";
 import "./PrivateToken.sol";
-import "./AccountController.sol";
 
 contract WithdrawVerify {
     WithdrawVerifier public withdrawVerifier;
-    AccountController public accountController;
-    uint256 BJJ_PRIME =
-        21888242871839275222246405745257275088548364400416034343698204186575808495617;
+    uint256 BJJ_PRIME = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
-    constructor(address _withdrawVerifier, address _accountController) {
+    constructor(address _withdrawVerifier) {
         withdrawVerifier = WithdrawVerifier(_withdrawVerifier);
-        accountController = AccountController(_accountController);
     }
 
     struct Locals {
@@ -28,28 +24,18 @@ contract WithdrawVerify {
         PrivateToken.WithdrawLocals memory inputs // bytes32 inputs.from, // address _to, // uint256 _txNonce, // uint256 _amount, // uint256 _relayFee, // PrivateToken.EncryptedAmount memory _oldEncryptedAmount, // PrivateToken.EncryptedAmount memory _newEncryptedAmount, // bytes memory _withdraw_proof
     ) external view {
         Locals memory local;
-        address controller = accountController.ethController(inputs.from);
-        if (controller != address(0x0)) {
-            require(
-                msg.sender == controller,
-                "Transfer must be sent from the eth controller"
-            );
-        }
-
         local.fromModulus = fromRprLe(inputs.from);
 
         local.publicInputs = new bytes32[](12);
         local.publicInputs = _stageCommonWithdrawInputs(local, inputs);
-        require(
-            withdrawVerifier.verify(inputs.proof, local.publicInputs),
-            "Withdraw proof is invalid"
-        );
+        require(withdrawVerifier.verify(inputs.proof, local.publicInputs), "Withdraw proof is invalid");
     }
 
-    function _stageCommonWithdrawInputs(
-        Locals memory local,
-        PrivateToken.WithdrawLocals memory inputs
-    ) internal pure returns (bytes32[] memory) {
+    function _stageCommonWithdrawInputs(Locals memory local, PrivateToken.WithdrawLocals memory inputs)
+        internal
+        pure
+        returns (bytes32[] memory)
+    {
         local.publicInputs[0] = bytes32(local.fromModulus);
         local.publicInputs[1] = bytes32(inputs.txNonce);
         local.publicInputs[2] = bytes32(uint256(inputs.amount));

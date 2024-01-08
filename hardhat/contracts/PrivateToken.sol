@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import {UltraVerifier as ProcessDepositVerifier} from "./process_pending_deposits/plonk_vk.sol";
 import {UltraVerifier as ProcessTransferVerifier} from "./process_pending_transfers/plonk_vk.sol";
 import {UltraVerifier as WithdrawVerifier} from "./withdraw/plonk_vk.sol";
@@ -72,6 +72,7 @@ contract PrivateToken {
     LockVerifier public LOCK_VERIFIER;
     address public allTransferVerifier;
     address public allWithdrawVerifier;
+    AccountController public accountController;
 
     uint40 public totalSupply;
 
@@ -138,13 +139,15 @@ contract PrivateToken {
         address _allWithdrawVerifier,
         address _lockVerifier,
         address _token,
-        uint256 _decimals
+        uint256 _decimals,
+        address _accountController
     ) {
         PROCESS_DEPOSIT_VERIFIER = ProcessDepositVerifier(_processDepositVerifier);
         PROCESS_TRANSFER_VERIFIER = ProcessTransferVerifier(_processTransferVerifier);
         allTransferVerifier = _allTransferVerifier;
         allWithdrawVerifier = _allWithdrawVerifier;
         LOCK_VERIFIER = LockVerifier(_lockVerifier);
+        accountController = AccountController(_accountController);
 
         token = IERC20(_token);
         uint256 sourceDecimals = _decimals;
@@ -275,6 +278,13 @@ contract PrivateToken {
             token.transfer(_relayFeeRecipient, _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals));
         }
 
+        if (accountController.usingEthController(_from)) {
+            // require tha the account has approved the msg.sender
+            require(
+                accountController.ethControllers(_from, msg.sender), "Transfer must be sent from the eth controller"
+            );
+        }
+
         local.to = _to;
         local.from = _from;
         local.relayFee = _relayFee;
@@ -343,6 +353,14 @@ contract PrivateToken {
             token.transfer(_to, convertedAmount);
             emit Withdraw(_from, _to, convertedAmount, _relayFeeRecipient, _relayFee);
         }
+
+        if (accountController.usingEthController(_from)) {
+            // require tha the account has approved the msg.sender
+            require(
+                accountController.ethControllers(_from, msg.sender), "Transfer must be sent from the eth controller"
+            );
+        }
+
         local.to = bytes32(uint256(uint160(_to)));
         local.from = _from;
         local.relayFee = _relayFee;
