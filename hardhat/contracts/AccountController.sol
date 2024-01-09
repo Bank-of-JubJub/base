@@ -9,15 +9,20 @@ import "./PrivateToken.sol";
 /// @notice Use this contract with PrivateToken.sol to use the non-default private/public key pairs
 
 contract AccountController {
-    mapping(bytes32 packedPublicKey => bool usingEthController) public usingEthController;
+    // this is the default controller and should be an EOA or contract account
+    mapping(bytes32 packedPublicKey => address ethController)
+        public ethController;
     /// @notice Mapping of packed public key to eth controller address
-    mapping(bytes32 packedPublicKey => mapping(address ethController => bool isController)) public ethControllers;
+    // extension contracts that need to control the account should register here
+    mapping(bytes32 packedPublicKey => mapping(address ethController => bool isController))
+        public extensionControllers;
 
     /// @notice Mapping of packed public key to nonce to prevent replay attacks when changing eth signers
     mapping(bytes32 packedPublicKey => uint256 nonce) public nonce;
 
     /// @notice The prime field that the circuit is constructed over. This is used to make message hashes fit in 1 field element
-    uint256 BJJ_PRIME = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
+    uint256 BJJ_PRIME =
+        21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
     /// @notice change functions can be used to revoke, just set to address(0)
     AddEthSignerVerifier public addEthSignerVerifier;
@@ -37,7 +42,12 @@ contract AccountController {
     /// @param _ethAddress The eth address of the signer or the 4337 account
     /// @param _proof The proof that the caller has the private key corresponding to the packed public key
     /// @dev See the add_eth_signers circuit for circuit details
-    function addEthController(bytes32 _packedPublicKey, address _ethAddress, bytes memory _proof) public {
+    function addEthController(
+        bytes32 _packedPublicKey,
+        address _ethAddress,
+        bool isExtension,
+        bytes memory _proof
+    ) public {
         bytes32[] memory publicInputs = new bytes32[](2);
         publicInputs[0] = bytes32(uint256(_packedPublicKey) % BJJ_PRIME);
         // The nonce ensures the proof cannot be reused in replay attackes
@@ -47,27 +57,42 @@ contract AccountController {
         addEthSignerVerifier.verify(_proof, publicInputs);
 
         nonce[_packedPublicKey] += 1;
-        ethControllers[_packedPublicKey][_ethAddress] = true;
+        //
+        if (isExtension) {
+            extensionControllers[_packedPublicKey][_ethAddress] = true;
+        } else {
+            ethController[_packedPublicKey] = _ethAddress;
+        }
         emit AddController(_packedPublicKey, _ethAddress);
     }
 
     /// @notice This function allows an account to add additional eth controllers.
+    /// Can revoke the default controller by setting it to address(0).
     /// @dev There is no proof validation required because the caller must be the current controller.
     /// @param _packedPublicKey The packed public key of the account to update
     /// @param _newAddress The new eth controller address.
     /// @param _proof The proof that the caller has the private key corresponding to the packed public key
-    function updateEthControllers(bytes32 _packedPublicKey, address _newAddress, bytes memory _proof) public {
-        if (!ethControllers[_packedPublicKey][msg.sender]) {
+    function updateEthControllers(
+        bytes32 _packedPublicKey,
+        address _newAddress,
+        bytes memory _proof
+    ) public {
+        if (ethController[_packedPublicKey] == address(0)) {
             addEthController(_packedPublicKey, _newAddress, _proof);
         } else {
-            ethControllers[_packedPublicKey][_newAddress] = true;
+            require(ethController[_packedPublicKey] == msg.sender);
+            extensionControllers[_packedPublicKey][_newAddress] = true;
             emit AddController(_packedPublicKey, _newAddress);
         }
     }
 
     // allow a proof to be passed if the only controller is an extension contract (Account should still be controlled by the private key)
-    function revokeEthController(bytes32 _packedPublicKey, address _removeAddress, bytes memory _proof) public {
-        if (!ethControllers[_packedPublicKey][msg.sender]) {
+    function revokeEthController(
+        bytes32 _packedPublicKey,
+        address _removeAddress,
+        bytes memory _proof
+    ) public {
+        if (ethController[_packedPublicKey] == address(0)) {
             // addEthController(_packedPublicKey, _newAddress, _proof);
             bytes32[] memory publicInputs = new bytes32[](2);
             publicInputs[0] = bytes32(uint256(_packedPublicKey) % BJJ_PRIME);
@@ -77,8 +102,11 @@ contract AccountController {
             addEthSignerVerifier.verify(_proof, publicInputs);
             nonce[_packedPublicKey] += 1;
         }
-        require(privateToken.lockedTo(_packedPublicKey) != _removeAddress, "Cannot remove controller while locked");
-        ethControllers[_packedPublicKey][_removeAddress] = false;
+        require(
+            privateToken.lockedTo(_packedPublicKey) != _removeAddress,
+            "Cannot remove controller while locked"
+        );
+        extensionControllers[_packedPublicKey][_removeAddress] = false;
         emit RevokeController(_packedPublicKey, _removeAddress);
     }
 }
