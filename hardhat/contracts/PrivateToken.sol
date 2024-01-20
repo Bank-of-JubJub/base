@@ -278,11 +278,10 @@ contract PrivateToken {
             token.transfer(_relayFeeRecipient, _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals));
         }
 
-        if (accountController.usingEthController(_from)) {
+        address ethController = accountController.ethController(_from);
+        if (ethController != address(0)) {
             // require tha the account has approved the msg.sender
-            require(
-                accountController.ethControllers(_from, msg.sender), "Transfer must be sent from the eth controller"
-            );
+            require(ethController == msg.sender, "Transfer must be sent from the eth controller");
         }
 
         local.to = _to;
@@ -354,11 +353,10 @@ contract PrivateToken {
             emit Withdraw(_from, _to, convertedAmount, _relayFeeRecipient, _relayFee);
         }
 
-        if (accountController.usingEthController(_from)) {
+        address ethController = accountController.ethController(_from);
+        if (ethController != address(0)) {
             // require tha the account has approved the msg.sender
-            require(
-                accountController.ethControllers(_from, msg.sender), "Transfer must be sent from the eth controller"
-            );
+            require(ethController == msg.sender, "Transfer must be sent from the eth controller");
         }
 
         local.to = bytes32(uint256(uint160(_to)));
