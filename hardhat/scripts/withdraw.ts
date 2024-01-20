@@ -46,7 +46,7 @@ async function main() {
     params.amount,
     params.relayFee,
     params.relayFeeRecipent,
-    privateToken.address,
+    privateToken.address.account.address,
     // @ts-ignore
     publicClient,
     sender

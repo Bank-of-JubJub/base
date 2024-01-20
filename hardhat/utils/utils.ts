@@ -222,3 +222,16 @@ export async function getContract(name: string) {
   const network = hre.network.name;
   return await hre.viem.getContractAt(name, contractData[network].address);
 }
+
+// from here: https://docs.alchemy.com/docs/create2-an-alternative-to-deriving-contract-addresses
+// export const encoder = (types: string[], values: bigint[]) => {
+//   const abiCoder = ethers.utils.defaultAbiCoder;
+//   const encodedParams = abiCoder.encode(types, values);
+//   return encodedParams.slice(2);
+// };
+
+// export const create2Address = (factoryAddress: string, saltHex, initCode) => {
+//   const create2Addr = ethers.utils.getCreate2Address(factoryAddress, saltHex, ethers.utils.keccak256(initCode));
+//   return create2Addr;
+
+// }

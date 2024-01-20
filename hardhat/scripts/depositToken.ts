@@ -27,16 +27,17 @@ async function main() {
     privateTokenData[network].address
   );
 
-  await erc20.write.approve([privateTokenData[network].address, params.amount]);
+  await erc20.write.approve([privateTokenData[network].address, params.amount], { account: sender.account });
 
   await delay(5000);
 
   const hash = await privateToken.write.deposit([
-    sender.account.address,
     BigInt(params.amount),
     params.to,
     0,
-  ]);
+  ], {
+    account: sender.account
+  });
 
   await delay(5000);
 

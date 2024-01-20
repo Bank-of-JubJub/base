@@ -13,7 +13,7 @@ async function main() {
   );
 
   const unwatch = publicClient.watchEvent({
-    address: privateToken.address,
+    address: privateToken.address.account.address,
     events: parseAbi([
       "event Deposit(address from, bytes32 to, uint256 amount, uint256 processFee)",
       "event Transfer(bytes32 indexed to, bytes32 indexed from, EncryptedAmount amount)",
