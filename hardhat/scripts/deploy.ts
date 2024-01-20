@@ -2,6 +2,8 @@ import hre from "hardhat";
 import dotenv from "dotenv";
 import { readDeploymentData, saveDeploymentData } from "./saveDeploy";
 import { delay } from "../utils/utils";
+import { bytecode as accountControllerBytecode } from "../artifacts/contracts/AccountController.sol/AccountController.json"
+import { keccak256 } from "viem";
 dotenv.config({ path: "../.env" });
 
 export async function deployContracts(isTest: boolean = false) {
@@ -50,6 +52,8 @@ export async function deployContracts(isTest: boolean = false) {
       [],
       isTest
     );
+
+    const create2Deployer = await deployAndSave("Create2Deployer", [], isTest)
 
     const accountController = await deployAndSave(
       "AccountController",
@@ -132,12 +136,36 @@ async function deployAndSave(
     return await hre.viem.getContractAt(name, data[hre.network.name].address);
   }
 
-  const hash = await deployer.deployContract({
-    abi: artifact.abi,
-    account: (await deployer.getAddresses())[0],
-    args: constructorArgs,
-    bytecode: artifact.bytecode as `0x${string}`,
-  });
+  console.log("contract name", name)
+  // console.log
+
+  let hash;
+  let address;
+  let receipt;
+  // deploy AccountController with CREATE2
+  if (name == "AccountController") {
+    const { data: create2DeployerData } = readDeploymentData("Create2Deployer");
+    const create2Deployer = await hre.viem.getContractAt("Create2Deployer", create2DeployerData[hre.network.name].address)
+    const salt = 8008n;
+
+    console.log(create2Deployer)
+    hash = await create2Deployer.write.deploy([accountControllerBytecode as `0x${string}`, salt]);
+    console.log("account controller deployment from deployer", hash)
+    // the address of the AccountController
+
+    address = (keccak256(('0xff' + deployer.account.address + salt + keccak256(accountControllerBytecode as `0x${string}`)) as `0x${string}`)).slice(12)
+    receipt = await publicClient.getTransactionReceipt({ hash });
+  } else {
+    hash = await deployer.deployContract({
+      abi: artifact.abi,
+      account: (await deployer.getAddresses())[0],
+      args: constructorArgs,
+      bytecode: artifact.bytecode as `0x${string}`,
+    });
+    receipt = await publicClient.getTransactionReceipt({ hash });
+    // the address of the deployed contract
+    address = receipt.contractAddress
+  }
 
   console.log(`${name} contract deployed`);
 
@@ -145,10 +173,8 @@ async function deployAndSave(
     await delay(20000);
   }
 
-  const receipt = await publicClient.getTransactionReceipt({ hash });
-
   saveDeploymentData(contractName, {
-    address: receipt.contractAddress as `0x${string}`,
+    address: address as `0x${string}`,
     abi: artifact.abi,
     network: hre.network.name,
     chainId: hre.network.config.chainId,
