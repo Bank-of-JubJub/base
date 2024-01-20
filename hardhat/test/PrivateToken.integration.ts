@@ -1,4 +1,5 @@
 import { assert, expect } from "chai";
+import { getContract } from "viem";
 import hre from "hardhat";
 import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
 import { EncryptedBalanceArray } from "../utils/types.ts";
@@ -17,8 +18,11 @@ import { ProcessTransferCoordinator } from "../../coordinators/ProcessTransferCo
 import { WithdrawCoordinator } from "../../coordinators/WithdrawCoordinator.ts";
 import { getDecryptedValue } from "../utils/utils.ts";
 import { deployContracts } from "../scripts/deploy.ts";
+import { abi as privateTokenAbi } from "../artifacts/contracts/PrivateToken.sol/PrivateToken.json"
+import { abi as tokenAbi } from "../artifacts/contracts/ERC20.sol/FunToken.json"
 
-const viem = hre.viem;
+
+// const viem = hre.viem;
 const babyjub = new BabyJubJubUtils();
 let convertedAmount: bigint;
 
@@ -28,8 +32,10 @@ let tokenAddress: `0x${string}`;
 describe("Private Token integration testing", async function () {
   this.beforeAll(async () => {
     const contracts = await deployContracts(true);
-    privateTokenAddress = contracts!.privateToken.address.account.address;
-    tokenAddress = contracts!.token.address.account.address;
+    // @ts-ignore
+    privateTokenAddress = contracts!.privateToken.address;
+    // @ts-ignore
+    tokenAddress = contracts!.token.address;
     await babyjub.init();
   });
 
@@ -83,7 +89,7 @@ describe("Private Token integration testing", async function () {
     await coordinator.generateProof();
     await coordinator.sendProcessDeposit();
 
-    let balance = await privateToken.read.balances([account1.packedPublicKey]);
+    let balance = await privateToken.read.balances([account1.packedPublicKey]) as EncryptedBalanceArray
 
     const decryptedBalance = await getDecryptedValue(account1, balance);
     expect(decryptedBalance == BigInt(999));
@@ -113,10 +119,10 @@ describe("Private Token integration testing", async function () {
 
     let sender_balance = await privateToken.read.balances([
       account1.packedPublicKey,
-    ]);
+    ]) as EncryptedBalanceArray;
     let recipient_balance = await privateToken.read.balances([
       account2.packedPublicKey,
-    ]);
+    ]) as EncryptedBalanceArray;
 
     // check token balance of the relayer
     // check that transfer event was emitted
@@ -203,7 +209,7 @@ describe("Private Token integration testing", async function () {
     const { privateToken } = await getContracts();
     const unfmtEncOldBalance = await privateToken.read.balances([
       account1.packedPublicKey,
-    ]);
+    ]) as EncryptedBalanceArray;
     const clearOldBalance = Number(
       await getDecryptedValue(account1, unfmtEncOldBalance)
     );
@@ -228,7 +234,7 @@ describe("Private Token integration testing", async function () {
 
     const postBalance = await privateToken.read.balances([
       account1.packedPublicKey,
-    ]);
+    ]) as EncryptedBalanceArray;
     const decryptedBalance = Number(
       await getDecryptedValue(account1, postBalance)
     );
@@ -244,9 +250,9 @@ describe("Private Token integration testing", async function () {
 async function deposit() {
   const { privateToken, token } = await getContracts();
 
-  const [walletClient0, walletClient1] = await viem.getWalletClients();
+  const [walletClient0, walletClient1] = await hre.viem.getWalletClients();
   let balance = await token.read.balanceOf([walletClient0.account.address]);
-  await token.write.approve([privateToken.address.account.address, balance], { account: walletClient0.account });
+  await token.write.approve([privateToken.address, balance], { account: walletClient0.account });
 
   let tokenDecimals = (await token.read.decimals()) as number;
   let bojDecimals = (await privateToken.read.decimals()) as number;
@@ -264,11 +270,19 @@ async function deposit() {
 }
 
 async function getContracts() {
-  let privateToken = await viem.getContractAt(
-    "PrivateToken",
-    privateTokenAddress
-  );
-  let token = await viem.getContractAt("FunToken", tokenAddress);
+
+  const [wallet] = await hre.viem.getWalletClients();
+  const publicClient = await hre.viem.getPublicClient();
+  let privateToken = await getContract({
+    abi: privateTokenAbi,
+    address: privateTokenAddress,
+    client: {
+      wallet,
+      public: publicClient
+    }
+  });
+  let token = await getContract({ abi: tokenAbi, address: tokenAddress, client: { wallet, public: publicClient } });
+
   return {
     privateToken,
     token,

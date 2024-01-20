@@ -279,9 +279,9 @@ contract PrivateToken {
         }
 
         address ethController = accountController.ethController(_from);
-        if (ethController != address(0)) {
+        if (ethController != address(0) && local.lockedByAddress == address(0)) {
             // require tha the account has approved the msg.sender
-            require(ethController == msg.sender, "Transfer must be sent from the eth controller");
+            require(ethController == msg.sender, "Transfer must be sent from the eth controller or locked contract");
         }
 
         local.to = _to;
@@ -354,9 +354,9 @@ contract PrivateToken {
         }
 
         address ethController = accountController.ethController(_from);
-        if (ethController != address(0)) {
+        if (ethController != address(0) && local.lockedToAddress == address(0)) {
             // require tha the account has approved the msg.sender
-            require(ethController == msg.sender, "Transfer must be sent from the eth controller");
+            require(ethController == msg.sender, "Transfer must be sent from the eth controller or locked contract");
         }
 
         local.to = bytes32(uint256(uint160(_to)));

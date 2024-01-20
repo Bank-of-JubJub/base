@@ -2,12 +2,11 @@ import hre from "hardhat";
 import dotenv from "dotenv";
 import { readDeploymentData, saveDeploymentData } from "./saveDeploy";
 import { delay } from "../utils/utils";
-import { bytecode as accountControllerBytecode } from "../artifacts/contracts/AccountController.sol/AccountController.json"
-import { keccak256 } from "viem";
 dotenv.config({ path: "../.env" });
 
 export async function deployContracts(isTest: boolean = false) {
   const [deployer] = await hre.viem.getWalletClients();
+  const publicClient = await hre.viem.getPublicClient();
 
   console.log(
     "Deploying contracts with the account:",
@@ -15,7 +14,7 @@ export async function deployContracts(isTest: boolean = false) {
   );
 
   try {
-    let token = await deployAndSave("FunToken", [], isTest);
+    const token = await deployAndSave("FunToken", [], isTest);
 
     const pendingDepositVerifier = await deployAndSave(
       "contracts/process_pending_deposits/plonk_vk.sol:UltraVerifier",
@@ -53,8 +52,6 @@ export async function deployContracts(isTest: boolean = false) {
       isTest
     );
 
-    const create2Deployer = await deployAndSave("Create2Deployer", [], isTest)
-
     const accountController = await deployAndSave(
       "AccountController",
       [addEthSigners.address],
@@ -63,15 +60,22 @@ export async function deployContracts(isTest: boolean = false) {
 
     const allTransferVerifier = await deployAndSave(
       "TransferVerify",
-      [transferVerifier.address, accountController.address],
+      [transferVerifier.address],
       isTest
     );
 
     const allWithdrawVerifier = await deployAndSave(
       "WithdrawVerify",
-      [withdrawVerifier.address, accountController.address],
+      [withdrawVerifier.address],
       isTest
     );
+
+    const decimals = await publicClient.readContract({
+      abi: token.abi,
+      // @ts-ignore
+      address: token.address,
+      functionName: 'decimals'
+    })
 
     const privateToken = await deployAndSave(
       "PrivateToken",
@@ -82,7 +86,8 @@ export async function deployContracts(isTest: boolean = false) {
         allWithdrawVerifier.address,
         lockVerifier.address,
         token.address,
-        await token.read.decimals(),
+        decimals,
+        accountController.address
       ],
       isTest
     );
@@ -100,11 +105,6 @@ export async function deployContracts(isTest: boolean = false) {
   }
 }
 
-deployContracts().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
-
 async function deployAndSave(
   name: string,
   constructorArgs: any[],
@@ -112,9 +112,6 @@ async function deployAndSave(
 ) {
   const publicClient = await hre.viem.getPublicClient();
   const [deployer] = await hre.viem.getWalletClients();
-  // const count = await publicClient.getTransactionCount({
-  //   address: deployer.account.address,
-  // });
 
   let contractName = name;
   if (name.startsWith("contracts/")) {
@@ -136,35 +133,14 @@ async function deployAndSave(
     return await hre.viem.getContractAt(name, data[hre.network.name].address);
   }
 
-  console.log("contract name", name)
-  // console.log
+  const hash = await deployer.deployContract({
+    abi: artifact.abi,
+    account: (await deployer.getAddresses())[0],
+    args: constructorArgs,
+    bytecode: artifact.bytecode as `0x${string}`,
+  });
 
-  let hash;
-  let address;
-  let receipt;
-  // deploy AccountController with CREATE2
-  if (name == "AccountController") {
-    const { data: create2DeployerData } = readDeploymentData("Create2Deployer");
-    const create2Deployer = await hre.viem.getContractAt("Create2Deployer", create2DeployerData[hre.network.name].address)
-    const salt = 8008n;
-
-    hash = await create2Deployer.write.deploy([accountControllerBytecode as `0x${string}`, salt], { account: deployer.account });
-    console.log("account controller deployment from deployer", hash)
-    // the address of the AccountController
-
-    address = (keccak256(('0xff' + deployer.account.address + salt + keccak256(accountControllerBytecode as `0x${string}`)) as `0x${string}`)).slice(12)
-    receipt = await publicClient.getTransactionReceipt({ hash });
-  } else {
-    hash = await deployer.deployContract({
-      abi: artifact.abi,
-      account: (await deployer.getAddresses())[0],
-      args: constructorArgs,
-      bytecode: artifact.bytecode as `0x${string}`,
-    });
-    receipt = await publicClient.getTransactionReceipt({ hash });
-    // the address of the deployed contract
-    address = receipt.contractAddress
-  }
+  const receipt = await publicClient.getTransactionReceipt({ hash });
 
   console.log(`${name} contract deployed`);
 
@@ -173,7 +149,7 @@ async function deployAndSave(
   }
 
   saveDeploymentData(contractName, {
-    address: address as `0x${string}`,
+    address: receipt.contractAddress as `0x${string}`,
     abi: artifact.abi,
     network: hre.network.name,
     chainId: hre.network.config.chainId,
