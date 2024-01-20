@@ -148,8 +148,7 @@ async function deployAndSave(
     const create2Deployer = await hre.viem.getContractAt("Create2Deployer", create2DeployerData[hre.network.name].address)
     const salt = 8008n;
 
-    console.log(create2Deployer)
-    hash = await create2Deployer.write.deploy([accountControllerBytecode as `0x${string}`, salt]);
+    hash = await create2Deployer.write.deploy([accountControllerBytecode as `0x${string}`, salt], { account: deployer.account });
     console.log("account controller deployment from deployer", hash)
     // the address of the AccountController
 

@@ -28,8 +28,8 @@ let tokenAddress: `0x${string}`;
 describe("Private Token integration testing", async function () {
   this.beforeAll(async () => {
     const contracts = await deployContracts(true);
-    privateTokenAddress = contracts!.privateToken.address;
-    tokenAddress = contracts!.token.address;
+    privateTokenAddress = contracts!.privateToken.address.account.address;
+    tokenAddress = contracts!.token.address.account.address;
     await babyjub.init();
   });
 
@@ -246,7 +246,7 @@ async function deposit() {
 
   const [walletClient0, walletClient1] = await viem.getWalletClients();
   let balance = await token.read.balanceOf([walletClient0.account.address]);
-  await token.write.approve([privateToken.address, balance]);
+  await token.write.approve([privateToken.address.account.address, balance], { account: walletClient0.account });
 
   let tokenDecimals = (await token.read.decimals()) as number;
   let bojDecimals = (await privateToken.read.decimals()) as number;
@@ -258,7 +258,9 @@ async function deposit() {
     depositAmount,
     account1.packedPublicKey,
     depositProcessFee,
-  ]);
+  ], {
+    account: walletClient0.account
+  });
 }
 
 async function getContracts() {

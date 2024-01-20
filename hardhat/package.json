@@ -43,6 +43,7 @@
     "@nomicfoundation/hardhat-toolbox-viem": "^1.0.0",
     "@nomicfoundation/hardhat-viem": "1.0.0",
     "abitype": "0.10.1",
-    "viem": "1.20.3"
+    "ethers": "^6.10.0",
+    "viem": "2.4.0"
   }
 }
