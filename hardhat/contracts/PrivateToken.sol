@@ -251,10 +251,9 @@ contract PrivateToken {
         TransferLocals memory local;
         local.txNonce = checkAndUpdateNonce(_from, _senderNewBalance);
         local.lockedByAddress = lockedTo[_from];
-        require(
-            local.lockedByAddress == address(0) || local.lockedByAddress == msg.sender,
-            "account is locked to another account"
-        );
+        if (local.lockedByAddress != address(0)) {
+            require(local.lockedByAddress == msg.sender, "account is locked to another account");
+        }
         local.oldBalance = balances[_from];
         local.receiverBalance = balances[_to];
         bool zeroBalance = (
@@ -279,7 +278,7 @@ contract PrivateToken {
         }
 
         address ethController = accountController.ethController(_from);
-        if (ethController != address(0) && local.lockedByAddress == address(0)) {
+        if (ethController != address(0)) {
             // require tha the account has approved the msg.sender
             require(ethController == msg.sender, "Transfer must be sent from the eth controller or locked contract");
         }
@@ -336,10 +335,9 @@ contract PrivateToken {
         WithdrawLocals memory local;
         local.txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
         local.lockedToAddress = lockedTo[_from];
-        require(
-            local.lockedToAddress == address(0) || local.lockedToAddress == msg.sender,
-            "account is locked to another account"
-        );
+        if (local.lockedToAddress != address(0)) {
+            require(local.lockedToAddress == msg.sender, "account is locked to another account");
+        }
         // TODO: fee
         local.oldBalance = balances[_from];
         balances[_from] = _newEncryptedAmount;
@@ -354,7 +352,7 @@ contract PrivateToken {
         }
 
         address ethController = accountController.ethController(_from);
-        if (ethController != address(0) && local.lockedToAddress == address(0)) {
+        if (ethController != address(0)) {
             // require tha the account has approved the msg.sender
             require(ethController == msg.sender, "Transfer must be sent from the eth controller or locked contract");
         }
