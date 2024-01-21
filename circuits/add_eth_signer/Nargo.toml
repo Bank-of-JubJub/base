@@ -1,5 +1,5 @@
 [package]
-name = "add_eth_signers"
+name = "add_eth_signer"
 type = "bin"
 authors = [""]
 compiler_version = ">=0.17.0"

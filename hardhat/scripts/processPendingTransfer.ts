@@ -30,7 +30,7 @@ async function main() {
     params.to,
     sender.account.address,
     0,
-    privateToken.address,
+    privateToken.address.account.address,
     // @ts-ignore
     publicClient,
     sender

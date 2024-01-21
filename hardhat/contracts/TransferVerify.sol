@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import "hardhat/console.sol";
+// import "hardhat/console.sol";
 import {UltraVerifier as TransferVerifier} from "./transfer/plonk_vk.sol";
 import "./PrivateToken.sol";
-import "./AccountController.sol";
 
 contract TransferVerify {
     struct LocalVars {
@@ -20,46 +19,30 @@ contract TransferVerify {
     }
 
     TransferVerifier public transferVerifier;
-    AccountController public accountController;
-    uint256 BJJ_PRIME =
-        21888242871839275222246405745257275088548364400416034343698204186575808495617;
+    uint256 BJJ_PRIME = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
 
-    constructor(address _transferVerifier, address _accountController) {
+    constructor(address _transferVerifier) {
         transferVerifier = TransferVerifier(_transferVerifier);
-        accountController = AccountController(_accountController);
     }
 
-    function verifyTransfer(
-        PrivateToken.TransferLocals memory inputs
-    ) external view {
+    function verifyTransfer(PrivateToken.TransferLocals memory inputs) external view {
         LocalVars memory local;
 
         local.toModulus = fromRprLe(inputs.to);
         local.fromModulus = fromRprLe(inputs.from);
 
-        address controller = accountController.ethController(inputs.from);
-        if (controller != address(0x0)) {
-            require(
-                msg.sender == controller,
-                "Transfer must be sent from the eth controller"
-            );
-        }
-
         local.publicInputs = new bytes32[](17);
         local.publicInputs = _stageCommonTransferInputs(local, inputs);
         require(
-            TransferVerifier(transferVerifier).verify(
-                inputs.proof,
-                local.publicInputs
-            ),
-            "Transfer proof is invalid"
+            TransferVerifier(transferVerifier).verify(inputs.proof, local.publicInputs), "Transfer proof is invalid"
         );
     }
 
-    function _stageCommonTransferInputs(
-        LocalVars memory local,
-        PrivateToken.TransferLocals memory inputs
-    ) internal pure returns (bytes32[] memory) {
+    function _stageCommonTransferInputs(LocalVars memory local, PrivateToken.TransferLocals memory inputs)
+        internal
+        pure
+        returns (bytes32[] memory)
+    {
         local.publicInputs[0] = bytes32(local.fromModulus);
         local.publicInputs[1] = bytes32(local.toModulus);
         local.publicInputs[2] = bytes32(uint256(inputs.processFee));

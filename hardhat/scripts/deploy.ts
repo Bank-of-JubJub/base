@@ -6,6 +6,7 @@ dotenv.config({ path: "../.env" });
 
 export async function deployContracts(isTest: boolean = false) {
   const [deployer] = await hre.viem.getWalletClients();
+  const publicClient = await hre.viem.getPublicClient();
 
   console.log(
     "Deploying contracts with the account:",
@@ -13,7 +14,7 @@ export async function deployContracts(isTest: boolean = false) {
   );
 
   try {
-    let token = await deployAndSave("FunToken", [], isTest);
+    const token = await deployAndSave("FunToken", [], isTest);
 
     const pendingDepositVerifier = await deployAndSave(
       "contracts/process_pending_deposits/plonk_vk.sol:UltraVerifier",
@@ -46,7 +47,7 @@ export async function deployContracts(isTest: boolean = false) {
     );
 
     const addEthSigners = await deployAndSave(
-      "contracts/add_eth_signers/plonk_vk.sol:UltraVerifier",
+      "contracts/add_eth_signer/plonk_vk.sol:UltraVerifier",
       [],
       isTest
     );
@@ -59,15 +60,22 @@ export async function deployContracts(isTest: boolean = false) {
 
     const allTransferVerifier = await deployAndSave(
       "TransferVerify",
-      [transferVerifier.address, accountController.address],
+      [transferVerifier.address],
       isTest
     );
 
     const allWithdrawVerifier = await deployAndSave(
       "WithdrawVerify",
-      [withdrawVerifier.address, accountController.address],
+      [withdrawVerifier.address],
       isTest
     );
+
+    const decimals = await publicClient.readContract({
+      abi: token.abi,
+      // @ts-ignore
+      address: token.address,
+      functionName: 'decimals'
+    })
 
     const privateToken = await deployAndSave(
       "PrivateToken",
@@ -78,7 +86,8 @@ export async function deployContracts(isTest: boolean = false) {
         allWithdrawVerifier.address,
         lockVerifier.address,
         token.address,
-        await token.read.decimals(),
+        decimals,
+        accountController.address
       ],
       isTest
     );
@@ -90,16 +99,12 @@ export async function deployContracts(isTest: boolean = false) {
     return {
       privateToken,
       token,
+      accountController
     };
   } catch (e) {
     console.log(e);
   }
 }
-
-deployContracts().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
 
 async function deployAndSave(
   name: string,
@@ -108,9 +113,6 @@ async function deployAndSave(
 ) {
   const publicClient = await hre.viem.getPublicClient();
   const [deployer] = await hre.viem.getWalletClients();
-  // const count = await publicClient.getTransactionCount({
-  //   address: deployer.account.address,
-  // });
 
   let contractName = name;
   if (name.startsWith("contracts/")) {
@@ -139,13 +141,13 @@ async function deployAndSave(
     bytecode: artifact.bytecode as `0x${string}`,
   });
 
+  const receipt = await publicClient.getTransactionReceipt({ hash });
+
   console.log(`${name} contract deployed`);
 
   if (!isTest) {
     await delay(20000);
   }
-
-  const receipt = await publicClient.getTransactionReceipt({ hash });
 
   saveDeploymentData(contractName, {
     address: receipt.contractAddress as `0x${string}`,

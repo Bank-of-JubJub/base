@@ -2,56 +2,54 @@ name: Hardhat Tests
 
 on:
   pull_request:
-    branches: [ master ]
-
+    branches: [master]
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check out repository code
-      uses: actions/checkout@v2
+      - name: Check out repository code
+        uses: actions/checkout@v2
 
-    - name: Generate hash of the folder
-      id: hash-folder
-      run: echo "::set-output name=hash::$(find contract -type f -exec md5sum {} + | md5sum | cut -d' ' -f1)"
+      - name: Generate hash of the folder
+        id: hash-folder
+        run: echo "::set-output name=hash::$(find contract -type f -exec md5sum {} + | md5sum | cut -d' ' -f1)"
 
-    - name: Cache Soldity Verifiers
-      uses: actions/cache@v2
-      with:
-        path: path/to/folder
-        key: ${{ runner.os }}-folder-${{ steps.hash-folder.outputs.hash }}
+      - name: Cache Soldity Verifiers
+        uses: actions/cache@v2
+        with:
+          path: path/to/folder
+          key: ${{ runner.os }}-folder-${{ steps.hash-folder.outputs.hash }}
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "20" # Specify the Node.js version
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '20' # Specify the Node.js version
+      - name: Install Yarn
+        run: npm install -g yarn
 
-    - name: Install Yarn
-      run: npm install -g yarn
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
 
-    - name: Install Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
+      - name: Build
+        run: cargo build --release --manifest-path circuits/exponential_elgamal/babygiant_native/Cargo.toml
 
-    - name: Build
-      run: cargo build --release --manifest-path circuits/exponential_elgamal/babygiant_native/Cargo.toml
+      - name: Install Nargo
+        uses: noir-lang/noirup@v0.1.2
+        with:
+          toolchain: 0.22.0
 
-    - name: Install Nargo
-      uses: noir-lang/noirup@v0.1.2
-      with:
-        toolchain: 0.19.4
+      - name: Generate Solidity Verifieres
+        run: nargo codegen-verifier --workspace
 
-    - name: Generate Solidity Verifieres
-      run: nargo codegen-verifier --workspace
+      - name: Copy verifiers to Hardhat
+        run: ./copy_verifiers.sh
 
-    - name: Copy verifiers to Hardhat
-      run: ./copy_verifiers.sh
-
-    - name: Install dependencies and test
-      run: yarn && cd hardhat && yarn && yarn test
+      - name: Install dependencies and test
+        run: yarn && cd hardhat && yarn && yarn test

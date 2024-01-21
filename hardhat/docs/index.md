@@ -572,7 +572,7 @@ function addOtherController(bytes32 _packedPublicKey, address _ethAddress, bytes
 This function allows a Private Token account to assign an eth signer or an erc4337 controller.
 The address associated with the packed public key must be 0x0.
 
-_See the add_eth_signers circuit for circuit details_
+_See the add_eth_signer circuit for circuit details_
 
 #### Parameters
 
@@ -627,7 +627,7 @@ function addMultisigEthSigners(bytes _proof, bytes32 _packedPublicKey, address[]
 
 This function adds a multisig eth signer. It uses the addEthSignerVerifier circuit.
 
-_See the add_eth_signers circuit for circuit details_
+_See the add_eth_signer circuit for circuit details_
 
 #### Parameters
 
