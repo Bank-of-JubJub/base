@@ -1,5 +1,5 @@
 import { assert, expect } from "chai";
-import { getContract, bytesToBigInt, hexToBigInt } from "viem";
+import { getContract, bytesToBigInt, hexToBigInt, toHex } from "viem";
 import hre from "hardhat";
 import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
 import {
@@ -37,12 +37,12 @@ describe("Private Token integration testing", async function () {
         const { accountController } = await getContracts();
         const [sender] = await hre.viem.getWalletClients();
 
-        const nonce = await accountController.read.nonce([account1.packedPublicKey]) as string;
+        const nonce = await accountController.read.nonce([account1.packedPublicKey]) as bigint;
 
         const proofInputs = {
             private_key: account1.privateKey,
             packed_public_key_modulus: fromRprLe(account1.packedPublicKey),
-            nonce
+            nonce: toHex(nonce)
         }
 
         createAndWriteToml("add_eth_signer", proofInputs);
