@@ -6,7 +6,10 @@
   "dependencies": {
     "@oclif/core": "^3",
     "@oclif/plugin-help": "^5",
-    "@oclif/plugin-plugins": "^4"
+    "@oclif/plugin-plugins": "^4",
+    "circomlibjs": "^0.1.7",
+    "dotenv": "^16.3.2",
+    "viem": "^2.4.0"
   },
   "description": "Simple CLI tool to interact with the Bank of Jubjub",
   "devDependencies": {

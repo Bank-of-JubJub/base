@@ -1,7 +1,9 @@
 {
   "dependencies": {
     "@iarna/toml": "^2.2.5",
-    "viem": "^1.21.0"
+    "@types/json-bigint": "^1.0.4",
+    "json-bigint": "^1.0.0",
+    "viem": "^2.4.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.4"

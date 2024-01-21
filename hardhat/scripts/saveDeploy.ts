@@ -27,7 +27,7 @@ export function saveDeploymentData(
 }
 
 export function readDeploymentData(contractName: string) {
-  const deploymentsDir = path.join(__dirname, "../", "deployments");
+  const deploymentsDir = path.join(__dirname, "../../", "deployments");
   if (!fs.existsSync(deploymentsDir)) {
     fs.mkdirSync(deploymentsDir);
   }
