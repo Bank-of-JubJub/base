@@ -47,7 +47,7 @@ export async function deployContracts(isTest: boolean = false) {
     );
 
     const addEthSigners = await deployAndSave(
-      "contracts/add_eth_signers/plonk_vk.sol:UltraVerifier",
+      "contracts/add_eth_signer/plonk_vk.sol:UltraVerifier",
       [],
       isTest
     );

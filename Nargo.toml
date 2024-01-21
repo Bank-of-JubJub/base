@@ -5,7 +5,7 @@ members = [
     "circuits/withdraw",
     "circuits/process_pending_deposits",
     "circuits/process_pending_transfers",
-    "circuits/add_eth_signers",
+    "circuits/add_eth_signer",
 ]
 default-member = "circuits/transfer"
 

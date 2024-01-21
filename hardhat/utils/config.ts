@@ -9,7 +9,7 @@ export function getProcessTransferInputs(
   to: string,
   oldEncBalance: EncryptedBalanceArray,
   newBalance: number
-) {}
+) { }
 
 export async function getTransferProof() {
   return (await getProof("../proofs/transfer.proof")) as `0x${string}`;
@@ -25,6 +25,12 @@ export async function getProcessTransfersProof() {
   return (await getProof(
     "../proofs/process_pending_transfers.proof"
   )) as `0x${string}`;
+}
+
+export async function getAddEthSignerProof() {
+  return (await getProof(
+    "../proofs/add_eth_signer.proof"
+  )) as `0x${string}`
 }
 
 export async function getWithdrawProof() {

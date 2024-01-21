@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import {UltraVerifier as AddEthSignerVerifier} from "./add_eth_signers/plonk_vk.sol";
+import {UltraVerifier as AddEthSignerVerifier} from "./add_eth_signer/plonk_vk.sol";
 
 /// @title Account Controller contract for Bank of Jubjub accounts
 /// @author critesjosh
@@ -32,7 +32,7 @@ contract AccountController {
     /// @param _packedPublicKey The packed public key of the account to update
     /// @param _ethAddress The eth address of the signer or the 4337 account
     /// @param _proof The proof that the caller has the private key corresponding to the packed public key
-    /// @dev See the add_eth_signers circuit for circuit details
+    /// @dev See the add_eth_signer circuit for circuit details
     function addEthController(bytes32 _packedPublicKey, address _ethAddress, bytes memory _proof) public {
         bytes32[] memory publicInputs = new bytes32[](2);
         publicInputs[0] = bytes32(uint256(_packedPublicKey) % BJJ_PRIME);
