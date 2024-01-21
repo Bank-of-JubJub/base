@@ -35,7 +35,7 @@ contract AccountController {
     /// @dev See the add_eth_signer circuit for circuit details
     function addEthController(bytes32 _packedPublicKey, address _ethAddress, bytes memory _proof) public {
         bytes32[] memory publicInputs = new bytes32[](2);
-        publicInputs[0] = bytes32(uint256(_packedPublicKey) % BJJ_PRIME);
+        publicInputs[0] = bytes32(fromRprLe(_packedPublicKey));
         // The nonce ensures the proof cannot be reused in replay attackes
         publicInputs[1] = bytes32(nonce[_packedPublicKey]);
         // The proof checks that the caller has the private key corresponding to the public key
@@ -57,15 +57,24 @@ contract AccountController {
         emit AddController(_packedPublicKey, _newAddress);
     }
 
-    function revokeEthController(bytes32 _packedPublicKey, address _removeAddress, bytes memory _proof) public {
-        bytes32[] memory publicInputs = new bytes32[](2);
-        publicInputs[0] = bytes32(uint256(_packedPublicKey) % BJJ_PRIME);
-        // The nonce ensures the proof cannot be reused in replay attacks
-        publicInputs[1] = bytes32(nonce[_packedPublicKey]);
-        // The proof checks that the caller has the private key corresponding to the public key
-        addEthSignerVerifier.verify(_proof, publicInputs);
-        nonce[_packedPublicKey] += 1;
+    function fromRprLe(bytes32 publicKey) internal view returns (uint256) {
+        uint256 y = 0;
+        uint256 v = 1;
+        bytes memory publicKeyBytes = bytes32ToBytes(publicKey);
+        for (uint8 i = 0; i < 32; i++) {
+            y += (uint8(publicKeyBytes[i]) * v) % BJJ_PRIME;
+            if (i != 31) {
+                v *= 256;
+            }
+        }
+        return y;
+    }
 
-        emit RevokeController(_packedPublicKey, _removeAddress);
+    function bytes32ToBytes(bytes32 _data) public pure returns (bytes memory) {
+        bytes memory byteArray = new bytes(32);
+        for (uint256 i = 0; i < 32; i++) {
+            byteArray[i] = _data[i];
+        }
+        return byteArray;
     }
 }

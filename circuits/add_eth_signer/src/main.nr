@@ -9,7 +9,7 @@ fn main(
 ) {
     let computed_public_key = bjj::priv_to_pub_key(private_key);
     let computed_packed = bjj::pack_point(computed_public_key);
-
+    assert(nonce == nonce);
     // let computed_packed_int = from_rpr_le(computed_packed);
     assert(bjj::from_rpr_le(computed_packed) == packed_public_key_modulus);
 }

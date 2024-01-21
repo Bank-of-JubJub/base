@@ -1,26 +1,20 @@
 import { assert, expect } from "chai";
-import { getContract } from "viem";
+import { getContract, bytesToBigInt, hexToBigInt } from "viem";
 import hre from "hardhat";
 import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
-import { EncryptedBalanceArray } from "../utils/types.ts";
 import {
     account1,
-    account2,
-    transferProcessFee,
-    transferRelayFee,
-    depositAmount,
-    depositProcessFee,
-    transferAmount,
+
 } from "../utils/constants.ts";
-import { TransferCoordinator } from "../../coordinators/TransferCoordinator.ts";
-import { ProcessDepositCoordinator } from "../../coordinators/ProcessDepositCoordinator.ts";
-import { ProcessTransferCoordinator } from "../../coordinators/ProcessTransferCoordinator.ts";
-import { WithdrawCoordinator } from "../../coordinators/WithdrawCoordinator.ts";
-import { getDecryptedValue } from "../utils/utils.ts";
 import { deployContracts } from "../scripts/deploy.ts";
 import { abi as privateTokenAbi } from "../artifacts/contracts/PrivateToken.sol/PrivateToken.json"
 import { abi as tokenAbi } from "../artifacts/contracts/ERC20.sol/FunToken.json"
 import { abi as accountControllerAbi } from "../artifacts/contracts/AccountController.sol/AccountController.json"
+import { fromRprLe } from "../utils/utils.ts";
+import { createAndWriteToml } from "../../createToml.ts";
+import { runNargoProve } from "../utils/generateNargoProof.ts";
+import { getAddEthSignerProof } from "../utils/config.ts";
+
 
 // const viem = hre.viem;
 const babyjub = new BabyJubJubUtils();
@@ -41,7 +35,23 @@ describe("Private Token integration testing", async function () {
 
     it("should add an eth controller", async () => {
         const { accountController } = await getContracts();
-        accountController.read /
+        const [sender] = await hre.viem.getWalletClients();
+
+        const nonce = await accountController.read.nonce([account1.packedPublicKey]) as string;
+
+        const proofInputs = {
+            private_key: account1.privateKey,
+            packed_public_key_modulus: fromRprLe(account1.packedPublicKey),
+            nonce
+        }
+
+        createAndWriteToml("add_eth_signer", proofInputs);
+        await runNargoProve("add_eth_signer", "Test.toml");
+        const proof = await getAddEthSignerProof();
+        const hash = await accountController.write.addEthController([account1.packedPublicKey, sender.account.address, proof])
+
+        let controllerAddress = await accountController.read.ethController([account1.packedPublicKey])
+        expect(controllerAddress == sender.account, "controller should be the sender")
     })
 })
 
