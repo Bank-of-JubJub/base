@@ -1,36 +1,20 @@
 import { ethers } from "ethers";
-import { toBytes } from "viem";
+import { hexToBigInt, toBytes, toHex } from "viem";
+import BabyJubJubUtils from "../utils/babyJubJubUtils";
+import { getDecryptedValue, getEncryptedValue } from "../utils/utils";
+import { BojAccount } from "../utils/types";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import dotenv from "dotenv";
+dotenv.config({ path: "../.env" });
 
 async function main() {
-  // hardhat wallet 0
-  const sender = new ethers.Wallet(
-    "ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-  );
-
-  const message = "test";
-
-  console.log("\x1b[34m%s\x1b[0m", "signing message 🖋: ", message);
-
-  const signature = await sender.signMessage(message); // get the signature of the message, this will be 130 bytes (concatenated r, s, and v)
-
-  console.log("signature 📝: ", toBytes(signature));
-
-  const digest = getMessageHash(message);
-
-  console.log("hashed message ", toBytes(digest));
-
-  let pubKey_uncompressed = ethers.utils.recoverPublicKey(digest, signature);
-  console.log("uncompressed pubkey: ", pubKey_uncompressed);
-
-  // recoverPublicKey returns `0x{hex"4"}{pubKeyXCoord}{pubKeyYCoord}` - so slice 0x04 to expose just the concatenated x and y
-  //    see https://github.com/indutny/elliptic/issues/86 for a non-explanation explanation 😂
-  let pubKey = pubKey_uncompressed.slice(4);
-
-  let pub_key_x = pubKey.substring(0, 64);
-  console.log("public key x coordinate 📊: ", toBytes("0x" + pub_key_x));
-
-  let pub_key_y = pubKey.substring(64);
-  console.log("public key y coordinate 📊: ", toBytes("0x" + pub_key_y));
+  // const babyjub = new BabyJubJubUtils();
+  // await babyjub.init();
+  // const privateKey =
+  //   "0x0175d9d391887f8c3e5c42fd79ea6aab91f7414c8fe08ee2406ef526521ad77b";
+  // let pubkey = babyjub.privateToPublicKey(privateKey);
+  // let packed = babyjub.packPublicKey([toBytes(pubkey.x), toBytes(pubkey.y)]);
+  // console.log("packed", toHex(packed));
 }
 
 main();

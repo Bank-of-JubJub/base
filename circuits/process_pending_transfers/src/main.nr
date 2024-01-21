@@ -15,14 +15,14 @@ To be sure this is not vulnerable, we added a check in the smart contract to mak
 is different from receiver (a nonce variable is not needed in our case because transfers are 
 initiated by from=msg.sender in the contract, so replay attack is impossible)
 */
-fn main(// All Public inputs, this can be executed by anyone
-        balance_old_to_encrypted_1: pub Gaffine, 
-        balance_old_to_encrypted_2: pub Gaffine,
-        balance_new_to_encrypted_1: pub Gaffine, 
-        balance_new_to_encrypted_2: pub Gaffine,
-        encrypted_values: pub [Gaffine; 8],
-    )
-{
+fn main(
+    // All Public inputs, this can be executed by anyone
+    balance_old_to_encrypted_1: pub Gaffine,
+    balance_old_to_encrypted_2: pub Gaffine,
+    balance_new_to_encrypted_1: pub Gaffine,
+    balance_new_to_encrypted_2: pub Gaffine,
+    encrypted_values: pub [Gaffine; 8]
+) {
     // check that new balance = the balance_old_me_clear - fee
     let bjj_affine = bjj::get_affine_curve();
 
@@ -41,7 +41,12 @@ fn main(// All Public inputs, this can be executed by anyone
     );
 
     // checks that the new encrypted balance of receiver is correct
-    assert((balance_new_to_encrypted_computed.0.x == balance_new_to_encrypted_1.x) & (balance_new_to_encrypted_computed.0.y == balance_new_to_encrypted_1.y) & (balance_new_to_encrypted_computed.1.x == balance_new_to_encrypted_2.x) & (balance_new_to_encrypted_computed.1.y == balance_new_to_encrypted_2.y));
+    assert(
+        (balance_new_to_encrypted_computed.0.x == balance_new_to_encrypted_1.x)
+        & (balance_new_to_encrypted_computed.0.y == balance_new_to_encrypted_1.y)
+        & (balance_new_to_encrypted_computed.1.x == balance_new_to_encrypted_2.x)
+        & (balance_new_to_encrypted_computed.1.y == balance_new_to_encrypted_2.y)
+    );
 }
 
 // Because of a bug in Noir 10.3, this test will cause a stack overflow error, but you can check that it passes via `nargo prove` instead of `nargo test`: the values inside Prover.toml are strictly equivalent to this test
@@ -61,14 +66,16 @@ fn test_main() {
     // public values
     let old_balance = bjj::exp_elgamal_encrypt(public_key, balance, randomness);
     let encryped_value = bjj::exp_elgamal_encrypt(public_key, 100, randomness);
-    let encrypted_values = [encryped_value.0,
-        encryped_value.1,
+    let encrypted_values = [
         encryped_value.0,
         encryped_value.1,
         encryped_value.0,
         encryped_value.1,
         encryped_value.0,
-        encryped_value.1];
+        encryped_value.1,
+        encryped_value.0,
+        encryped_value.1
+    ];
     let mut encrypted_value_sum = (encrypted_values[0], encrypted_values[1]);
     for i in 1..4 {
         let mut s = i * 2;
@@ -88,6 +95,10 @@ fn test_main() {
     assert(decoded_value.y == embedded_balance.y);
 
     main(
-        old_encrypted_amount.0, old_encrypted_amount.1, new_balance_encrypted.0, new_balance_encrypted.1, encrypted_values
+        old_encrypted_amount.0,
+        old_encrypted_amount.1,
+        new_balance_encrypted.0,
+        new_balance_encrypted.1,
+        encrypted_values
     );
 }

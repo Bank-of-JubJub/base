@@ -38,11 +38,13 @@ sender_pub_key = [
     107,
     170,
 ]
-
+sender_pub_key_modulus = "0x193e2a9bcbd4c629cfa843430b874e40e1ae2a3cd69fb2fc3b698cb90b9f9fd9"
 recipient_pub_key=[0x0c, 0x07, 0x99, 0x9c, 0x15, 0xd4, 0x06, 0xbc, 0x08, 0xd7, 0xf3, 0xf3, 0x1f, 0x62, 0xce, 0xdb, 0xc8, 0x9e, 0xbf, 0x3a, 0x53, 0xff, 0x4d, 0x3b, 0xf7, 0xe2, 0xd0, 0xdd, 0xa9, 0x31, 0x49, 0x04]
+recipient_pub_key_modulus="0x044931a9ddd0e2f73b4dff533abf9ec8dbce621ff3f3d708bc06d4159c99070c"
 process_fee="0"
 relay_fee="2"
 nonce="2769977940963397124885408231506034855521088882073547715905931073847468973093"
+nonce_private="2769977940963397124885408231506034855521088882073547715905931073847468973093"
 
 # encrypted 999
 [old_balance_encrypted_1]
