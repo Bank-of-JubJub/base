@@ -99,6 +99,7 @@ export async function deployContracts(isTest: boolean = false) {
     return {
       privateToken,
       token,
+      accountController
     };
   } catch (e) {
     console.log(e);
