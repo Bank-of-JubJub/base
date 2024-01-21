@@ -250,10 +250,8 @@ contract PrivateToken {
     ) public {
         TransferLocals memory local;
         local.txNonce = checkAndUpdateNonce(_from, _senderNewBalance);
-        local.lockedByAddress = lockedTo[_from];
-        if (local.lockedByAddress != address(0)) {
-            require(local.lockedByAddress == msg.sender, "account is locked to another account");
-        }
+        _checkLocked(_from);
+        _checkController(_from);
         local.oldBalance = balances[_from];
         local.receiverBalance = balances[_to];
         bool zeroBalance = (
@@ -273,15 +271,7 @@ contract PrivateToken {
 
         balances[_from] = _senderNewBalance;
         emit Transfer(_from, _to, _amountToSend);
-        if (_relayFee != 0) {
-            token.transfer(_relayFeeRecipient, _relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals));
-        }
-
-        address ethController = accountController.ethController(_from);
-        if (ethController != address(0)) {
-            // require tha the account has approved the msg.sender
-            require(ethController == msg.sender, "Transfer must be sent from the eth controller or locked contract");
-        }
+        _processRelayFee(_relayFee, _relayFeeRecipient);
 
         local.to = _to;
         local.from = _from;
@@ -334,27 +324,17 @@ contract PrivateToken {
     ) public {
         WithdrawLocals memory local;
         local.txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
-        local.lockedToAddress = lockedTo[_from];
-        if (local.lockedToAddress != address(0)) {
-            require(local.lockedToAddress == msg.sender, "account is locked to another account");
-        }
+        _checkLocked(_from);
+        _checkController(_from);
         // TODO: fee
         local.oldBalance = balances[_from];
         balances[_from] = _newEncryptedAmount;
         totalSupply -= _amount;
-        if (_relayFee != 0) {
-            token.transfer(_relayFeeRecipient, uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)));
-        }
+        _processRelayFee(_relayFee, _relayFeeRecipient);
         {
             uint256 convertedAmount = _amount * 10 ** (SOURCE_TOKEN_DECIMALS - decimals);
             token.transfer(_to, convertedAmount);
             emit Withdraw(_from, _to, convertedAmount, _relayFeeRecipient, _relayFee);
-        }
-
-        address ethController = accountController.ethController(_from);
-        if (ethController != address(0)) {
-            // require tha the account has approved the msg.sender
-            require(ethController == msg.sender, "Transfer must be sent from the eth controller or locked contract");
         }
 
         local.to = bytes32(uint256(uint160(_to)));
@@ -489,9 +469,7 @@ contract PrivateToken {
 
         require(PROCESS_TRANSFER_VERIFIER.verify(_proof, publicInputs), "Process pending proof is invalid");
         balances[_recipient] = _newBalance;
-        if (totalFees != 0) {
-            token.transfer(_feeRecipient, uint256(totalFees * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)));
-        }
+        _processRelayFee(totalFees, _feeRecipient);
         emit TransferProcessed(_recipient, _newBalance, totalFees, _feeRecipient);
     }
 
@@ -519,6 +497,7 @@ contract PrivateToken {
     ) public {
         uint256 txNonce = checkAndUpdateNonce(_from, _newEncryptedAmount);
         require(lockedTo[_from] == address(0), "account is already locked");
+        _checkController(_from);
         // figure out actual function signature, this is just a placeholder
         require(_lockToContract.supportsInterface(0x80ac58cd), "contract does not implement unlock");
         lockedTo[_from] = _lockToContract;
@@ -539,9 +518,7 @@ contract PrivateToken {
         publicInputs[10] = bytes32(_newEncryptedAmount.C2x);
         publicInputs[11] = bytes32(_newEncryptedAmount.C2y);
         LOCK_VERIFIER.verify(_proof, publicInputs);
-        if (_relayFee != 0) {
-            token.transfer(_relayFeeRecipient, uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)));
-        }
+        _processRelayFee(_relayFee, _relayFeeRecipient);
         emit Lock(_from, _lockToContract, _relayFee, _relayFeeRecipient);
     }
 
@@ -590,5 +567,25 @@ contract PrivateToken {
             byteArray[i] = _data[i];
         }
         return byteArray;
+    }
+
+    function _checkLocked(bytes32 _from) internal view {
+        address lockedToAddress = lockedTo[_from];
+        if (lockedToAddress != address(0)) {
+            require(lockedToAddress == msg.sender, "account is locked to another account");
+        }
+    }
+
+    function _checkController(bytes32 _from) internal view {
+        address ethController = accountController.ethController(_from);
+        if (ethController != address(0) && lockedTo[_from] == address(0)) {
+            require(ethController == msg.sender, "account is controlled by another account");
+        }
+    }
+
+    function _processRelayFee(uint256 _relayFee, address _relayFeeRecipient) internal {
+        if (_relayFee != 0) {
+            token.transfer(_relayFeeRecipient, uint256(_relayFee * 10 ** (SOURCE_TOKEN_DECIMALS - decimals)));
+        }
     }
 }
