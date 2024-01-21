@@ -40,6 +40,8 @@
   "dependencies": {
     "-": "^0.0.1",
     "@iarna/toml": "^2.2.5",
+    "@noir-lang/backend_barretenberg": "0.22.0",
+    "@noir-lang/noir_js": "0.22.0",
     "@nomicfoundation/hardhat-toolbox-viem": "^1.0.0",
     "@nomicfoundation/hardhat-viem": "1.0.2",
     "abitype": "0.10.1",
