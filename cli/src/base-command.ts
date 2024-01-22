@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import BabyJubJubUtils from './utils/babyJubjubUtils.js';
-import { PublicClient, createWalletClient, toBytes, toHex, createPublicClient, http, WalletClient } from 'viem';
+import { PublicClient, createWalletClient, toBytes, toHex, createPublicClient, http, WalletClient, Chain } from 'viem';
 import { mainnet, arbitrumSepolia, hardhat } from 'viem/chains'
 import { privateKeyToAccount } from 'viem/accounts';
 const babyjub = new BabyJubJubUtils();
@@ -105,17 +105,16 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
             [toBytes(publicKey.x),
             toBytes(publicKey.y)]));
 
-        let chain
+        let chain: Chain
         switch (userConfig.network) {
             case "arbitrumSeplia":
                 chain = arbitrumSepolia
             default:
-                chain = "hardhat"
+                chain = hardhat
         }
 
         this.network = userConfig.network ? userConfig.network : "hardhat"
 
-        // @ts-ignore
         this.publicClient = createPublicClient({
             chain,
             transport: http()

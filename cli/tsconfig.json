@@ -7,7 +7,10 @@
     "target": "es2022",
     "moduleResolution": "node16",
     "composite": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "exactOptionalPropertyTypes": true,
+    "strictNullChecks": true
   },
   "include": ["./src/**/*"],
   "ts-node": {
