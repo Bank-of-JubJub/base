@@ -1,30 +1,57 @@
-import {Args, Command, Flags} from '@oclif/core'
+import { Args, Flags } from '@oclif/core'
+import { BaseCommand } from '../base-command.js'
+import { getContract } from 'viem'
+import { abi as bojAbi } from '../../../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json'
+import { delay } from '../utils/utils.js'
+import { ProcessDepositCoordinator } from "../../../coordinators/ProcessDepositCoordinator.js";
 
-export default class ProcessPendingDeposits extends Command {
-  static description = 'describe the command here'
+export default class Deposit extends BaseCommand<typeof Deposit> {
+  static description = 'process deposits'
 
   static examples = [
-    '<%= config.bin %> <%= command.id %>',
+    '',
   ]
 
   static flags = {
     // flag with a value (-n, --name=VALUE)
-    name: Flags.string({char: 'n', description: 'name to print'}),
-    // flag with no value (-f, --force)
-    force: Flags.boolean({char: 'f'}),
+    bojAddress: Flags.string({ char: 'b' })
   }
 
   static args = {
-    file: Args.string({description: 'file to read'}),
+    amount: Args.string({ description: 'amount to deposit' }),
+    to: Args.string({ description: 'Bank of jubjub account to send to' })
   }
 
   public async run(): Promise<void> {
-    const {args, flags} = await this.parse(ProcessPendingDeposits)
+    const { args, flags } = await this.parse(Deposit)
 
-    const name = flags.name ?? 'world'
-    this.log(`hello ${name} from /home/josh/Documents/GitHub/bojj-base/cli/src/commands/process-pending-deposits.ts`)
-    if (args.file && flags.force) {
-      this.log(`you input --force and --file: ${args.file}`)
-    }
+    const bojContractAddress = flags.bojAddress ?
+      flags.bojAddress : this.userConfig.bojContractAddress
+
+    let privateToken = await getContract({
+      abi: bojAbi,
+      address: bojContractAddress as `0x${string}`,
+      client: {
+        public: this.publicClient,
+        wallet: this.walletClient
+      }
+    });
+
+    const coordinator = new ProcessDepositCoordinator(
+      args.to as `0x${string}`,
+      this.userConfig.bojPublicKey, // relay fee recipient
+      0, // min fee to process
+      privateToken.address,
+      this.publicClient,
+      this.walletClient
+    );
+    await coordinator.init();
+    await coordinator.generateProof();
+    const hash = await coordinator.sendProcessDeposit();
+
+    await delay(5000);
+
+    const receipt = await this.publicClient.getTransactionReceipt({ hash });
+    console.log(receipt);
   }
 }
