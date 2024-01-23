@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import BabyJubJubUtils from './utils/babyJubjubUtils.js';
-import { PublicClient, createWalletClient, toBytes, toHex, createPublicClient, http, WalletClient, Chain } from 'viem';
+import { PublicClient, createWalletClient, toBytes, toHex, createPublicClient, http, WalletClient, Chain, isAddress, PrivateKeyAccount } from 'viem';
 import { mainnet, arbitrumSepolia, hardhat } from 'viem/chains'
 import { privateKeyToAccount } from 'viem/accounts';
 const babyjub = new BabyJubJubUtils();
@@ -18,6 +18,16 @@ enum LogLevel {
     error = 'error',
     info = 'info',
     warn = 'warn',
+}
+
+type UserConfig = {
+    bojPrivateKey: `0x${string}`,
+    bojPublicKey: `0x${string}`,
+    erc20Address: string,
+    bojContractAddress: string,
+    network: string,
+    ethPrivateKey: `0x${string}`,
+    ethAccount: PrivateKeyAccount
 }
 
 export type Flags<T extends typeof Command> = Interfaces.InferredFlags<typeof BaseCommand['baseFlags'] & T['flags']>
@@ -39,11 +49,10 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
 
     protected args!: Args<T>
     protected flags!: Flags<T>
-    public bojPrivateKey: string
-    public bojPublicKey: string
     public publicClient: PublicClient
     public walletClient: WalletClient
     public network: string
+    public userConfig: UserConfig
 
     protected async catch(err: Error & { exitCode?: number }): Promise<unknown> {
         // add any custom logic to handle errors from the command
@@ -78,42 +87,42 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
                 ? path.join(__dirname, "..", "config.json")
                 : path.join(this.config.configDir, "config.json");
 
-        let userConfig;
-
         // Get the private key from, .env, or user config, or create a new one
         if (process.env.BOJ_PRIVATE_KEY && process.env.BOJ_PRIVATE_KEY.length > 0) {
-            this.bojPrivateKey = process.env.BOJ_PRIVATE_KEY
+            this.userConfig.bojPrivateKey = process.env.BOJ_PRIVATE_KEY as `0x${string}`
         } else {
             try {
                 const data = await fs.readFileSync(configFile)
-                userConfig = JSON.parse(data.toString())
-                this.bojPrivateKey = userConfig.privateKey
+                this.userConfig = JSON.parse(data.toString())
             } catch {
-                userConfig = {};
                 let { privateKey: newPrivateKey, publicKey } = await babyjub.generatePrivateAndPublicKey();
                 let keys = { privateKey: "", publicKey: "" };
                 keys.privateKey = toHex(newPrivateKey)
                 keys.publicKey = toHex(babyjub.packPublicKey([toBytes(publicKey.x), toBytes(publicKey.y)]))
                 console.log(keys)
-                this.bojPrivateKey = keys.privateKey
+                this.userConfig.bojPrivateKey = keys.privateKey as `0x${string}`
                 console.log("No user config file found. Generating a key pair.");
             }
         }
 
-        let publicKey = babyjub.privateToPublicKey(this.bojPrivateKey);
-        this.bojPublicKey = toHex(babyjub.packPublicKey(
+        if (process.env.ETH_PRIVATE_KEY) {
+            this.userConfig.ethPrivateKey = process.env.ETH_PRIVATE_KEY as `0x${string}`
+        }
+        this.userConfig.ethAccount = privateKeyToAccount(this.userConfig.ethPrivateKey)
+
+
+        let publicKey = babyjub.privateToPublicKey(this.userConfig.bojPrivateKey);
+        this.userConfig.bojPublicKey = toHex(babyjub.packPublicKey(
             [toBytes(publicKey.x),
             toBytes(publicKey.y)]));
 
         let chain: Chain
-        switch (userConfig.network) {
+        switch (this.userConfig.network) {
             case "arbitrumSeplia":
                 chain = arbitrumSepolia
             default:
                 chain = hardhat
         }
-
-        this.network = userConfig.network ? userConfig.network : "hardhat"
 
         this.publicClient = createPublicClient({
             chain,
@@ -125,6 +134,16 @@ export abstract class BaseCommand<T extends typeof Command> extends Command {
             transport: http(),
             account: privateKeyToAccount(process.env.ETH_PRIVATE_KEY as `0x${string}`)
         })
+
+        if (this.userConfig.erc20Address.length > 0 &&
+            !isAddress(this.userConfig.erc20Address)) {
+            throw new Error("User config has invalid erc20 address")
+        }
+
+        if (this.userConfig.bojContractAddress.length > 0 &&
+            !isAddress(this.userConfig.bojContractAddress)) {
+            throw new Error("User config has invalid boj contract address")
+        }
 
     }
 }
