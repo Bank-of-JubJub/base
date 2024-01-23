@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "dependencies": {
     "@iarna/toml": "^2.2.5",
     "@types/json-bigint": "^1.0.4",
