@@ -29,16 +29,16 @@ export class ProcessTransferCoordinator {
   private encryptedValues: PointObjectHex[];
   private proof: `0x${string}` | null;
   private txIndexes: number[];
-  private walletClient: WalletClient | undefined;
-  private publicClient: PublicClient | undefined;
+  private walletClient: WalletClient;
+  private publicClient: PublicClient;
 
   constructor(
     to: `0x${string}`,
     processFeeRecipient: `0x${string}`,
     minFeeToProcess: number = 0,
     privateTokenAddress: `0x${string}`,
-    publicClient: PublicClient | undefined,
-    walletClient: WalletClient | undefined
+    publicClient: PublicClient,
+    walletClient: WalletClient
   ) {
     this.to = to;
     this.privateTokenAddress = privateTokenAddress;
@@ -66,7 +66,9 @@ export class ProcessTransferCoordinator {
     const privateToken = await getContract({
       abi,
       address: this.privateTokenAddress,
-      publicClient: this.publicClient,
+      client: {
+        public: this.publicClient
+      }
     });
 
     const babyjub = new BabyJubJubUtils();
@@ -176,7 +178,9 @@ export class ProcessTransferCoordinator {
     const privateToken = await getContract({
       abi,
       address: this.privateTokenAddress,
-      walletClient: this.walletClient,
+      client: {
+        wallet: this.walletClient
+      }
     });
 
     const hash = await privateToken.write.processPendingTransfer([
