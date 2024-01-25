@@ -1,6 +1,6 @@
 import hre from "hardhat";
 import dotenv from "dotenv";
-import { readDeploymentData } from "./saveDeploy";
+import { readDeploymentData } from "./saveDeploy.js";
 import { delay } from "boj-utils";
 dotenv.config({ path: "../.env" });
 

@@ -1,8 +1,9 @@
 {
-  "name": "bank_of_jubjub",
+  "name": "boj-hardhat",
   "description": "This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "directories": {
     "test": "test"
   },
@@ -31,9 +32,10 @@
     "typescript": "^5.2.2"
   },
   "scripts": {
-    "test": "hardhat test",
     "compile": "hardhat compile",
-    "scratch": "ts-node ./test/scratchpad.ts"
+    "scratch": "ts-node ./test/scratchpad.ts",
+    "test": "NODE_OPTIONS='--experimental-loader ts-node/esm/transpile-only --no-warnings=ExperimentalWarning' hardhat test",
+    "script": "NODE_OPTIONS='--experimental-loader ts-node/esm/transpile-only --no-warnings=ExperimentalWarning' hardhat run"
   },
   "author": "",
   "license": "ISC",

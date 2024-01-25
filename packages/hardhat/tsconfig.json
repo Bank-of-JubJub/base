@@ -1,14 +1,17 @@
 {
   "compilerOptions": {
-    "target": "es2020",
-    "module": "CommonJS",
+    "target": "es2022",
+    "module": "Node16",
     "strict": true,
     "esModuleInterop": true,
     "outDir": "dist",
-    "moduleResolution": "node",
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "noEmit": true
+  },
+  "ts-node": {
+    "experimentalResolver": true,
+    "files": true // only if you have "files", "include" or "exclude" in your config
   },
   "include": [
     "./scripts",
@@ -19,5 +22,5 @@
     "utils/generateNargoProof.ts",
     "coordinators/TransferCoordinator.ts"
   ],
-  "files": ["./hardhat.config.ts"]
+  "files": ["hardhat.config.cts"]
 }

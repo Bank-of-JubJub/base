@@ -1,19 +1,12 @@
 import { assert, expect } from "chai";
-import { getContract, bytesToBigInt, hexToBigInt, toHex } from "viem";
+import { createPublicClient, createWalletClient, getContract, http, toHex } from "viem";
 import hre from "hardhat";
-import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
-import {
-    account1,
-
-} from "../utils/constants.ts";
 import { deployContracts } from "../scripts/deploy.ts";
 import { abi as privateTokenAbi } from "../artifacts/contracts/PrivateToken.sol/PrivateToken.json"
 import { abi as tokenAbi } from "../artifacts/contracts/ERC20.sol/FunToken.json"
 import { abi as accountControllerAbi } from "../artifacts/contracts/AccountController.sol/AccountController.json"
-import { fromRprLe } from "../utils/utils.ts";
-import { createAndWriteToml } from "../../createToml.ts";
-import { runNargoProve } from "../utils/generateNargoProof.ts";
-import { getAddEthSignerProof } from "../utils/config.ts";
+import { account1, BabyJubJubUtils, createAndWriteToml, fromRprLe, runNargoProve, getAddEthSignerProof } from "boj-utils";
+import { hardhat } from "viem/chains";
 
 
 // const viem = hre.viem;
@@ -56,8 +49,14 @@ describe("Private Token integration testing", async function () {
 })
 
 async function getContracts() {
-    const [wallet] = await hre.viem.getWalletClients();
-    const publicClient = await hre.viem.getPublicClient();
+    const wallet = createWalletClient({
+        chain: hardhat,
+        transport: http()
+    })
+    const publicClient = createPublicClient({
+        chain: hardhat,
+        transport: http()
+    })
     let privateToken = await getContract({
         abi: privateTokenAbi,
         address: privateTokenAddress,

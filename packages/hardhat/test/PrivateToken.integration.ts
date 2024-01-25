@@ -1,5 +1,5 @@
 import { assert, expect } from "chai";
-import { getContract } from "viem";
+import { createWalletClient, getContract } from "viem";
 import hre from "hardhat";
 import { EncryptedBalanceArray } from "boj-types";
 import {
@@ -20,7 +20,8 @@ import { WithdrawCoordinator } from "../../coordinators/WithdrawCoordinator.ts";
 import { deployContracts } from "../scripts/deploy.ts";
 import { abi as privateTokenAbi } from "../artifacts/contracts/PrivateToken.sol/PrivateToken.json"
 import { abi as tokenAbi } from "../artifacts/contracts/ERC20.sol/FunToken.json"
-
+import { createPublicClient, http } from 'viem'
+import { hardhat } from 'viem/chains'
 
 // const viem = hre.viem;
 const babyjub = new BabyJubJubUtils();
@@ -269,10 +270,17 @@ async function deposit() {
   });
 }
 
-async function getContracts() {
+export async function getContracts() {
 
-  const [wallet] = await hre.viem.getWalletClients();
-  const publicClient = await hre.viem.getPublicClient();
+  const wallet = createWalletClient({
+    chain: hardhat,
+    transport: http()
+  })
+  const publicClient = createPublicClient({
+    chain: hardhat,
+    transport: http()
+  })
+
   let privateToken = await getContract({
     abi: privateTokenAbi,
     address: privateTokenAddress,
