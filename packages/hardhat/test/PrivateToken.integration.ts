@@ -1,22 +1,22 @@
 import { assert, expect } from "chai";
 import { getContract } from "viem";
 import hre from "hardhat";
-import BabyJubJubUtils from "../utils/babyJubJubUtils.ts";
-import { EncryptedBalanceArray } from "../utils/types.ts";
+import { EncryptedBalanceArray } from "boj-types";
 import {
   account1,
   account2,
+  BabyJubJubUtils,
   transferProcessFee,
   transferRelayFee,
   depositAmount,
   depositProcessFee,
   transferAmount,
-} from "../utils/constants.ts";
+  getDecryptedValue
+} from "boj-utils";
 import { TransferCoordinator } from "../../coordinators/TransferCoordinator.ts";
 import { ProcessDepositCoordinator } from "../../coordinators/ProcessDepositCoordinator.ts";
 import { ProcessTransferCoordinator } from "../../coordinators/ProcessTransferCoordinator.ts";
 import { WithdrawCoordinator } from "../../coordinators/WithdrawCoordinator.ts";
-import { getDecryptedValue } from "../utils/utils.ts";
 import { deployContracts } from "../scripts/deploy.ts";
 import { abi as privateTokenAbi } from "../artifacts/contracts/PrivateToken.sol/PrivateToken.json"
 import { abi as tokenAbi } from "../artifacts/contracts/ERC20.sol/FunToken.json"

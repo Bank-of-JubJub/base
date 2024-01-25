@@ -3,18 +3,18 @@ import {
   EncryptedBalanceArray,
   PointObjectHex,
   PointObjects,
-} from "../hardhat/utils/types";
+} from "boj-types";
 import { PublicClient, WalletClient, getContract, toHex } from "viem";
 import {
+  BabyJubJubUtils,
   encryptedBalanceArrayToPointObjects,
   encryptedBalanceToPointObjects,
   pointObjectsToEncryptedBalance,
-} from "../hardhat/utils/utils";
+  runNargoProve,
+  getProcessTransfersProof,
+  MAX_TXS_TO_PROCESS
+} from "boj-utils";
 import { createAndWriteToml } from "../../createToml";
-import { runNargoProve } from "../hardhat/utils/generateNargoProof";
-import { getProcessTransfersProof } from "../hardhat/utils/config";
-import BabyJubJubUtils from "../hardhat/utils/babyJubJubUtils";
-import { MAX_TXS_TO_PROCESS } from "../hardhat/utils/constants";
 import { abi } from "../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json";
 
 export class ProcessTransferCoordinator {
@@ -29,16 +29,16 @@ export class ProcessTransferCoordinator {
   private encryptedValues: PointObjectHex[];
   private proof: `0x${string}` | null;
   private txIndexes: number[];
-  private walletClient: WalletClient | undefined;
-  private publicClient: PublicClient | undefined;
+  private walletClient: WalletClient;
+  private publicClient: PublicClient;
 
   constructor(
     to: `0x${string}`,
     processFeeRecipient: `0x${string}`,
     minFeeToProcess: number = 0,
     privateTokenAddress: `0x${string}`,
-    publicClient: PublicClient | undefined,
-    walletClient: WalletClient | undefined
+    publicClient: PublicClient,
+    walletClient: WalletClient
   ) {
     this.to = to;
     this.privateTokenAddress = privateTokenAddress;
@@ -66,7 +66,9 @@ export class ProcessTransferCoordinator {
     const privateToken = await getContract({
       abi,
       address: this.privateTokenAddress,
-      publicClient: this.publicClient,
+      client: {
+        public: this.publicClient
+      }
     });
 
     const babyjub = new BabyJubJubUtils();
@@ -176,7 +178,9 @@ export class ProcessTransferCoordinator {
     const privateToken = await getContract({
       abi,
       address: this.privateTokenAddress,
-      walletClient: this.walletClient,
+      client: {
+        wallet: this.walletClient
+      }
     });
 
     const hash = await privateToken.write.processPendingTransfer([

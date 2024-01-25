@@ -2,9 +2,10 @@ import {
   BojAccount,
   EncryptedBalance,
   EncryptedBalanceArray,
-} from "../hardhat/utils/types";
+} from "boj-types";
 import { PublicClient, WalletClient, getContract, toBytes, toHex } from "viem";
 import {
+  createAndWriteToml,
   encryptedValueToEncryptedBalance,
   fromRprLe,
   getC1PointFromEncryptedBalance,
@@ -12,10 +13,9 @@ import {
   getDecryptedValue,
   getEncryptedValue,
   getNonce,
-} from "../hardhat/utils/utils";
-import { createAndWriteToml } from "../createToml";
-import { runNargoProve } from "../hardhat/utils/generateNargoProof";
-import { getTransferProof } from "../hardhat/utils/config";
+  getTransferProof,
+  runNargoProve
+} from "boj-utils";
 import { abi } from "../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json";
 
 export class TransferCoordinator {
@@ -35,8 +35,8 @@ export class TransferCoordinator {
   private encryptedNewBalance: EncryptedBalance | null;
   private encryptedNewBalanceRandomness: bigint | null;
   private proof: `0x${string}` | null;
-  private walletClient: WalletClient | undefined;
-  private publicClient: PublicClient | undefined;
+  private walletClient: WalletClient;
+  private publicClient: PublicClient;
 
   constructor(
     amount: number,
@@ -46,8 +46,8 @@ export class TransferCoordinator {
     relayFee: number,
     relayFeeRecipient: `0x${string}`,
     privateTokenAddress: `0x${string}`,
-    publicClient?: PublicClient,
-    walletClient?: WalletClient,
+    publicClient: PublicClient,
+    walletClient: WalletClient,
     isTest: boolean = false
   ) {
     this.privateTokenAddress = privateTokenAddress;
@@ -74,7 +74,9 @@ export class TransferCoordinator {
     const privateToken = await getContract({
       abi,
       address: this.privateTokenAddress,
-      publicClient: this.publicClient,
+      client: {
+        public: this.publicClient
+      }
     });
     this.encryptedOldBalance = (await privateToken.read.balances([
       this.from.packedPublicKey,
@@ -161,7 +163,9 @@ export class TransferCoordinator {
     const privateToken = await getContract({
       abi,
       address: this.privateTokenAddress,
-      walletClient: this.walletClient,
+      client: {
+        wallet: this.walletClient
+      }
     });
 
     const hash = await privateToken.write.transfer([

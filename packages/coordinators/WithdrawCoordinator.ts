@@ -2,7 +2,7 @@ import {
   BojAccount,
   EncryptedBalance,
   EncryptedBalanceArray,
-} from "../hardhat/utils/types";
+} from "boj-types";
 import {
   PublicClient,
   WalletClient,
@@ -12,16 +12,16 @@ import {
   toHex,
 } from "viem";
 import {
+  createAndWriteToml,
   encryptedBalanceArrayToEncryptedBalance,
   encryptedValueToEncryptedBalance,
   fromRprLe,
   getDecryptedValue,
   getEncryptedValue,
   getNonce,
-} from "../hardhat/utils/utils";
-import { createAndWriteToml } from "../createToml";
-import { runNargoProve } from "../hardhat/utils/generateNargoProof";
-import { getWithdrawProof } from "../hardhat/utils/config";
+  getWithdrawProof,
+  runNargoProve
+} from "boj-utils";
 import { abi } from "../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json";
 
 export class WithdrawCoordinator {
@@ -37,8 +37,8 @@ export class WithdrawCoordinator {
   private clearOldBalance: number;
   private encNewBalance: EncryptedBalance;
   private encOldBalance: EncryptedBalance;
-  private walletClient: WalletClient | undefined;
-  private publicClient: PublicClient | undefined;
+  private walletClient: WalletClient;
+  private publicClient: PublicClient;
 
   constructor(
     to: `0x${string}`,
@@ -47,8 +47,8 @@ export class WithdrawCoordinator {
     relayFee: number,
     relayFeeRecipient: `0x${string}`,
     privateTokenAddress: `0x${string}`,
-    publicClient?: PublicClient,
-    walletClient?: WalletClient,
+    publicClient: PublicClient,
+    walletClient: WalletClient,
     isTest: boolean = false
   ) {
     if (!isAddress(to)) {
@@ -87,8 +87,11 @@ export class WithdrawCoordinator {
     const privateToken = await getContract({
       abi,
       address: this.privateTokenAddress,
-      publicClient: this.publicClient,
+      client: {
+        public: this.publicClient
+      }
     });
+
     const unfmtEncOldBalance = (await privateToken.read.balances([
       this.from.packedPublicKey,
     ])) as EncryptedBalanceArray;
@@ -146,7 +149,9 @@ export class WithdrawCoordinator {
     const privateToken = await getContract({
       abi,
       address: this.privateTokenAddress,
-      walletClient: this.walletClient,
+      client: {
+        wallet: this.walletClient
+      }
     });
     const hash = await privateToken.write.withdraw([
       this.from.packedPublicKey,
