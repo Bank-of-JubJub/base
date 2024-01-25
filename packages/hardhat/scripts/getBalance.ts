@@ -1,6 +1,9 @@
 import dotenv from "dotenv";
-import { delay, getContract, getDecryptedValue } from "../utils/utils";
-import { EncryptedBalanceArray } from "../utils/types";
+import { getDecryptedValue } from "boj-utils";
+import { EncryptedBalanceArray } from "boj-types";
+
+import hre from 'hardhat'
+import { readDeploymentData } from "./saveDeploy";
 dotenv.config({ path: "../.env" });
 
 const params = {
@@ -11,7 +14,13 @@ const params = {
 };
 
 async function main() {
-  const privateToken = await getContract("PrivateToken");
+  const { data: privateTokenData } = readDeploymentData("PrivateToken");
+  const network = hre.network.name;
+
+  let privateToken = await hre.viem.getContractAt(
+    "PrivateToken",
+    privateTokenData[network].address
+  );
   const balance = (await privateToken.read.balances([
     params.account.packedPublicKey,
   ])) as EncryptedBalanceArray;

@@ -1,9 +1,10 @@
 {
-  "name": "utils",
+  "name": "boj-utils",
   "version": "1.0.0",
   "description": "",
   "type": "module",
-  "main": "test.js",
+  "main": "dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "proof": "node proof_utils.mts",
@@ -23,8 +24,11 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "@iarna/toml": "^2.2.5",
     "@noir-lang/backend_barretenberg": "^0.17.0",
     "@noir-lang/noir_js": "^0.17.0",
-    "boj-types": "1.0.0"
+    "boj-types": "^1.0.0",
+    "fs": "^0.0.1-security",
+    "path": "^0.12.7"
   }
 }

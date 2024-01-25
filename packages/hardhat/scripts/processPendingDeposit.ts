@@ -1,8 +1,7 @@
 import hre from "hardhat";
 import dotenv from "dotenv";
 import { readDeploymentData } from "./saveDeploy";
-import { delay } from "../utils/utils";
-import BabyJubJubUtils from "../utils/babyJubJubUtils";
+import { BabyJubJubUtils, delay } from "boj-utils";
 import { ProcessDepositCoordinator } from "../../coordinators/ProcessDepositCoordinator";
 dotenv.config({ path: "../.env" });
 const babyjub = new BabyJubJubUtils();

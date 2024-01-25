@@ -169,7 +169,6 @@ contract PrivateToken {
      *  is called)
      *  This function converts the token to 2 decimal places, the remainder is lost.
      * @dev
-     * @param _from - sender of the tokens, an ETH address
      * @param _amount - amount to deposit
      * @param _to - the packed public key of the recipient in the system
      * @param _processFee - (optional, can be 0) amount to pay the processor of the tx (when processPendingDeposits is called)

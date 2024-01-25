@@ -12,17 +12,17 @@ import {
   WalletClient,
 } from "viem";
 import {
+  BabyJubJubUtils,
+  createAndWriteToml,
   encryptedBalanceArrayToEncryptedBalance,
   encryptedValueToEncryptedBalance,
   fromRprLe,
   getC1PointFromEncryptedBalance,
   getC2PointFromEncryptedBalance,
   getEncryptedValue,
-} from "../hardhat/utils/utils";
-import { createAndWriteToml } from "../createToml";
-import { runNargoProve } from "../hardhat/utils/generateNargoProof";
-import { getProcessDepositProof } from "../hardhat/utils/config";
-import BabyJubJubUtils from "../hardhat/utils/babyJubJubUtils";
+  getProcessDepositProof,
+  runNargoProve
+} from "boj-utils";
 import { abi } from "../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json";
 
 export class ProcessDepositCoordinator {
@@ -37,16 +37,16 @@ export class ProcessDepositCoordinator {
   private startingAmount: EncryptedBalance | null;
   private minFeeToProcess: number;
   private privateTokenAddress: `0x${string}`;
-  private walletClient: WalletClient | undefined;
-  private publicClient: PublicClient | undefined;
+  private walletClient: WalletClient;
+  private publicClient: PublicClient;
 
   constructor(
     to: `0x${string}`,
     relayFeeRecipient: `0x${string}`,
     minFeeToProcess: number = 0,
     privateTokenAddress: `0x${string}`,
-    publicClient?: PublicClient,
-    walletClient?: WalletClient
+    publicClient: PublicClient,
+    walletClient: WalletClient
   ) {
     this.relayFeeRecipient = relayFeeRecipient;
     this.privateTokenAddress = privateTokenAddress;
@@ -71,7 +71,9 @@ export class ProcessDepositCoordinator {
     const privateToken = await getContract({
       abi,
       address: this.privateTokenAddress,
-      publicClient: this.publicClient,
+      client: {
+        public: this.publicClient
+      }
     });
     const babyjub = new BabyJubJubUtils();
     await babyjub.init();
@@ -159,7 +161,9 @@ export class ProcessDepositCoordinator {
     const privateToken = await getContract({
       abi,
       address: this.privateTokenAddress,
-      walletClient: this.walletClient,
+      client: {
+        wallet: this.walletClient
+      }
     });
     const hash = await privateToken.write.processPendingDeposit([
       this.proof!,

@@ -1,7 +1,7 @@
 import hre from "hardhat";
 import dotenv from "dotenv";
 import { readDeploymentData } from "./saveDeploy";
-import { delay } from "../utils/utils";
+import { delay } from "boj-utils";
 dotenv.config({ path: "../.env" });
 
 const params = {
@@ -32,7 +32,7 @@ async function main() {
   await delay(5000);
 
   const hash = await privateToken.write.deposit([
-    BigInt(params.amount),
+    params.amount,
     params.to,
     0,
   ], {

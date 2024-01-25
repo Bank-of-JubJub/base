@@ -1,9 +1,8 @@
 import hre from "hardhat";
 import dotenv from "dotenv";
-import { delay } from "../utils/utils";
-import { BojAccount } from "../utils/types";
+import { BabyJubJubUtils, delay } from "boj-utils";
+import { BojAccount } from "boj-types";
 import { hexToBigInt, toBytes, toHex } from "viem";
-import BabyJubJubUtils from "../utils/babyJubJubUtils";
 import { WithdrawCoordinator } from "../../coordinators/WithdrawCoordinator";
 import { readDeploymentData } from "./saveDeploy";
 dotenv.config({ path: "../.env" });

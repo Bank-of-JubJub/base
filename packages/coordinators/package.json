@@ -4,6 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "boj-types": "1.0.0"
+    "boj-types": "^1.0.0",
+    "boj-utils": "^1.0.0"
   }
 }

@@ -1,7 +1,7 @@
 import hre from "hardhat";
 import dotenv from "dotenv";
 import { readDeploymentData, saveDeploymentData } from "./saveDeploy";
-import { delay } from "../utils/utils";
+import { delay } from "boj-utils";
 dotenv.config({ path: "../.env" });
 
 export async function deployContracts(isTest: boolean = false) {
