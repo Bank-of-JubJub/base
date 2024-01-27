@@ -3,8 +3,8 @@ import dotenv from "dotenv";
 import { account2, BabyJubJubUtils, delay } from "boj-utils";
 import { BojAccount } from "boj-types";
 import { hexToBigInt, toBytes, toHex } from "viem";
-import { TransferCoordinator } from "../../coordinators/TransferCoordinator";
-import { readDeploymentData } from "./saveDeploy";
+import { TransferCoordinator } from "boj-coordinators";
+import { readDeploymentData } from "./saveDeploy.js";
 dotenv.config({ path: "../.env" });
 
 const params = {

@@ -3,7 +3,7 @@ import { getDecryptedValue } from "boj-utils";
 import { EncryptedBalanceArray } from "boj-types";
 
 import hre from 'hardhat'
-import { readDeploymentData } from "./saveDeploy";
+import { readDeploymentData } from "./saveDeploy.js";
 dotenv.config({ path: "../.env" });
 
 const params = {

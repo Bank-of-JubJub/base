@@ -1,6 +1,6 @@
 import hre from "hardhat";
 import { parseAbi } from "viem";
-import { readDeploymentData } from "./saveDeploy";
+import { readDeploymentData } from "./saveDeploy.js";
 
 async function main() {
   const publicClient = await hre.viem.getPublicClient();

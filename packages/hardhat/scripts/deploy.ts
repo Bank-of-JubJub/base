@@ -4,7 +4,6 @@ import { readDeploymentData, saveDeploymentData } from "./saveDeploy.js";
 import { delay } from "boj-utils";
 import { hardhat } from "viem/chains";
 import { createPublicClient, createWalletClient, http } from "viem";
-import { create } from "domain";
 dotenv.config({ path: "../.env" });
 
 export async function deployContracts(isTest: boolean = false) {
