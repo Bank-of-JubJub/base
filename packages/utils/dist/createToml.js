@@ -8,6 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 export function createAndWriteToml(nargoPackage, inputs) {
     const tomlContent = toml.stringify(inputs);
+    // go to root
     const directoryPath = path.join(__dirname, "../../..", "circuits", nargoPackage);
     const filePath = path.join(directoryPath, "Test.toml");
     if (!fs.existsSync(directoryPath)) {

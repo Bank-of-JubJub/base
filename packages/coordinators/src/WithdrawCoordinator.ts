@@ -142,7 +142,7 @@ export class WithdrawCoordinator {
     };
     createAndWriteToml("withdraw", proofInputs);
     await runNargoProve("withdraw", "Test.toml");
-    this.proof = await getWithdrawProof("../../../");
+    this.proof = await getWithdrawProof();
   }
 
   public async sendWithdraw() {

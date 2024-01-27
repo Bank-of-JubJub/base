@@ -25,6 +25,9 @@ import {
 } from "boj-utils";
 import * as artifact from "../../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json" assert { type: "json"};
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
 export class ProcessDepositCoordinator {
   private relayFeeRecipient: `0x${string}` | null;
   private proof: `0x${string}` | null;
@@ -154,6 +157,13 @@ export class ProcessDepositCoordinator {
 
     createAndWriteToml("process_pending_deposits", proofInputs);
     await runNargoProve("process_pending_deposits", "Test.toml");
+
+    // Get the current file's directory
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+
+    console.log("process deposit coordinator dirname", __dirname)
+
     this.proof = await getProcessDepositProof();
   }
 

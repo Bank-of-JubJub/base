@@ -60,7 +60,7 @@ async function runRustScriptBabyGiant(X: any, Y: any) {
     //  inside the browser this should be replaced by the WASM version in circuits/exponential_elgamal/babygiant
     return new Promise((resolve, reject) => {
         const rustProcess = spawn(
-            "../circuits/exponential_elgamal/babygiant_native/target/release/babygiant",
+            "../../circuits/exponential_elgamal/babygiant_native/target/release/babygiant",
             [X, Y]
         );
         let output = "";

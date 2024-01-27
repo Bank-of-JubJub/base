@@ -24,6 +24,7 @@ import * as bojArtifact from "../artifacts/contracts/PrivateToken.sol/PrivateTok
 import * as tokenArtifact from "../artifacts/contracts/ERC20.sol/FunToken.json"  assert { type: 'json' };
 import { createPublicClient, http } from 'viem'
 import { hardhat } from 'viem/chains'
+import { send } from "process";
 
 // const viem = hre.viem;
 const babyjub = new BabyJubJubUtils();
@@ -31,6 +32,17 @@ let convertedAmount: bigint;
 
 let privateTokenAddress: `0x${string}`;
 let tokenAddress: `0x${string}`;
+
+const publicClient = createPublicClient({
+  chain: hardhat,
+  transport: http()
+})
+
+const sender = createWalletClient({
+  chain: hardhat,
+  transport: http(),
+  account: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
+})
 
 describe("Private Token integration testing", async function () {
   this.beforeAll(async () => {
@@ -76,8 +88,8 @@ describe("Private Token integration testing", async function () {
   it("should process pending deposits", async function () {
     await deposit();
     const { privateToken } = await getContracts();
-    const publicClient = await hre.viem.getPublicClient();
-    const [sender] = await hre.viem.getWalletClients();
+    // const publicClient = await hre.viem.getPublicClient();
+    // const [sender] = await hre.viem.getWalletClients();
 
     const coordinator = new ProcessDepositCoordinator(
       account1.packedPublicKey,
@@ -100,8 +112,8 @@ describe("Private Token integration testing", async function () {
 
   it("should perform transfers", async function () {
     const { privateToken } = await getContracts();
-    const publicClient = await hre.viem.getPublicClient();
-    const [sender] = await hre.viem.getWalletClients();
+    // const publicClient = await hre.viem.getPublicClient();
+    // const [sender] = await hre.viem.getWalletClients();
 
     let coordinator = new TransferCoordinator(
       transferAmount,
@@ -151,8 +163,8 @@ describe("Private Token integration testing", async function () {
 
   it("should process pending transfers", async () => {
     const { privateToken } = await getContracts();
-    const publicClient = await hre.viem.getPublicClient();
-    const [sender] = await hre.viem.getWalletClients();
+    // const publicClient = await hre.viem.getPublicClient();
+    // const [sender] = await hre.viem.getWalletClients();
     const numTransfers = 2;
 
     let transferCoordinator = new TransferCoordinator(
@@ -206,8 +218,8 @@ describe("Private Token integration testing", async function () {
     const withdrawAmount = 7;
     const withdrawRelayFee = 3;
     const withdrawRelayRecipient = "0xdebe940f35737EDb9a9Ad2bB938A955F9b7892e3";
-    const publicClient = await hre.viem.getPublicClient();
-    const [sender] = await hre.viem.getWalletClients();
+    // const publicClient = await hre.viem.getPublicClient();
+    // const [sender] = await hre.viem.getWalletClients();
 
     const { privateToken } = await getContracts();
     const unfmtEncOldBalance = await privateToken.read.balances([
@@ -253,9 +265,9 @@ describe("Private Token integration testing", async function () {
 async function deposit() {
   const { privateToken, token } = await getContracts();
 
-  const [walletClient0, walletClient1] = await hre.viem.getWalletClients();
-  let balance = await token.read.balanceOf([walletClient0.account.address]);
-  await token.write.approve([privateToken.address, balance], { account: walletClient0.account });
+  // const [walletClient0, walletClient1] = await hre.viem.getWalletClients();
+  let balance = await token.read.balanceOf([sender.account.address]);
+  await token.write.approve([privateToken.address, balance]);
 
   let tokenDecimals = (await token.read.decimals()) as number;
   let bojDecimals = (await privateToken.read.decimals()) as number;
@@ -267,32 +279,37 @@ async function deposit() {
     depositAmount,
     account1.packedPublicKey,
     depositProcessFee,
-  ], {
-    account: walletClient0.account
-  });
+  ]);
 }
 
 export async function getContracts() {
 
-  const wallet = createWalletClient({
-    chain: hardhat,
-    transport: http(),
-    account: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'
-  })
-  const publicClient = createPublicClient({
-    chain: hardhat,
-    transport: http()
-  })
+  // const wallet = createWalletClient({
+  //   chain: hardhat,
+  //   transport: http(),
+  //   account: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'
+  // })
+  // const publicClient = createPublicClient({
+  //   chain: hardhat,
+  //   transport: http()
+  // })
 
   let privateToken = await getContract({
     abi: bojArtifact.default.abi,
     address: privateTokenAddress,
     client: {
-      wallet,
+      wallet: sender,
       public: publicClient
     }
   });
-  let token = await getContract({ abi: tokenArtifact.default.abi, address: tokenAddress, client: { wallet, public: publicClient } });
+  let token = await getContract({
+    abi: tokenArtifact.default.abi,
+    address: tokenAddress,
+    client: {
+      wallet: sender,
+      public: publicClient
+    }
+  });
 
   return {
     privateToken,

@@ -1,6 +1,8 @@
 import { isAddress, toBytes, toHex, getContract, } from "viem";
 import { BabyJubJubUtils, createAndWriteToml, encryptedBalanceArrayToEncryptedBalance, encryptedValueToEncryptedBalance, fromRprLe, getC1PointFromEncryptedBalance, getC2PointFromEncryptedBalance, getEncryptedValue, getProcessDepositProof, runNargoProve } from "boj-utils";
 import * as artifact from "../../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json" assert { type: "json" };
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 export class ProcessDepositCoordinator {
     constructor(to, relayFeeRecipient, minFeeToProcess = 0, privateTokenAddress, publicClient, walletClient) {
         this.relayFeeRecipient = relayFeeRecipient;
@@ -86,6 +88,10 @@ export class ProcessDepositCoordinator {
         };
         createAndWriteToml("process_pending_deposits", proofInputs);
         await runNargoProve("process_pending_deposits", "Test.toml");
+        // Get the current file's directory
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = dirname(__filename);
+        console.log("process deposit coordinator dirname", __dirname);
         this.proof = await getProcessDepositProof();
     }
     async sendProcessDeposit() {

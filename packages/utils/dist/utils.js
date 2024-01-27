@@ -21,7 +21,7 @@ async function runRustScriptBabyGiant(X, Y) {
     // this is to compute the DLP during decryption of the balances with baby-step giant-step algo in circuits/exponential_elgamal/babygiant_native
     //  inside the browser this should be replaced by the WASM version in circuits/exponential_elgamal/babygiant
     return new Promise((resolve, reject) => {
-        const rustProcess = spawn("../circuits/exponential_elgamal/babygiant_native/target/release/babygiant", [X, Y]);
+        const rustProcess = spawn("../../circuits/exponential_elgamal/babygiant_native/target/release/babygiant", [X, Y]);
         let output = "";
         rustProcess.stdout.on("data", (data) => {
             output += data.toString();
