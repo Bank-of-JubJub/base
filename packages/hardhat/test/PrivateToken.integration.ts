@@ -13,13 +13,15 @@ import {
   transferAmount,
   getDecryptedValue
 } from "boj-utils";
-import { TransferCoordinator } from "../../coordinators/TransferCoordinator.ts";
-import { ProcessDepositCoordinator } from "../../coordinators/ProcessDepositCoordinator.ts";
-import { ProcessTransferCoordinator } from "../../coordinators/ProcessTransferCoordinator.ts";
-import { WithdrawCoordinator } from "../../coordinators/WithdrawCoordinator.ts";
+import {
+  TransferCoordinator,
+  ProcessDepositCoordinator,
+  ProcessTransferCoordinator,
+  WithdrawCoordinator
+} from "boj-coordinators";
 import { deployContracts } from "../scripts/deploy.ts";
-import { abi as privateTokenAbi } from "../artifacts/contracts/PrivateToken.sol/PrivateToken.json"
-import { abi as tokenAbi } from "../artifacts/contracts/ERC20.sol/FunToken.json"
+import * as bojArtifact from "../artifacts/contracts/PrivateToken.sol/PrivateToken.json"  assert { type: 'json' };
+import * as tokenArtifact from "../artifacts/contracts/ERC20.sol/FunToken.json"  assert { type: 'json' };
 import { createPublicClient, http } from 'viem'
 import { hardhat } from 'viem/chains'
 
@@ -274,7 +276,8 @@ export async function getContracts() {
 
   const wallet = createWalletClient({
     chain: hardhat,
-    transport: http()
+    transport: http(),
+    account: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'
   })
   const publicClient = createPublicClient({
     chain: hardhat,
@@ -282,14 +285,14 @@ export async function getContracts() {
   })
 
   let privateToken = await getContract({
-    abi: privateTokenAbi,
+    abi: bojArtifact.default.abi,
     address: privateTokenAddress,
     client: {
       wallet,
       public: publicClient
     }
   });
-  let token = await getContract({ abi: tokenAbi, address: tokenAddress, client: { wallet, public: publicClient } });
+  let token = await getContract({ abi: tokenArtifact.default.abi, address: tokenAddress, client: { wallet, public: publicClient } });
 
   return {
     privateToken,

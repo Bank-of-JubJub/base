@@ -2,16 +2,30 @@ import hre from "hardhat";
 import dotenv from "dotenv";
 import { readDeploymentData, saveDeploymentData } from "./saveDeploy.js";
 import { delay } from "boj-utils";
+import { hardhat } from "viem/chains";
+import { createPublicClient, createWalletClient, http } from "viem";
+import { create } from "domain";
 dotenv.config({ path: "../.env" });
 
 export async function deployContracts(isTest: boolean = false) {
-  const [deployer] = await hre.viem.getWalletClients();
-  const publicClient = await hre.viem.getPublicClient();
+  // const [deployer] = await hre.viem.getWalletClients();
+  // const publicClient = await hre.viem.getPublicClient();
 
-  console.log(
-    "Deploying contracts with the account:",
-    deployer!.account.address
-  );
+  // const deployer = await createWalletClient({
+  //   chain: hardhat,
+  //   transport: http(),
+  //   account: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
+  // })
+
+  const publicClient = createPublicClient({
+    chain: hardhat,
+    transport: http()
+  })
+
+  // console.log(
+  //   "Deploying contracts with the account:",
+  //   deployer.account
+  // );
 
   try {
     const token = await deployAndSave("FunToken", [], isTest);
@@ -111,8 +125,19 @@ async function deployAndSave(
   constructorArgs: any[],
   isTest: boolean = false
 ) {
-  const publicClient = await hre.viem.getPublicClient();
-  const [deployer] = await hre.viem.getWalletClients();
+  // const publicClient = await hre.viem.getPublicClient();
+  // const [deployer] = await hre.viem.getWalletClients();
+
+  const deployer = await createWalletClient({
+    chain: hardhat,
+    transport: http(),
+    account: '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'
+  })
+
+  const publicClient = createPublicClient({
+    chain: hardhat,
+    transport: http()
+  })
 
   let contractName = name;
   if (name.startsWith("contracts/")) {

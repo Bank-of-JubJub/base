@@ -23,7 +23,7 @@ import {
   getProcessDepositProof,
   runNargoProve
 } from "boj-utils";
-import { abi } from "../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json";
+import * as artifact from "../../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json" assert { type: "json"};
 
 export class ProcessDepositCoordinator {
   private relayFeeRecipient: `0x${string}` | null;
@@ -69,7 +69,7 @@ export class ProcessDepositCoordinator {
 
   public async init() {
     const privateToken = await getContract({
-      abi,
+      abi: artifact.default.abi,
       address: this.privateTokenAddress,
       client: {
         public: this.publicClient
@@ -159,7 +159,7 @@ export class ProcessDepositCoordinator {
 
   public async sendProcessDeposit() {
     const privateToken = await getContract({
-      abi,
+      abi: artifact.default.abi,
       address: this.privateTokenAddress,
       client: {
         wallet: this.walletClient

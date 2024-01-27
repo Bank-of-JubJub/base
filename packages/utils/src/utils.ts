@@ -6,7 +6,7 @@ import {
     toHex,
 } from "viem";
 import { BJJ_PRIME } from "./constants.js";
-import BabyJubJubUtils, { PointObject } from "./babyjubjub_utils.js";
+import { PointObject } from "./babyjubjub_utils.js";
 import {
     BojAccount,
     EncryptedBalance,
@@ -15,6 +15,7 @@ import {
     PointObjectsWithRandomness,
 } from "boj-types";
 import { spawn } from "child_process";
+import { BabyJubJubUtils } from "./babyjubjub_utils.js";
 
 const babyjub = new BabyJubJubUtils();
 babyjub.init();

@@ -22,7 +22,7 @@ import {
   getWithdrawProof,
   runNargoProve
 } from "boj-utils";
-import { abi } from "../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json";
+import * as artifact from "../../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json" assert { type: "json"};
 
 export class WithdrawCoordinator {
   private proof: `0x${string}` | null;
@@ -85,7 +85,7 @@ export class WithdrawCoordinator {
 
   public async init() {
     const privateToken = await getContract({
-      abi,
+      abi: artifact.default.abi,
       address: this.privateTokenAddress,
       client: {
         public: this.publicClient
@@ -142,12 +142,12 @@ export class WithdrawCoordinator {
     };
     createAndWriteToml("withdraw", proofInputs);
     await runNargoProve("withdraw", "Test.toml");
-    this.proof = await getWithdrawProof();
+    this.proof = await getWithdrawProof("../../../");
   }
 
   public async sendWithdraw() {
     const privateToken = await getContract({
-      abi,
+      abi: artifact.default.abi,
       address: this.privateTokenAddress,
       client: {
         wallet: this.walletClient

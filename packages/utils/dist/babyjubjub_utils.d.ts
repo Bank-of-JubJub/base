@@ -4,7 +4,7 @@ export type PointObject = {
     x: bigint;
     y: bigint;
 };
-export default class BabyJubJubUtils {
+export declare class BabyJubJubUtils {
     private babyJub;
     constructor();
     init(): Promise<void>;

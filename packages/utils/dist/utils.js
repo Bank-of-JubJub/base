@@ -1,7 +1,7 @@
 import { keccak256, encodeAbiParameters, toBytes, bytesToBigInt, toHex, } from "viem";
 import { BJJ_PRIME } from "./constants.js";
-import BabyJubJubUtils from "./babyjubjub_utils.js";
 import { spawn } from "child_process";
+import { BabyJubJubUtils } from "./babyjubjub_utils.js";
 const babyjub = new BabyJubJubUtils();
 babyjub.init();
 export function getEncryptedValue(packedPublicKey, amount, isTest = false) {

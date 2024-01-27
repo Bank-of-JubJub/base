@@ -42,6 +42,7 @@
   "dependencies": {
     "boj-types": "^1.0.0",
     "boj-utils": "^1.0.0",
+    "boj-coordinators": "^1.0.0",
     "@iarna/toml": "^2.2.5",
     "@nomicfoundation/hardhat-toolbox-viem": "^1.0.0",
     "@nomicfoundation/hardhat-viem": "1.0.2",

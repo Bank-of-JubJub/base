@@ -1,19 +1,21 @@
 import * as fs from "fs";
-export function getProcessTransferInputs(to, oldEncBalance, newBalance) { }
-export async function getTransferProof() {
-    return (await getProof("../proofs/transfer.proof"));
+export async function getTransferProof(path) {
+    return (await getProof(path + "proofs/transfer.proof"));
 }
-export async function getProcessDepositProof() {
-    return (await getProof("../proofs/process_pending_deposits.proof"));
+export async function getProcessDepositProof(path) {
+    return (await getProof(path +
+        "proofs/process_pending_deposits.proof"));
 }
-export async function getProcessTransfersProof() {
-    return (await getProof("../proofs/process_pending_transfers.proof"));
+export async function getProcessTransfersProof(path) {
+    return (await getProof(path +
+        "proofs/process_pending_transfers.proof"));
 }
-export async function getAddEthSignerProof() {
-    return (await getProof("../proofs/add_eth_signer.proof"));
+export async function getAddEthSignerProof(path) {
+    return (await getProof(path +
+        "proofs/add_eth_signer.proof"));
 }
-export async function getWithdrawProof() {
-    return (await getProof("../proofs/withdraw.proof"));
+export async function getWithdrawProof(path) {
+    return (await getProof(path + "proofs/withdraw.proof"));
 }
 async function getProof(filePath) {
     let proof = "";

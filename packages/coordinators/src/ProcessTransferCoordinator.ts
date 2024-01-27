@@ -7,6 +7,7 @@ import {
 import { PublicClient, WalletClient, getContract, toHex } from "viem";
 import {
   BabyJubJubUtils,
+  createAndWriteToml,
   encryptedBalanceArrayToPointObjects,
   encryptedBalanceToPointObjects,
   pointObjectsToEncryptedBalance,
@@ -14,8 +15,7 @@ import {
   getProcessTransfersProof,
   MAX_TXS_TO_PROCESS
 } from "boj-utils";
-import { createAndWriteToml } from "../../createToml";
-import { abi } from "../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json";
+import * as artifact from "../../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json" assert { type: "json"};
 
 export class ProcessTransferCoordinator {
   private privateTokenAddress: `0x${string}`;
@@ -64,7 +64,7 @@ export class ProcessTransferCoordinator {
 
   public async init() {
     const privateToken = await getContract({
-      abi,
+      abi: artifact.default.abi,
       address: this.privateTokenAddress,
       client: {
         public: this.publicClient
@@ -176,7 +176,7 @@ export class ProcessTransferCoordinator {
 
   public async sendProcessTransfer() {
     const privateToken = await getContract({
-      abi,
+      abi: artifact.default.abi,
       address: this.privateTokenAddress,
       client: {
         wallet: this.walletClient

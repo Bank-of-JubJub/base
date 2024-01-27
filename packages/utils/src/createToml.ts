@@ -15,13 +15,20 @@ type Point = {
 
 type TomlValue = string | number | Point | number[] | Point[];
 
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Get the current file's directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 export function createAndWriteToml(
     nargoPackage: string,
     inputs: JsonMap
 ) {
     const tomlContent = toml.stringify(inputs);
 
-    const directoryPath = path.join(__dirname, "circuits", nargoPackage);
+    const directoryPath = path.join(__dirname, "../../..", "circuits", nargoPackage);
     const filePath = path.join(directoryPath, "Test.toml");
     if (!fs.existsSync(directoryPath)) {
         fs.mkdirSync(directoryPath, { recursive: true });

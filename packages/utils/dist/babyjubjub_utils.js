@@ -1,6 +1,6 @@
 import { buildBabyjub } from "circomlibjs";
 import crypto from "crypto";
-export default class BabyJubJubUtils {
+export class BabyJubJubUtils {
     constructor() {
         this.init();
     }

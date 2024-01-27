@@ -2,7 +2,6 @@ import dotenv from "dotenv";
 dotenv.config({ path: "../.env" });
 import hre from "hardhat";
 import { readDeploymentData } from "./saveDeploy.js";
-import { lchown } from "fs";
 
 const params = {
   account: {

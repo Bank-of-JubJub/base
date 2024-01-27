@@ -1,17 +1,27 @@
-import { assert, expect } from "chai";
-import { createPublicClient, createWalletClient, getContract, http, toHex } from "viem";
+import { expect } from "chai";
+import {
+    createPublicClient,
+    createWalletClient,
+    getContract,
+    http,
+    toHex
+} from "viem";
 import hre from "hardhat";
 import { deployContracts } from "../scripts/deploy.ts";
-import { abi as privateTokenAbi } from "../artifacts/contracts/PrivateToken.sol/PrivateToken.json"
-import { abi as tokenAbi } from "../artifacts/contracts/ERC20.sol/FunToken.json"
-import { abi as accountControllerAbi } from "../artifacts/contracts/AccountController.sol/AccountController.json"
-import { account1, BabyJubJubUtils, createAndWriteToml, fromRprLe, runNargoProve, getAddEthSignerProof } from "boj-utils";
+import * as bojArtifact from "../artifacts/contracts/PrivateToken.sol/PrivateToken.json"  assert { type: 'json' };
+import * as tokenArtifact from "../artifacts/contracts/ERC20.sol/FunToken.json"  assert { type: 'json' };
+import * as accountControllerArtifact from "../artifacts/contracts/AccountController.sol/AccountController.json"  assert { type: 'json' };
+import {
+    account1,
+    BabyJubJubUtils,
+    createAndWriteToml,
+    fromRprLe,
+    runNargoProve,
+    getAddEthSignerProof
+} from "boj-utils";
 import { hardhat } from "viem/chains";
 
-
-// const viem = hre.viem;
 const babyjub = new BabyJubJubUtils();
-let convertedAmount: bigint;
 
 let privateTokenAddress: `0x${string}`;
 let tokenAddress: `0x${string}`;
@@ -40,7 +50,9 @@ describe("Private Token integration testing", async function () {
 
         createAndWriteToml("add_eth_signer", proofInputs);
         await runNargoProve("add_eth_signer", "Test.toml");
-        const proof = await getAddEthSignerProof();
+        // currently fetches proof from ./proofs
+        // pwd is ./packages/hardhat
+        const proof = await getAddEthSignerProof("../../");
         const hash = await accountController.write.addEthController([account1.packedPublicKey, sender.account.address, proof])
 
         let controllerAddress = await accountController.read.ethController([account1.packedPublicKey])
@@ -51,22 +63,23 @@ describe("Private Token integration testing", async function () {
 async function getContracts() {
     const wallet = createWalletClient({
         chain: hardhat,
-        transport: http()
+        transport: http(),
+        account: '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'
     })
     const publicClient = createPublicClient({
         chain: hardhat,
         transport: http()
     })
     let privateToken = await getContract({
-        abi: privateTokenAbi,
+        abi: bojArtifact.default.abi,
         address: privateTokenAddress,
         client: {
             wallet,
             public: publicClient
         }
     });
-    let token = await getContract({ abi: tokenAbi, address: tokenAddress, client: { wallet, public: publicClient } });
-    const accountController = await getContract({ abi: accountControllerAbi, address: accountControllerAddress, client: { wallet, public: publicClient } })
+    let token = await getContract({ abi: tokenArtifact.default.abi, address: tokenAddress, client: { wallet, public: publicClient } });
+    const accountController = await getContract({ abi: accountControllerArtifact.default.abi, address: accountControllerAddress, client: { wallet, public: publicClient } })
     return {
         privateToken,
         token,

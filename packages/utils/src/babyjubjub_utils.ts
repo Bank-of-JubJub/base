@@ -11,7 +11,7 @@ Pack and unpack functions arent working properly for some reason.
 export type BigNumberish = string | bigint | number | Uint8Array;
 export type PointObject = { x: bigint; y: bigint };
 
-export default class BabyJubJubUtils {
+export class BabyJubJubUtils {
   private babyJub: any;
 
   constructor() {
