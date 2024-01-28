@@ -51,11 +51,8 @@ jobs:
       - name: Copy verifiers to Hardhat
         run: ./copy_verifiers.sh
 
-      - name: Install dependencies
+      - name: Setup yarn workspace
         run: yarn install
 
-      - name: Start hardhat node
-        run: cd packages/hardhat && yarn hardhat node
-
-      - name: Install dependencies and test
-        run: cd packages/hardhat && yarn test
+      - name: Hardhat test
+        run: cd packages/hardhat && yarn hardhat node & yarn test
