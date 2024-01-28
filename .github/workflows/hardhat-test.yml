@@ -52,7 +52,7 @@ jobs:
         run: ./copy_verifiers.sh
 
       - name: Start hardhat node
-        run: npx hardhat node
+        run: cd packages/hardhat && npx hardhat node
 
       - name: Install dependencies and test
         run: yarn && cd packages/hardhat && yarn test
