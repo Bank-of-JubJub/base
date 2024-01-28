@@ -55,4 +55,6 @@ jobs:
         run: yarn install
 
       - name: Hardhat test
-        run: cd packages/hardhat && yarn hardhat node & yarn test
+        run: |
+          cd packages/hardhat && yarn hardhat node & 
+          cd packages/hardhat && yarn test
