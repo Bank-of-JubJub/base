@@ -1,0 +1,16 @@
+{
+  "name": "boj-coordinators",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "dist/coordinators/src/index.js",
+  "types": "./dist/coordinators/src/index.d.ts",
+  "license": "MIT",
+  "dependencies": {
+    "boj-types": "^1.0.0",
+    "boj-utils": "^1.0.0"
+  },
+  "scripts": {
+    "build": "yarn clean && tsc -b",
+    "clean": "rm -rf ./dest tsconfig.tsbuildinfo"
+  }
+}

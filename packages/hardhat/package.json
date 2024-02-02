@@ -1,0 +1,53 @@
+{
+  "name": "boj-hardhat",
+  "description": "This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "directories": {
+    "test": "test"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.3",
+    "@openzeppelin/contracts": "^5.0.0",
+    "@types/chai": "^4.3.9",
+    "@types/circomlibjs": "^0.1.6",
+    "@types/jest": "^29.5.6",
+    "@types/json-bigint": "^1.0.4",
+    "@types/mocha": "^10.0.3",
+    "@types/node": "^20.10.4",
+    "chai": "^4.3.10",
+    "circomlibjs": "^0.1.7",
+    "dotenv": "^16.3.1",
+    "hardhat": "^2.17.0",
+    "hardhat-deploy": "^0.11.44",
+    "hardhat-gas-reporter": "^1.0.9",
+    "json-bigint": "^1.0.0",
+    "mocha": "^10.2.0",
+    "solidity-coverage": "^0.8.5",
+    "solidity-docgen": "^0.6.0-beta.36",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  },
+  "scripts": {
+    "compile": "hardhat compile",
+    "scratch": "ts-node ./test/scratchpad.ts",
+    "test": "NODE_OPTIONS='--experimental-loader ts-node/esm/transpile-only --no-warnings=ExperimentalWarning' hardhat test",
+    "script": "NODE_OPTIONS='--experimental-loader ts-node/esm/transpile-only --no-warnings=ExperimentalWarning' hardhat run"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "boj-types": "^1.0.0",
+    "boj-utils": "^1.0.0",
+    "boj-coordinators": "^1.0.0",
+    "@iarna/toml": "^2.2.5",
+    "@nomicfoundation/hardhat-toolbox-viem": "^1.0.0",
+    "@nomicfoundation/hardhat-viem": "1.0.2",
+    "abitype": "0.10.1",
+    "ethers": "^6.10.0",
+    "viem": "2.4.0"
+  }
+}
