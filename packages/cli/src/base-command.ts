@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import BabyJubJubUtils from './utils/babyJubjubUtils.js';
+import { BabyJubJubUtils } from 'boj-utils';
 import { PublicClient, createWalletClient, toBytes, toHex, createPublicClient, http, WalletClient, Chain, isAddress, PrivateKeyAccount } from 'viem';
 import { mainnet, arbitrumSepolia, hardhat } from 'viem/chains'
 import { privateKeyToAccount } from 'viem/accounts';

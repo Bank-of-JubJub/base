@@ -2,7 +2,7 @@ import { Args, Flags } from '@oclif/core'
 import { BaseCommand } from '../base-command.js'
 import { getContract } from 'viem'
 import { abi as bojAbi } from '../../../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json'
-import { delay } from '../utils/utils.js'
+import { delay } from 'boj-utils'
 
 export default class Deposit extends BaseCommand<typeof Deposit> {
   static description = 'deposit tokens in a bank of jubjub contract'

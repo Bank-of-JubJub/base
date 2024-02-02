@@ -13,6 +13,9 @@
   },
   "description": "Simple CLI tool to interact with the Bank of Jubjub",
   "devDependencies": {
+    "boj-types": "^1.0.0",
+    "boj-utils": "^1.0.0",
+    "boj-coordinators": "^1.0.0",
     "@oclif/prettier-config": "^0.2.1",
     "@oclif/test": "^3",
     "@types/chai": "^4",

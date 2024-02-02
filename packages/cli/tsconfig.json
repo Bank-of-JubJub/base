@@ -12,7 +12,7 @@
     "exactOptionalPropertyTypes": true,
     "strictNullChecks": true
   },
-  "include": ["./src/**/*", "../coordinators/**/*", "../hardhat/artifacts/**/*"],
+  "include": ["./src/**/*", "../coordinators/**/*", "../hardhat/artifacts/**/**/*.json"],
   "ts-node": {
     "esm": true
   }

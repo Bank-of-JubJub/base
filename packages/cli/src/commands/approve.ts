@@ -2,7 +2,7 @@ import { Args, Flags } from '@oclif/core'
 import { BaseCommand } from '../base-command.js'
 import { getContract } from 'viem'
 import { abi as tokenAbi } from '../../../hardhat/artifacts/contracts/ERC20.sol/FunToken.json'
-import { delay } from '../utils/utils.js'
+import { delay } from 'boj-utils'
 
 export default class Approve extends BaseCommand<typeof Approve> {
     static description = 'approve an erc20'

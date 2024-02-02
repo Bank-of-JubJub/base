@@ -2,8 +2,8 @@ import { Args, Flags } from '@oclif/core'
 import { BaseCommand } from '../base-command.js'
 import { getContract } from 'viem'
 import { abi as bojAbi } from '../../../hardhat/artifacts/contracts/PrivateToken.sol/PrivateToken.json'
-import { delay } from '../utils/utils.js'
-import { ProcessDepositCoordinator } from "../../../coordinators/ProcessDepositCoordinator.js";
+import { delay } from 'boj-utils'
+import { ProcessDepositCoordinator } from "boj-coordinators";
 
 export default class Deposit extends BaseCommand<typeof Deposit> {
   static description = 'process deposits'
