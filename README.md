@@ -71,8 +71,14 @@ nargo codegen-verifier --workspace && ./copy_verifiers.sh
 
 Then run:
 
+in one terminal:
+
 ```bash
-cd hardhat && yarn && yarn test
+npx hardhat node
+```
+
+```bash
+cd packages/hardhat && yarn && yarn test
 ```
 
 ![gate count](gate_count.png)

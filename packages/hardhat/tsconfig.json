@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "outDir": "dist",
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  },
+  "ts-node": {
+    "experimentalResolver": true,
+    "files": true // only if you have "files", "include" or "exclude" in your config
+  },
+  "include": [
+    "./scripts",
+    "./test/*",
+    "./artifacts",
+    "./utils",
+    "../circuits/",
+    "utils/generateNargoProof.ts",
+    "coordinators/TransferCoordinator.ts"
+  ],
+  "files": ["hardhat.config.cts"]
+}
