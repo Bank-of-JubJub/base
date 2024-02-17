@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "module": "Node16",
+    "outDir": "dist",
+    "rootDir": "../..",
+    "target": "es2022",
+    "moduleResolution": "node16",
+    "composite": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "exactOptionalPropertyTypes": true,
+    "strictNullChecks": true
+  },
+  "include": ["./src/**/*", "../coordinators/**/*", "../hardhat/artifacts/**/**/*.json"],
+  "ts-node": {
+    "esm": true
+  }
+}
