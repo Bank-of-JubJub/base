@@ -52,8 +52,8 @@ describe("Private Token integration testing", async function () {
         // currently fetches proof from ./proofs
         // pwd is ./packages/hardhat
         const proof = await getAddEthSignerProof();
-        const hash = await accountController.write.addEthController([account1.packedPublicKey, sender.account.address, proof])
 
+        const hash = await accountController.write.addEthController([account1.packedPublicKey, sender.account.address, proof])
         let controllerAddress = await accountController.read.ethController([account1.packedPublicKey])
         expect(controllerAddress == sender.account, "controller should be the sender")
     })

@@ -9,7 +9,7 @@ LOCATIONS=(
     "add_eth_signer"
 )
 
-DEST_PATH="hardhat/contracts/"
+DEST_PATH="packages/hardhat/contracts/"
 
 # Loop through each source path in PATHS
 for LOCATION in "${LOCATIONS[@]}"; do
@@ -18,7 +18,7 @@ for LOCATION in "${LOCATIONS[@]}"; do
     if [[ -f "$SRC_PATH" ]]; then
         # Extract the folder name from the source path
         FOLDER_NAME=$(basename "$SRC_PATH")
-        echo  "$DEST_PATH/{$LOCATION}/"
+        echo "$DEST_PATH/{$LOCATION}/"
         # Use the cp command with the -r (recursive) option to copy the folder
         mkdir -p "$DEST_PATH/$LOCATION"
         cp -r "$SRC_PATH" "$DEST_PATH/$LOCATION/plonk_vk.sol"
