@@ -1,7 +1,6 @@
-import { assert, expect } from "chai";
-import { getContract, bytesToBigInt, hexToBigInt, toHex } from "viem";
+import { expect } from "chai";
+import { getContract, toHex, createWalletClient, http, createPublicClient } from "viem";
 import hre from "hardhat";
-import { deployContracts } from "../scripts/deploy.ts";
 import * as bojArtifact from "../artifacts/contracts/PrivateToken.sol/PrivateToken.json"  assert { type: 'json' };
 import * as tokenArtifact from "../artifacts/contracts/ERC20.sol/FunToken.json"  assert { type: 'json' };
 import * as accountControllerArtifact from "../artifacts/contracts/AccountController.sol/AccountController.json"  assert { type: 'json' };
@@ -15,18 +14,10 @@ import {
 } from "boj-utils";
 import { hardhat } from "viem/chains";
 
-} from "../utils/constants.ts";
 import { deployContracts } from "../scripts/deploy.ts";
-import { abi as privateTokenAbi } from "../artifacts/contracts/PrivateToken.sol/PrivateToken.json"
-import { abi as tokenAbi } from "../artifacts/contracts/ERC20.sol/FunToken.json"
-import { abi as accountControllerAbi } from "../artifacts/contracts/AccountController.sol/AccountController.json"
-import { fromRprLe } from "../utils/utils.ts";
-import { createAndWriteToml } from "../../createToml.ts";
-import { runNargoProve } from "../utils/generateNargoProof.ts";
-import { getAddEthSignerProof } from "../utils/config.ts";
 import { BarretenbergBackend } from '@noir-lang/backend_barretenberg';
 import { Noir } from '@noir-lang/noir_js';
-import circuit from "../../target/add_eth_signer.json"
+import circuit from "../../../target/add_eth_signer.json" assert { type: "json" }
 
 // const viem = hre.viem;
 const babyjub = new BabyJubJubUtils();
