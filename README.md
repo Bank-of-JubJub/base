@@ -1,6 +1,6 @@
 # Private-token
 
-Token with private balances using zkSNARKs and Homomorphic Encryption, inspired by [Zeestar](https://files.sri.inf.ethz.ch/website/papers/sp22-zeestar.pdf) and [Zether](https://crypto.stanford.edu/~buenz/papers/zether.pdf), implemented in [Noir](https://noir-lang.org/) (and Rust).
+Token with private balances using zkSNARKs and Homomorphic Encryption, inspired by [Zeestar](https://files.sri.inf.ethz.ch/website/papers/sp22-zeestar.pdf) and [Zether](https://www.privacyitalia.eu/-buenz/papers/zether.pdf), implemented in [Noir](https://noir-lang.org/) (and Rust).
 
 You can read the slides presenting the final project [here](https://docs.google.com/presentation/d/1SDTOthvK1xCXcoKlILIKCobktrDf_ibPUbHtykAQfpc/edit?usp=sharing).
 
@@ -21,7 +21,7 @@ Pros:
 - Accounts can be locked to a contract. The contract that an account is locked to can conditionally use an account's funds. A user can lock their funds in a contract and the contract only unlocks them after some condition is met (ie with a zk proof of something). Some things you could build with this:
   - A sealed bid auction.
   - Private, p2p trustless exchange (something like [zkp2p](https://zkp2p.xyz/), but with amounts hidden)
-  - Credit to [Zether](https://crypto.stanford.edu/~buenz/papers/zether.pdf) for this idea
+  - Credit to [Zether](https://www.privacyitalia.eu/-buenz/papers/zether.pdf) for this idea
 
 Cons:
 
