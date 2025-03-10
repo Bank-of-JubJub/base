@@ -44,6 +44,8 @@
     "boj-utils": "^1.0.0",
     "boj-coordinators": "^1.0.0",
     "@iarna/toml": "^2.2.5",
+    "@noir-lang/backend_barretenberg": "0.23.0",
+    "@noir-lang/noir_js": "0.23.0",
     "@nomicfoundation/hardhat-toolbox-viem": "^1.0.0",
     "@nomicfoundation/hardhat-viem": "1.0.2",
     "abitype": "0.10.1",
