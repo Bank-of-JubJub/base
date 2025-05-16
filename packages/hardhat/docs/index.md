@@ -205,8 +205,8 @@ Constructor - setup up verifiers and link to token
 function deposit(address _from, uint256 _amount, bytes32 _to, uint40 _processFee) public
 ```
 
-Deposits the assocated token into the contract to be used privately.
-The deposited amount is pushed to the recepients PendingDeposits queue. The fee
+Deposits the associated token into the contract to be used privately.
+The deposited amount is pushed to the recipients PendingDeposits queue. The fee
 is the amount that will be paid to the processor of the tx (when processPendingDeposits
 is called)
 This function converts the token to 2 decimal places, the remainder is lost.
@@ -270,7 +270,7 @@ not be locked to a contract to call this function.
 @param \_amount - amount to withdraw
 @param \_relayFee - (optional, can be 0) amount to pay the relayer of the tx, if the sender of
 the ETH tx is not the creator of the proof. sharing of the proof can happen in off-chain channels
-the relayer can check that they will get the fee by verifing the proof off-chain before submitting the tx
+the relayer can check that they will get the fee by verifying the proof off-chain before submitting the tx
 
 #### Parameters
 
@@ -325,7 +325,7 @@ amounts to add. All of the fees are summed and sent to the \_feeRecipient
 | Name           | Type                                | Description                                                               |
 | -------------- | ----------------------------------- | ------------------------------------------------------------------------- |
 | \_proof        | bytes                               | - proof to verify with the ProcessPendingTransfers circuit                |
-| \_txsToProcess | uint8[]                             | - the indexs of the userPendingTransfersArray to process; max length 4    |
+| \_txsToProcess | uint8[]                             | - the indexes, indices of the userPendingTransfersArray to process; max length 4    |
 | \_feeRecipient | address                             | - the recipient of the fees (typically the processor of these txs)        |
 | \_recipient    | bytes32                             | - the recipient of the pending transfers within the system                |
 | \_newBalance   | struct PrivateToken.EncryptedAmount | - the new balance of the recipient after processing the pending transfers |
@@ -346,7 +346,7 @@ locked contracts cannot transfer or withdraw funds.
 | -------------------- | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | \_from               | bytes32                             |                                                                                                                                                                                                                                                                                          |
 | \_lockToContract     | address                             | - the contract to lock the account to                                                                                                                                                                                                                                                    |
-| \_relayFee           | uint40                              | - (optional, can be 0) amount to pay the relayer of the tx, if the sender of the ETH tx is not the creator of the proof. sharing of the proof can happen in off-chain channels the relayer can check that they will get the fee by verifing the proof off-chain before submitting the tx |
+| \_relayFee           | uint40                              | - (optional, can be 0) amount to pay the relayer of the tx, if the sender of the ETH tx is not the creator of the proof. sharing of the proof can happen in off-chain channels the relayer can check that they will get the fee by verifying the proof off-chain before submitting the tx |
 | \_relayFeeRecipient  | address                             | - the recipient of the relay fee                                                                                                                                                                                                                                                         |
 | \_proof              | bytes                               | - proof to verify with the ProcessPendingTransfers circuit                                                                                                                                                                                                                               |
 | \_newEncryptedAmount | struct PrivateToken.EncryptedAmount | - the new encrypted balance of the sender after the fee                                                                                                                                                                                                                                  |
